@@ -3,7 +3,7 @@
 
 ```
 src/third            网络消息处理、定时器、日志等
-src/router           路由服，服务注册登记
+src/router           路由服，服务注册，数据转发等全局功能
 src/gateway          网关服，负责客户端消息转发、负载均衡
 src/main/config.xml  相关配置，如数据库账号密码，路由服地址等
 ```
