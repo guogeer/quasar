@@ -39,7 +39,7 @@
 		<Server>
 			<Name>router</Name>
 			<!--必须使用外网地址-->
-			<Address>8.8.8.8:9000</Address>
+			<Address>127.0.0.1:7001</Address>
 		</Server>
 	</ServerList>
 </Config>

@@ -63,7 +63,7 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 	newServer := &Server{
 		out:      ctx.Out,
 		name:     args.ServerName,
-		addr:     args.ServerAddr,
+		addr:     addr,
 		data:     args.ServerData,
 		isCenter: args.IsCenter,
 	}
