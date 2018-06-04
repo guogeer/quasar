@@ -3,8 +3,8 @@ package gateway
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/husky/guogeer/cmd"
-	"github.com/husky/guogeer/log"
+	"github.com/guogeer/husky/cmd"
+	"github.com/guogeer/husky/log"
 	"net"
 )
 
