@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	_ "gateway"
 	"github.com/guogeer/husky/cmd"
+	_ "github.com/guogeer/husky/gateway"
 	"github.com/guogeer/husky/log"
 	"github.com/guogeer/husky/util"
 	"net/http"
