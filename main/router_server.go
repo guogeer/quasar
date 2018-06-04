@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 	// "game"
-	"net"
-	_ "router"
-	"runtime"
-	"strconv"
 	"github.com/guogeer/husky/cmd"
 	"github.com/guogeer/husky/env"
 	"github.com/guogeer/husky/log"
+	_ "github.com/guogeer/husky/router"
 	"github.com/guogeer/husky/util"
+	"net"
+	"runtime"
+	"strconv"
 )
 
 func main() {
