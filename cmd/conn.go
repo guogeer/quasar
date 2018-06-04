@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"github.com/guogeer/husky/log"
 	"io"
 	"net"
 	"reflect"
@@ -11,7 +12,6 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"github.com/guogeer/husky/log"
 	"time"
 )
 
@@ -245,7 +245,7 @@ func RegisterServiceInGateway(name string) {
 
 func Bind(h Handler, args interface{}) {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
-	n := strings.IndexByte(name, '.')
+	n := strings.LastIndexByte(name, '.')
 	if n >= 0 {
 		name = name[n+1:]
 	}

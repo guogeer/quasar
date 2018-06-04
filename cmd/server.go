@@ -5,10 +5,10 @@ package cmd
 
 import (
 	"context"
-	"io"
-	"net"
 	"github.com/guogeer/husky/log"
 	"github.com/guogeer/husky/util"
+	"io"
+	"net"
 	"time"
 )
 
@@ -149,7 +149,10 @@ func (c *ServeConn) serve() {
 			}
 
 			id, ssid, data := pkg.Id, pkg.Ssid, pkg.Data
-			GetCmdSet().Handle(&Context{Out: c, Ssid: ssid}, id, data)
+			err = GetCmdSet().Handle(&Context{Out: c, Ssid: ssid}, id, data)
+			if err != nil {
+				log.Debug(err)
+			}
 		}
 	}
 }

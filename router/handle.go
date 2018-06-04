@@ -2,9 +2,9 @@ package router
 
 import (
 	"encoding/json"
-	"net"
 	"github.com/guogeer/husky/cmd"
 	"github.com/guogeer/husky/log"
+	"net"
 )
 
 type Args struct {
@@ -89,6 +89,7 @@ func C2S_GetServerAddr(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
 	name := args.ServerName
 	addr := GetRouter().GetServerAddr(name)
+	log.Debug("get addr", name, addr)
 	ctx.Out.WriteJSON("S2C_GetServerAddr", map[string]string{"ServerName": name, "ServerAddr": addr})
 }
 
