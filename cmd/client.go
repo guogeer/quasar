@@ -7,9 +7,9 @@ import (
 	"net"
 	"strings"
 	"sync"
-	"third/env"
-	"third/log"
-	"third/util"
+	"github.com/guogeer/husky/env"
+	"github.com/guogeer/husky/log"
+	"github.com/guogeer/husky/util"
 	"time"
 )
 

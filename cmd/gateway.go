@@ -8,8 +8,8 @@ import (
 	"github.com/gorilla/websocket"
 	"net/http"
 	"strings"
-	"third/log"
-	"third/util"
+	"github.com/guogeer/husky/log"
+	"github.com/guogeer/husky/util"
 	"time"
 )
 

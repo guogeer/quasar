@@ -7,8 +7,8 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/buger/jsonparser"
-	"third/env"
-	"third/log"
+	"github.com/guogeer/husky/env"
+	"github.com/guogeer/husky/log"
 	"time"
 )
 

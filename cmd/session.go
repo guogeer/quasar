@@ -3,7 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"sync"
-	"third/log"
+	"github.com/guogeer/husky/log"
 )
 
 type Session struct {

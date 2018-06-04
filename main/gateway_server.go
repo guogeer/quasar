@@ -4,11 +4,11 @@ import (
 	"flag"
 	"fmt"
 	_ "gateway"
+	"github.com/guogeer/husky/cmd"
+	"github.com/guogeer/husky/log"
+	"github.com/guogeer/husky/util"
 	"net/http"
 	"runtime"
-	"third/cmd"
-	"third/log"
-	"third/util"
 )
 
 var port = flag.Int("port", 8201, "gateway server port")

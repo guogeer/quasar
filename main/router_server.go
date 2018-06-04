@@ -7,10 +7,10 @@ import (
 	_ "router"
 	"runtime"
 	"strconv"
-	"third/cmd"
-	"third/env"
-	"third/log"
-	"third/util"
+	"github.com/guogeer/husky/cmd"
+	"github.com/guogeer/husky/env"
+	"github.com/guogeer/husky/log"
+	"github.com/guogeer/husky/util"
 )
 
 func main() {

@@ -4,7 +4,7 @@ package util
 
 import (
 	"container/heap"
-	"third/log"
+	"github.com/guogeer/husky/log"
 	"time"
 )
 

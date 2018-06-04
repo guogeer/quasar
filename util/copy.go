@@ -2,7 +2,7 @@ package util
 
 import (
 	. "reflect"
-	"third/log"
+	"github.com/guogeer/husky/log"
 )
 
 // deep copy from struct to struct

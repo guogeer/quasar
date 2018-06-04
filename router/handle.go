@@ -3,8 +3,8 @@ package router
 import (
 	"encoding/json"
 	"net"
-	"third/cmd"
-	"third/log"
+	"github.com/guogeer/husky/cmd"
+	"github.com/guogeer/husky/log"
 )
 
 type Args struct {

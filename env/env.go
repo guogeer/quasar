@@ -5,7 +5,7 @@ package env
 import (
 	"encoding/xml"
 	"io/ioutil"
-	"third/log"
+	"log"
 )
 
 func ConfigLoad(path string, conf interface{}) error {

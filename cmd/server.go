@@ -7,8 +7,8 @@ import (
 	"context"
 	"io"
 	"net"
-	"third/log"
-	"third/util"
+	"github.com/guogeer/husky/log"
+	"github.com/guogeer/husky/util"
 	"time"
 )
 

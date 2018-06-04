@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net/http"
-	"third/log"
+	"github.com/guogeer/husky/log"
 	"time"
 )
 

@@ -1,8 +1,8 @@
 package router
 
 import (
-	"third/cmd"
-	// "third/log"
+	"github.com/guogeer/husky/cmd"
+	// "github.com/guogeer/husky/log"
 	"encoding/json"
 )
 

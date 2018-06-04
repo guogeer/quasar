@@ -1,9 +1,8 @@
 package gateway
 
 import (
-	"github.com/husky/cmd"
-	// "third/log"
-	"github.com/husky/util"
+	"github.com/guogeer/husky/cmd"
+	"github.com/guogeer/husky/util"
 	"time"
 )
 

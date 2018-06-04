@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
-	"third/log"
+	"github.com/guogeer/husky/log"
 	"time"
 )
 
