@@ -4,8 +4,8 @@ package env
 
 import (
 	"encoding/xml"
+	"github.com/guogeer/husky/log"
 	"io/ioutil"
-	"log"
 )
 
 func ConfigLoad(path string, conf interface{}) error {
