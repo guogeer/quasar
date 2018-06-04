@@ -1,11 +1,11 @@
-package gateway_server
+package gateway
 
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/husky/cmd"
+	"github.com/husky/log"
 	"net"
-	"third/cmd"
-	"third/log"
 )
 
 type Args struct {

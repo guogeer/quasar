@@ -1,9 +1,9 @@
-package gateway_server
+package gateway
 
 import (
-	"third/cmd"
+	"github.com/husky/cmd"
 	// "third/log"
-	"third/util"
+	"github.com/husky/util"
 	"time"
 )
 
