@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"net"
-	"strings"
-	"sync"
 	"github.com/guogeer/husky/env"
 	"github.com/guogeer/husky/log"
 	"github.com/guogeer/husky/util"
+	"net"
+	"strings"
+	"sync"
 	"time"
 )
 
@@ -349,7 +349,6 @@ func request(serverName string, messageId string, i interface{}) (interface{}, e
 		if err != nil {
 			return nil, err
 		}
-		log.Debug("read", string(buf[3:]))
 		if mt == RawMessage {
 			pkg, err := gRawParser.Decode(buf)
 			if err != nil {
