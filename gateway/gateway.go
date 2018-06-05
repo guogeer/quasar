@@ -1,4 +1,4 @@
-package gateway
+package main
 
 import (
 	"github.com/guogeer/husky/cmd"
