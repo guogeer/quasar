@@ -2,6 +2,3 @@ language: go
 
 go:
 	- "1.10.x"
-
-before_install:
-	  - if [[ "$TRAVIS_GO_VERSION" = 1.10* ]]; then ./vet.sh -install || exit 1; fi
