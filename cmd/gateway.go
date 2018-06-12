@@ -6,10 +6,9 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	"net/http"
-	"strings"
 	"github.com/guogeer/husky/log"
 	"github.com/guogeer/husky/util"
+	"net/http"
 	"time"
 )
 
@@ -171,11 +170,4 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-}
-
-func IsGateway(name string) bool {
-	if strings.Index(name, "gateway") >= 0 {
-		return true
-	}
-	return false
 }

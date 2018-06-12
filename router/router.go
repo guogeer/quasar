@@ -7,23 +7,21 @@ import (
 )
 
 type Server struct {
-	out        cmd.Conn
-	name, addr string
-	weight     int
-	isCenter   bool // center server
+	out             cmd.Conn
+	weight          int
+	name, addr, typ string
 
 	data json.RawMessage
 }
 
 type Router struct {
-	ServerList  map[string]*Server
-	GatewayList map[string]*Server
-	// SubGameList map[string]SubGame
+	servers  map[string]*Server
+	gateways map[string]*Server
 }
 
 var defaultRouter = &Router{
-	ServerList:  make(map[string]*Server),
-	GatewayList: make(map[string]*Server),
+	servers:  make(map[string]*Server),
+	gateways: make(map[string]*Server),
 	// SubGameList: make(map[string]cmd.Writer),
 }
 
@@ -36,7 +34,7 @@ func (r *Router) GetBestGateway() string {
 		addr   string
 		weight int
 	)
-	for host, gw := range r.GatewayList {
+	for host, gw := range r.gateways {
 		if len(addr) == 0 || gw.weight < weight {
 			addr = host
 			weight = gw.weight
@@ -48,29 +46,29 @@ func (r *Router) GetBestGateway() string {
 
 func (r *Router) GetServerAddr(name string) string {
 	var addr string
-	if server, ok := r.ServerList[name]; ok {
+	if server, ok := r.servers[name]; ok {
 		addr = server.addr
 	}
 	return addr
 }
 
 func (r *Router) GetServer(name string) *Server {
-	if server, ok := r.ServerList[name]; ok {
+	if server, ok := r.servers[name]; ok {
 		return server
 	}
 	return nil
 }
 
 func (r *Router) Remove(out cmd.Conn) {
-	for addr, server := range r.GatewayList {
+	for addr, server := range r.gateways {
 		if server.out == out {
-			delete(r.GatewayList, addr)
+			delete(r.gateways, addr)
 			break
 		}
 	}
-	for name, server := range r.ServerList {
+	for name, server := range r.servers {
 		if server.out == out {
-			delete(r.ServerList, name)
+			delete(r.servers, name)
 			break
 		}
 	}
@@ -79,15 +77,29 @@ func (r *Router) Remove(out cmd.Conn) {
 func (r *Router) AddServer(server *Server) {
 	name := server.name
 	addr := server.addr
-	if cmd.IsGateway(name) {
-		r.GatewayList[addr] = server
+	if server.typ == "gateway" {
+		r.gateways[addr] = server
 	} else {
-		r.ServerList[name] = server
+		r.servers[name] = server
 	}
 }
 
 func (r *Router) Broadcast(pkg *cmd.Package) {
-	for _, gw := range r.GatewayList {
+	for _, gw := range r.gateways {
 		gw.out.WriteJSON("FUNC_Broadcast", pkg)
 	}
+}
+
+func (r *Router) GetServerByAddr(addr string) *Server {
+	for _, server := range r.gateways {
+		if server.addr == addr {
+			return server
+		}
+	}
+	for _, server := range r.servers {
+		if server.addr == addr {
+			return server
+		}
+	}
+	return nil
 }

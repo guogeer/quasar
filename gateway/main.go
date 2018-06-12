@@ -17,11 +17,20 @@ func main() {
 	flag.Parse()
 	log.Infof("start gateway, listen %d", *port)
 	addr := fmt.Sprintf("%s:%d", *proxy, *port)
-	cmd.RegisterService("ws_gateway", addr, nil)
+	cfg := &cmd.ServiceConfig{
+		ServerName: "ws_gateway",
+		ServerAddr: addr,
+		ServerType: "gateway",
+	}
+	cmd.RegisterService(cfg)
 
 	addr = fmt.Sprintf(":%d", *port)
 	http.HandleFunc("/ws", cmd.ServeWs)
-	go func() { http.ListenAndServe(addr, nil) }()
+	go func() {
+		if err := http.ListenAndServe(addr, nil); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -33,7 +42,6 @@ func main() {
 		}
 	}()
 
-	log.Infof("start ....")
 	for {
 		util.TickTimerRun()
 		// handle message

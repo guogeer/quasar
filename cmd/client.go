@@ -206,23 +206,14 @@ func Route(serverName, messageId string, data interface{}) {
 	GetClientManage().Route3(serverName, messageId, data)
 }
 
-func RegisterServiceByConfig(config *ServiceConfig) {
+func RegisterService(config *ServiceConfig) {
 	GetClientManage().RegisterService(config)
-}
-
-func RegisterService(name, addr string, data interface{}) {
-	args := &ServiceConfig{
-		ServerName: name,
-		ServerAddr: addr,
-		ServerData: data,
-	}
-	GetClientManage().RegisterService(args)
 }
 
 type ServiceConfig struct {
 	ServerName string
 	ServerAddr string
-	IsCenter   bool // center server
+	ServerType string // center,gateway etc
 	ServerData interface{}
 }
 

@@ -66,6 +66,7 @@ type XMLConfig struct {
 	ProductKey  string
 	ProductName string
 	ServerID    string
+	Proxy       string // 代理地址
 	path        string
 }
 
