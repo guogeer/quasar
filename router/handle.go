@@ -12,12 +12,7 @@ type Args struct {
 	ServerAddr string
 	ServerData json.RawMessage
 	ServerType string
-
-	Nickname string
-	Type     int
-	Info     string
-	// SubGame    SubGame
-	Weight int
+	Weight     int
 }
 
 func init() {
@@ -42,31 +37,7 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 	if port != "" {
 		addr = host + ":" + port
 	}
-	log.Info("register ...", args.ServerName, addr)
-
-	// check addr register
-	oldServer := GetRouter().GetServerByAddr(addr)
-	if addr != "" && oldServer != nil && oldServer.name != args.ServerName {
-		log.Errorf("server %s attemp to register addr %s of %s", args.ServerName, addr, oldServer.name)
-		return
-	}
-	// center server
-	if args.ServerType == "center" {
-		for _, server := range GetRouter().servers {
-			ctx.Out.WriteJSON("S2C_AddGame", map[string]interface{}{
-				"Name": server.name,
-				"Data": server.data,
-			})
-		}
-	}
-	for _, server := range GetRouter().servers {
-		if server.typ == "center" && server.name != args.ServerName {
-			server.out.WriteJSON("S2C_AddGame", map[string]interface{}{
-				"Name": args.ServerName,
-				"Data": server.data,
-			})
-		}
-	}
+	log.Info("register", args.ServerName, addr)
 
 	newServer := &Server{
 		out:  ctx.Out,
@@ -75,19 +46,36 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 		data: args.ServerData,
 		typ:  args.ServerType,
 	}
+	// center server
+	if newServer.typ == "center" {
+		for _, server := range GetRouter().servers {
+			ctx.Out.WriteJSON("S2C_AddGame", map[string]interface{}{
+				"Name": server.name,
+				"Data": server.data,
+			})
+		}
+	}
+	for _, server := range GetRouter().servers {
+		if server.typ == "center" && server.name != newServer.name {
+			server.out.WriteJSON("S2C_AddGame", map[string]interface{}{
+				"Name": newServer.name,
+				"Data": newServer.data,
+			})
+		}
+	}
+
 	GetRouter().AddServer(newServer)
 	// 向网关注册服务
-	if args.ServerType == "gateway" {
+	if newServer.typ == "gateway" {
 		for _, server := range GetRouter().servers {
 			ctx.Out.WriteJSON("FUNC_RegisterServiceInGateway", map[string]interface{}{
 				"Name": server.name,
 			})
 		}
-	} else if len(args.ServerAddr) > 0 {
-		log.Info("route server", args.ServerName)
+	} else if newServer.addr != "" {
 		for _, gw := range GetRouter().gateways {
 			gw.out.WriteJSON("FUNC_RegisterServiceInGateway", map[string]interface{}{
-				"Name": args.ServerName,
+				"Name": newServer.name,
 			})
 		}
 	}

@@ -89,17 +89,3 @@ func (r *Router) Broadcast(pkg *cmd.Package) {
 		gw.out.WriteJSON("FUNC_Broadcast", pkg)
 	}
 }
-
-func (r *Router) GetServerByAddr(addr string) *Server {
-	for _, server := range r.gateways {
-		if server.addr == addr {
-			return server
-		}
-	}
-	for _, server := range r.servers {
-		if server.addr == addr {
-			return server
-		}
-	}
-	return nil
-}
