@@ -144,7 +144,7 @@ func (tm *timerManage) NewPeriodTimer(f func(), startTimeString string, period t
 		startTime: startTime,
 		period:    period,
 	}
-	tm.h.Push(timer)
+	heap.Push(&tm.h, timer)
 	return timer
 }
 
