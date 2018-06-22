@@ -91,7 +91,10 @@ func (c *Client) start() {
 			}
 
 			id, ssid, data := pkg.Id, pkg.Ssid, pkg.Data
-			GetCmdSet().Handle(&Context{Out: c, Ssid: ssid}, id, data)
+			err = GetCmdSet().Handle(&Context{Out: c, Ssid: ssid}, id, data)
+			if err != nil {
+				log.Infof("handle message[%s] %v", id, err)
+			}
 		}
 	}
 }
