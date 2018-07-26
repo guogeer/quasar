@@ -49,6 +49,10 @@ func (timer *Timer) Expire() time.Time {
 	return timer.t
 }
 
+func (timer *Timer) IsValid() bool {
+	return timer != nil && timer.pos >= 0
+}
+
 type timerManage struct {
 	h TimerHeap
 }
