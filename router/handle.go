@@ -46,6 +46,7 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 		data: args.ServerData,
 		typ:  args.ServerType,
 	}
+	GetRouter().AddServer(newServer)
 	// center server
 	if newServer.typ == "center" {
 		for _, server := range GetRouter().servers {
@@ -64,7 +65,6 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 		}
 	}
 
-	GetRouter().AddServer(newServer)
 	// 向网关注册服务
 	if newServer.typ == "gateway" {
 		for _, server := range GetRouter().servers {
