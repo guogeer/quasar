@@ -3,22 +3,22 @@ package util
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/guogeer/husky/log"
 	"io/ioutil"
 	"math"
 	"net/http"
-	"github.com/guogeer/husky/log"
 	"time"
 )
 
 // {"code":"0","data":{"ip":"183.14.132.213","country":"中国","area":"","region":"广东","city":"深圳","county":"XX","isp":"电信","country_id":"CN","area_id":"","region_id":"440000","city_id":"440300","county_id":"xx","isp_id":"100017"}}
 
 type TaobaoGeoInfo struct {
-	IP      string `json:"ip"`
-	Country string `json:"region"`
-	City    string `json:"city"`
+	IP     string `json:"ip"`
+	Region string `json:"region"`
+	City   string `json:"city"`
 }
 
-type TaobaoGeoArgs struct {
+type taobaoGeoArgs struct {
 	Code int           `json:"code"`
 	Data TaobaoGeoInfo `json:"data"`
 }
@@ -41,12 +41,12 @@ func GetIPAddress(ip string) string {
 		return addr
 	}
 
-	var m TaobaoGeoArgs
+	var m taobaoGeoArgs
 	err = json.Unmarshal(body, &m)
 	if err != nil {
-		log.Debugf("%v %s", err, body)
+		log.Errorf("%v %s", err, body)
 	}
-	return m.Data.City
+	return m.Data.Region + m.Data.City
 }
 
 // 通过经纬度计算距离，单位m
