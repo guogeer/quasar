@@ -46,6 +46,9 @@ func GetIPAddress(ip string) string {
 	if err != nil {
 		log.Errorf("%v %s", err, body)
 	}
+	if m.Data.Region == m.Data.City {
+		return m.Data.City
+	}
 	return m.Data.Region + m.Data.City
 }
 
