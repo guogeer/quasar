@@ -106,7 +106,7 @@ func (c *ServeConn) serve() {
 					return
 				}
 			case <-ticker.C: // heart beat
-				ping := NewMessageBytes(PingMessage, nil)
+				ping, _ := NewMessageBytes(PingMessage, nil)
 				if _, err := c.rwc.Write(ping); err != nil {
 					return
 				}

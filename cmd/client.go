@@ -127,7 +127,9 @@ func (cm *ClientManage) Route(serverName string, data []byte) {
 		cm.queryServerAddr(serverName)
 	}
 
-	client.Write(data)
+	if err := client.Write(data); err != nil {
+		log.Errorf("route %s data %d error: %v", serverName, len(data), err)
+	}
 }
 
 func (cm *ClientManage) queryServerAddr(serverName string) {

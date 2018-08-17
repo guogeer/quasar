@@ -5,6 +5,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/guogeer/husky/log"
 	"github.com/guogeer/husky/util"
@@ -47,33 +48,31 @@ func (c *WsConn) Close() {
 	close(c.send)
 }
 
-func (c *WsConn) WriteJSON(name string, i interface{}) {
+func (c *WsConn) WriteJSON(name string, i interface{}) error {
 	s, err := MarshalJSON(i)
 	if err != nil {
-		log.Debug(err)
-		return
+		return err
 	}
 
 	// 消息格式
 	pkg := &Package{Id: name, Data: s}
 	buf, err := json.Marshal(pkg)
 	if err != nil {
-		log.Debug(err)
-		return
+		return err
 	}
-	c.Write(buf)
+	return c.Write(buf)
 }
 
-func (c *WsConn) Write(data []byte) {
+func (c *WsConn) Write(data []byte) error {
 	if c.isClose {
-		return
+		return nil
 	}
 
 	select {
 	case c.send <- data:
-	default:
-		log.Error("write time out")
+		return nil
 	}
+	return errors.New("write too busy")
 }
 
 func (c *WsConn) writeMessage(mt int, payload []byte) error {

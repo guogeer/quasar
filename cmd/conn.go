@@ -88,35 +88,39 @@ func (c *TCPConn) ReadMessage() (mt uint8, buf []byte, err error) {
 	return
 }
 
-func (c *TCPConn) WriteJSON(name string, i interface{}) {
+func (c *TCPConn) WriteJSON(name string, i interface{}) error {
 	// 4K缓存
 	s, err := MarshalJSON(i)
 	if err != nil {
-		return
+		return err
 	}
 	// 消息格式
 	pkg := &Package{Id: name, Data: s}
 	buf, err := json.Marshal(pkg)
 	if err != nil {
-		return
+		return err
 	}
-	c.Write(buf)
+	return c.Write(buf)
 }
 
-func (c *TCPConn) Write(data []byte) {
+func (c *TCPConn) Write(data []byte) error {
 	if c.isClose == true {
-		return
+		return nil
 	}
-	buf := NewMessageBytes(RawMessage, data)
-	c.writeMessage(buf)
+	buf, err := NewMessageBytes(RawMessage, data)
+	if err != nil {
+		return err
+	}
+	return c.writeMessage(buf)
 }
 
-func (c *TCPConn) writeMessage(msg []byte) {
+func (c *TCPConn) writeMessage(msg []byte) error {
 	select {
 	case c.send <- msg:
 	default:
-		log.Errorf("write too busy %s", string(msg))
+		return errors.New("write too busy")
 	}
+	return nil
 }
 
 type Handler func(*Context, interface{})

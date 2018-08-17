@@ -13,8 +13,8 @@ import (
 )
 
 type Conn interface {
-	Write([]byte)
-	WriteJSON(string, interface{})
+	Write([]byte) error
+	WriteJSON(string, interface{}) error
 	RemoteAddr() string
 	Close()
 }
@@ -117,7 +117,7 @@ func (parser *authParser) Encode(pkg *Package) ([]byte, error) {
 	if _, err := parser.Signature(buf); err != nil {
 		return nil, err
 	}
-	return NewMessageBytes(AuthMessage, buf), nil
+	return NewMessageBytes(AuthMessage, buf)
 }
 
 func (parser *authParser) Decode(buf []byte) (*Package, error) {
@@ -173,7 +173,7 @@ func (parser *rawParser) Encode(pkg *Package) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewMessageBytes(RawMessage, buf), nil
+	return NewMessageBytes(RawMessage, buf)
 }
 
 func (parser *rawParser) Decode(buf []byte) (*Package, error) {
@@ -263,12 +263,15 @@ func MarshalJSON(i interface{}) ([]byte, error) {
 	return json.Marshal(i)
 }
 
-func NewMessageBytes(mt int, data []byte) []byte {
+func NewMessageBytes(mt int, data []byte) ([]byte, error) {
+	if len(data) > maxMessageSize {
+		return nil, errors.New("too big message")
+	}
 	buf := make([]byte, len(data)+3)
 	// 协议头
 	copy(buf, []byte{byte(mt), 0x0, 0x0})
 	binary.BigEndian.PutUint16(buf[1:3], uint16(len(data)))
 	// 协议数据
 	copy(buf[3:], data)
-	return buf
+	return buf, nil
 }
