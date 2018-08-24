@@ -31,10 +31,10 @@ func init() {
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	log.Debugf("session close %s", ctx.Ssid)
-	if serverName, ok := sessionLocation[ctx.Ssid]; ok {
+	if serverName, ok := gSessionLocation[ctx.Ssid]; ok {
 		ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
 		ss.Route(serverName, "Close", struct{}{})
-		delete(sessionLocation, ctx.Ssid)
+		delete(gSessionLocation, ctx.Ssid)
 	}
 }
 
@@ -47,7 +47,7 @@ func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
 	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
 		addr := ss.Out.RemoteAddr()
 		log.Debug("hello gateway", addr)
-		sessionLocation[ctx.Ssid] = args.ServerName
+		gSessionLocation[ctx.Ssid] = args.ServerName
 		if host, _, err := net.SplitHostPort(addr); err == nil {
 			ip = host
 		}
