@@ -30,7 +30,7 @@ var (
 	defaultLogPath           = getDefaultLogPath()
 	defaultLogLevel          = LDebug
 	fileLog         *FileLog = NewFileLog(defaultLogPath, defaultLogLevel)
-	LogTag                   = []string{"", "TEST", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
+	logTags                  = []string{"", "TEST", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
 )
 
 // default path
@@ -112,11 +112,25 @@ func (l *FileLog) Output(level int, s string) {
 	if l.logger == nil {
 		panic("Log output path unset")
 	}
-	s = fmt.Sprintf("[%s] %s", LogTag[level], s)
+	s = fmt.Sprintf("[%s] %s", logTags[level], s)
 	l.logger.Output(3, s)
 	if enableDebug {
 		log.Output(3, s)
 	}
+}
+
+func SetLevelByTag(tag string) {
+	lv := 0
+	for k, v := range logTags {
+		if v == tag {
+			lv = k
+			break
+		}
+	}
+	if lv == 0 {
+		panic("invalid log tag: " + tag)
+	}
+	fileLog.Level = lv
 }
 
 func SetLevel(level int) {
