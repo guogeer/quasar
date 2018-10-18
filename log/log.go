@@ -21,9 +21,6 @@ const (
 	LFatal
 	LAll
 )
-const (
-	maxLogCycle = 15
-)
 
 var (
 	enableDebug              = true
@@ -42,19 +39,20 @@ func getDefaultLogPath() string {
 }
 
 type FileLog struct {
-	path     string
-	MaxCycle int
-	Level    int
-	t        time.Time
-	f        *os.File
-	logger   *log.Logger
-	mu       sync.Mutex
+	path   string
+	cycle  int
+	Level  int
+	t      time.Time
+	f      *os.File
+	logger *log.Logger
+	mu     sync.RWMutex
 }
 
 func NewFileLog(path string, level int) *FileLog {
 	l := &FileLog{
 		path:  path,
 		Level: level,
+		cycle: 10,
 	}
 	l.t, _ = time.Parse("2006-01-01", "1900-01-01")
 	f, _ := os.Open(os.DevNull)
@@ -66,20 +64,24 @@ func NewFileLog(path string, level int) *FileLog {
 	return l
 }
 
-func (l *FileLog) NewFile(new_path string) error {
+func (l *FileLog) NewFile(newPath string) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	now := time.Now()
+	// prevent enter again on one day
+	if l.t.YearDay() == now.YearDay() {
+		return nil
+	}
 	if l.f != nil {
 		l.f.Close()
-		os.Rename(l.path, new_path)
+		os.Rename(l.path, newPath)
 	}
-	now := time.Now()
 	n := strings.LastIndexByte(l.path, os.PathSeparator)
 	if n >= 0 {
 		dir := l.path[:n]
 		os.MkdirAll(dir, 0755)
 	}
-	deadline := now.Add(-time.Duration(maxLogCycle) * time.Hour * 24)
+	deadline := now.Add(-time.Duration(l.cycle) * time.Hour * 24)
 	deadlinePath := fmt.Sprintf("%s.%02d-%02d", l.path, deadline.Month(), deadline.Day())
 	// fmt.Println(deadlinePath)
 	if _, err := os.Lstat(deadlinePath); err == nil {
@@ -88,7 +90,6 @@ func (l *FileLog) NewFile(new_path string) error {
 	f, err := os.OpenFile(l.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0664)
 	if err != nil {
 		panic("create log file error")
-		return err
 	}
 	l.f = f
 	l.t = now
@@ -100,14 +101,17 @@ func (l *FileLog) Output(level int, s string) {
 	if level <= 0 || level > LAll {
 		return
 	}
-	if level < l.Level {
+
+	l.mu.RLock()
+	t, minLevel, path := l.t, l.Level, l.path
+	l.mu.RUnlock()
+	if level < minLevel {
 		return
 	}
 	now := time.Now()
-	if l.t.YearDay() != now.YearDay() {
-		newpath := fmt.Sprintf("%s.%02d-%02d", l.path, l.t.Month(), l.t.Day())
-		l.NewFile(newpath)
-		l.t = now
+	if t.YearDay() != now.YearDay() {
+		newPath := fmt.Sprintf("%s.%02d-%02d", path, t.Month(), t.Day())
+		l.NewFile(newPath)
 	}
 	if l.logger == nil {
 		panic("Log output path unset")
@@ -119,25 +123,27 @@ func (l *FileLog) Output(level int, s string) {
 	}
 }
 
-func SetLevelByTag(tag string) {
-	lv := 0
-	for k, v := range logTags {
-		if v == tag {
-			lv = k
-			break
-		}
-	}
-	if lv == 0 {
-		panic("invalid log tag: " + tag)
-	}
-	fileLog.Level = lv
-}
-
-func SetLevel(level int) {
-	if level <= 0 || level > LAll {
+func (l *FileLog) SetLevel(level int) {
+	if level <= 0 || level >= LAll {
 		return
 	}
-	fileLog.Level = level
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	l.Level = level
+}
+
+func getLevelByTag(tag string) int {
+	for k, v := range logTags {
+		if v == tag {
+			return k
+		}
+	}
+	panic("invalid log tag: " + tag)
+}
+
+func SetLevel(tag string) {
+	lv := getLevelByTag(tag)
+	fileLog.SetLevel(lv)
 }
 
 func SetOutput(path string) {
@@ -196,4 +202,10 @@ func Fatalf(format string, v ...interface{}) {
 func Fatal(v ...interface{}) {
 	fileLog.Output(LFatal, fmt.Sprintln(v...))
 	os.Exit(0)
+}
+
+func Printf(tag, format string, v ...interface{}) {
+	tag = strings.ToUpper(tag)
+	lv := getLevelByTag(tag)
+	fileLog.Output(lv, fmt.Sprintf(format, v...))
 }

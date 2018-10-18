@@ -89,16 +89,8 @@ func NewConfig(path string) *XMLConfig {
 
 func init() {
 	path := "config.xml"
-	log.Infof("load all config %s", path)
+	log.Infof("load env %s", path)
 	defaultConfig = NewConfig(path)
-
-	switch Config().Environment {
-	case "test":
-		log.SetLevel(log.LTest)
-	case "release":
-		log.SetLevel(log.LError)
-	}
-	// loadAllTables()
 }
 
 func Config() *XMLConfig {
