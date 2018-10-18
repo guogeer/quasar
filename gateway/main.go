@@ -43,7 +43,7 @@ func main() {
 		}
 	}()
 
-	log.SetLevel(*logTag)
+	log.SetLevelByTag(*logTag)
 	for {
 		util.TickTimerRun()
 		// handle message
