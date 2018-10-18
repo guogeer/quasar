@@ -141,7 +141,11 @@ func getLevelByTag(tag string) int {
 	panic("invalid log tag: " + tag)
 }
 
-func SetLevel(tag string) {
+func SetLevel(lv int) {
+	fileLog.SetLevel(lv)
+}
+
+func SetLevelByTag(tag string) {
 	lv := getLevelByTag(tag)
 	fileLog.SetLevel(lv)
 }
