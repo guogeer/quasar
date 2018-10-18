@@ -12,6 +12,11 @@ import (
 	"time"
 )
 
+var (
+	ErrInvalidSign   = errors.New("invalid sign")
+	ErrPackageExpire = errors.New("package expire")
+)
+
 type Conn interface {
 	Write([]byte) error
 	WriteJSON(string, interface{}) error
@@ -129,7 +134,7 @@ func (parser *authParser) Decode(buf []byte) (*Package, error) {
 	ts := int64(pkg.SendTime)
 	ts0 := time.Now().Unix()
 	if ts > ts0 || ts+5 < ts0 {
-		return nil, errors.New("package expire")
+		return nil, ErrPackageExpire
 	}
 
 	sign, err := parser.Signature(buf)
@@ -137,7 +142,7 @@ func (parser *authParser) Decode(buf []byte) (*Package, error) {
 		return nil, err
 	}
 	if pkg.Sign != sign {
-		return nil, errors.New("invalid sign")
+		return nil, ErrInvalidSign
 	}
 	return pkg, nil
 }
@@ -211,7 +216,7 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 		return nil, err
 	}
 	if pkg.Sign != sign {
-		return nil, errors.New("invalid sign")
+		return pkg, ErrInvalidSign
 	}
 	return pkg, nil
 
@@ -251,6 +256,18 @@ func Encode(pkg *Package) ([]byte, error) {
 
 func Decode(buf []byte) (*Package, error) {
 	return gHashParser.Decode(buf)
+}
+
+func Encode2(name string, i interface{}) ([]byte, error) {
+	data, err := MarshalJSON(i)
+	if err != nil {
+		return nil, err
+	}
+	pkg := &Package{
+		Id:   name,
+		Data: data,
+	}
+	return Encode(pkg)
 }
 
 func MarshalJSON(i interface{}) ([]byte, error) {
