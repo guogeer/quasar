@@ -12,6 +12,7 @@ import (
 
 var port = flag.Int("port", 8201, "gateway server port")
 var proxy = flag.String("proxy", "", "gateway server proxy addr")
+var logTag = flag.String("log", "DEBUG", "log level DEBUG,INFI,ERROR")
 
 func main() {
 	flag.Parse()
@@ -42,6 +43,7 @@ func main() {
 		}
 	}()
 
+	log.SetLevel(*logTag)
 	for {
 		util.TickTimerRun()
 		// handle message
