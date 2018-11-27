@@ -9,12 +9,13 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/guogeer/husky/log"
 	"github.com/guogeer/husky/util"
+	"math/rand"
 	"net/http"
 	"time"
 )
 
 const (
-	clientPackageSpeedPerSecond = 64 // second
+	clientPackageSpeedPer2s = 32 // 2 second
 )
 
 var (
@@ -133,8 +134,9 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 
 	defer cancel()
 
-	var recvPackageCounter int
-	var lastClearTime = time.Now()
+	var deadline time.Time
+	var recvPackageCounter = -1
+	var remoteAddr = c.ws.RemoteAddr().String()
 	for {
 		_, message, err := c.ws.ReadMessage()
 		if err != nil {
@@ -151,22 +153,24 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 		}
 
 		id, data := pkg.Id, pkg.Data
-
-		recvPackageCounter++
-		if recvPackageCounter >= clientPackageSpeedPerSecond {
-			now := time.Now()
-			if lastClearTime.Add(1 * time.Second).After(now) {
-				log.Errorf("client %s send too busy", c.ws.RemoteAddr().String())
-				return
-			}
-			lastClearTime = now
+		if recvPackageCounter == -1 && rand.Intn(7) == 0 {
 			recvPackageCounter = 0
+			deadline = time.Now().Add(2 * time.Second)
+		}
+		if recvPackageCounter >= 0 {
+			recvPackageCounter++
+			if time.Now().Before(deadline) {
+				recvPackageCounter = -1
+			}
+			if recvPackageCounter >= clientPackageSpeedPer2s {
+				log.Errorf("client %s send too busy", remoteAddr)
+				time.Sleep(2 * time.Second)
+			}
 		}
 		// log.Info("read", c.ssid)
-		err = GetCmdSet().Handle(&Context{Out: c, Ssid: c.ssid, isGateway: true}, id, data)
+		GetCmdSet().Handle(&Context{Out: c, Ssid: c.ssid, isGateway: true}, id, data)
 		if err != nil {
-			log.Debugf("handle %v", err)
-			return
+			log.Errorf("handle client %s %v", remoteAddr, err)
 		}
 	}
 }

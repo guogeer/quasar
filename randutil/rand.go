@@ -55,3 +55,20 @@ func ShuffleN(a []int, n int) {
 		a[i], a[r] = a[r], a[i]
 	}
 }
+
+// 根据a[i]比重随机下标i
+func Index(a []int) int {
+	var part, sum int
+	for _, n := range a {
+		sum += n
+	}
+	r := rand.Intn(sum)
+
+	for i, n := range a {
+		part += n
+		if r < part {
+			return i
+		}
+	}
+	panic("invalid rand array")
+}

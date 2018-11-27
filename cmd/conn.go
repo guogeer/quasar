@@ -185,7 +185,7 @@ func (s *CmdSet) Parse(name string, data []byte) (Handler, interface{}, error) {
 	e, ok := s.e[name]
 	s.mu.RUnlock()
 	if ok == false {
-		return nil, nil, errors.New("unkown message id")
+		return nil, nil, errors.New("unkown message id " + name)
 	}
 
 	// unmarshal argument

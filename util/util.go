@@ -32,6 +32,14 @@ func SkipPeriodTime(startTime time.Time, d time.Duration) time.Time {
 	return endTime
 }
 
+// Monday,Thursday...
+func GetFirstWeekday(t time.Time) time.Time {
+	weekDays := ((int)(t.Weekday()) + 6) % 7
+	firstDay := t.Add(-time.Duration(weekDays) * 24 * time.Hour)
+	firstDay, _ = ParseTime(firstDay.Format("2006-01-02"))
+	return firstDay
+}
+
 func ParseStrings(s string) []string {
 	s = strings.Replace(s, ";", ",", -1)
 	s = strings.Replace(s, "-", ",", -1)
@@ -100,17 +108,4 @@ func InArray(array interface{}, some interface{}) int {
 		}
 	}
 	return counter
-}
-
-// 素数
-func IsPrimeNumber(n int) bool {
-	if n < 1 {
-		return false
-	}
-	for i := 2; i*i < n; i++ {
-		if n%i == 0 {
-			return false
-		}
-	}
-	return true
 }
