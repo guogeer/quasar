@@ -62,6 +62,9 @@ func Index(a []int) int {
 	for _, n := range a {
 		sum += n
 	}
+	if sum <= 0 {
+		return -1
+	}
 	r := rand.Intn(sum)
 
 	for i, n := range a {
