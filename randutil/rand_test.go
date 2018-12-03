@@ -1,7 +1,9 @@
 package randutil
 
 import (
+	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestIndex(t *testing.T) {
@@ -20,5 +22,21 @@ func TestIndex(t *testing.T) {
 		if n != data[0] {
 			t.Error("fail index", data)
 		}
+	}
+}
+
+func TestShuffeN(t *testing.T) {
+	rand.Seed(time.Now().Unix())
+	var datalist = [][]int{
+		{},
+		{0},
+		{0, 1},
+		{0, 1, 2},
+		{0, 1, 2, 3},
+		{0, 1, 2, 3, 4},
+	}
+	for _, data := range datalist {
+		Shuffle(data)
+		t.Log(data)
 	}
 }

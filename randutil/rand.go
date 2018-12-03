@@ -2,6 +2,7 @@ package randutil
 
 import (
 	"math/rand"
+	"reflect"
 )
 
 const sampleSize = 100 * 10000 // 100W
@@ -44,15 +45,21 @@ func ToPercent(n int) float64 {
 	return float64(n) / float64(sampleSize/100)
 }
 
-func Shuffle(a []int) {
-	ShuffleN(a, len(a))
+func Shuffle(a interface{}) {
+	lst := reflect.ValueOf(a)
+	ShuffleN(a, lst.Len())
 }
 
-func ShuffleN(a []int, n int) {
-	size := len(a)
+func ShuffleN(a interface{}, n int) {
+	lst := reflect.ValueOf(a)
+	size := lst.Len()
 	for i := 0; i+1 < size && i < n; i++ {
 		r := rand.Intn(size-i) + i
-		a[i], a[r] = a[r], a[i]
+		temp := lst.Index(r)
+		temp = reflect.New(temp.Type()).Elem()
+		temp.Set(lst.Index(i))
+		lst.Index(i).Set(lst.Index(r))
+		lst.Index(r).Set(temp)
 	}
 }
 
