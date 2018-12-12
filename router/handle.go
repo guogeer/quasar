@@ -46,17 +46,17 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 		data: args.ServerData,
 		typ:  args.ServerType,
 	}
-	GetRouter().AddServer(newServer)
+	gRouter.AddServer(newServer)
 	// center server
 	if newServer.typ == "center" {
-		for _, server := range GetRouter().servers {
+		for _, server := range gRouter.servers {
 			ctx.Out.WriteJSON("S2C_AddGame", map[string]interface{}{
 				"Name": server.name,
 				"Data": server.data,
 			})
 		}
 	}
-	for _, server := range GetRouter().servers {
+	for _, server := range gRouter.servers {
 		if server.typ == "center" && server.name != newServer.name {
 			server.out.WriteJSON("S2C_AddGame", map[string]interface{}{
 				"Name": newServer.name,
@@ -67,13 +67,13 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 
 	// 向网关注册服务
 	if newServer.typ == "gateway" {
-		for _, server := range GetRouter().servers {
+		for _, server := range gRouter.servers {
 			ctx.Out.WriteJSON("FUNC_RegisterServiceInGateway", map[string]interface{}{
 				"Name": server.name,
 			})
 		}
 	} else if newServer.addr != "" {
-		for _, gw := range GetRouter().gateways {
+		for _, gw := range gRouter.gateways {
 			gw.out.WriteJSON("FUNC_RegisterServiceInGateway", map[string]interface{}{
 				"Name": newServer.name,
 			})
@@ -84,30 +84,34 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 func C2S_GetServerAddr(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
 	name := args.ServerName
-	addr := GetRouter().GetServerAddr(name)
+	addr := gRouter.GetServerAddr(name)
 	log.Debug("get addr", name, addr)
-	ctx.Out.WriteJSON("S2C_GetServerAddr", map[string]string{"ServerName": name, "ServerAddr": addr})
+	response := map[string]string{"ServerName": name, "ServerAddr": addr}
+	ctx.Out.WriteJSON("S2C_GetServerAddr", response)
 }
 
 func C2S_Broadcast(ctx *cmd.Context, data interface{}) {
 	pkg := data.(*cmd.Package)
-	GetRouter().Broadcast(pkg)
+	for _, gw := range gRouter.gateways {
+		gw.out.WriteJSON("FUNC_Broadcast", pkg)
+	}
 }
 
 // 更新网关负载
 func C2S_Concurrent(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
-	for _, gw := range GetRouter().gateways {
+	for _, gw := range gRouter.gateways {
 		if gw.out == ctx.Out {
 			// log.Debug("test ", gw.addr, gw.weight)
 			gw.weight = args.Weight
 		}
 	}
 
-	addr := GetRouter().GetBestGateway()
+	addr := gRouter.GetBestGateway()
 	// log.Debug("concurrent", addr, args.Weight)
-	if s := GetRouter().GetServer("login"); s != nil {
-		s.out.WriteJSON("S2C_GetBestGateway", map[string]interface{}{"Address": addr})
+	if s := gRouter.GetServer("login"); s != nil {
+		response := map[string]interface{}{"Address": addr}
+		s.out.WriteJSON("S2C_GetBestGateway", response)
 	}
 }
 
@@ -116,7 +120,7 @@ func C2S_Route(ctx *cmd.Context, data interface{}) {
 	servers := args.ServerList
 	if len(servers) == 1 && servers[0] == "*" {
 		prefixMap := make(map[string]bool)
-		for _, server := range GetRouter().servers {
+		for _, server := range gRouter.servers {
 			prefixMap[server.name] = true
 		}
 		servers = servers[:0]
@@ -126,7 +130,7 @@ func C2S_Route(ctx *cmd.Context, data interface{}) {
 	}
 
 	for _, name := range servers {
-		if s := GetRouter().GetServer(name); s != nil {
+		if s := gRouter.GetServer(name); s != nil {
 			s.out.WriteJSON(args.Name, args.Data)
 		}
 	}
@@ -134,5 +138,7 @@ func C2S_Route(ctx *cmd.Context, data interface{}) {
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	// args := data.(*Args)
-	GetRouter().Remove(ctx.Out)
+	// gRouter.Remove(ctx.Out)
+	// TODO
+	log.Info("server lose connection")
 }

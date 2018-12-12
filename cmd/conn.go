@@ -208,7 +208,8 @@ func (s *CmdSet) Handle(ctx *Context, name string, data []byte) error {
 	}
 	if ctx.isGateway == true {
 		// 网关转发的消息ID仅允许包含字母、数字
-		if match, err := regexp.MatchString("^[A-Za-z0-9]*$", name); err == nil && !match {
+		match, err := regexp.MatchString("^[A-Za-z0-9]*$", name)
+		if err == nil && !match {
 			return errors.New("invalid message id")
 		}
 	}

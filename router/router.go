@@ -19,14 +19,10 @@ type Router struct {
 	gateways map[string]*Server
 }
 
-var defaultRouter = &Router{
+var gRouter = &Router{
 	servers:  make(map[string]*Server),
 	gateways: make(map[string]*Server),
 	// SubGameList: make(map[string]cmd.Writer),
-}
-
-func GetRouter() *Router {
-	return defaultRouter
 }
 
 func (r *Router) GetBestGateway() string {
@@ -81,11 +77,5 @@ func (r *Router) AddServer(server *Server) {
 		r.gateways[addr] = server
 	} else {
 		r.servers[name] = server
-	}
-}
-
-func (r *Router) Broadcast(pkg *cmd.Package) {
-	for _, gw := range r.gateways {
-		gw.out.WriteJSON("FUNC_Broadcast", pkg)
 	}
 }

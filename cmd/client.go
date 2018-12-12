@@ -313,7 +313,7 @@ func Forward(servers interface{}, messageId string, i interface{}) {
 }
 
 // TODO 当前仅支持router
-func request(serverName string, messageId string, i interface{}) (interface{}, error) {
+func Request(serverName string, messageId string, i interface{}) (interface{}, error) {
 	addr := env.Config().Server(serverName).Addr
 	rwc, err := net.Dial("tcp", addr)
 	if err != nil {
@@ -361,7 +361,7 @@ func request(serverName string, messageId string, i interface{}) (interface{}, e
 // 向路由请求服务器地址
 func RequestServerAddr(name string) (string, error) {
 	data := map[string]interface{}{"ServerName": name}
-	i, err := request(ServerRouter, "C2S_GetServerAddr", data)
+	i, err := Request(ServerRouter, "C2S_GetServerAddr", data)
 	if err != nil {
 		log.Error(err)
 		return "", err
