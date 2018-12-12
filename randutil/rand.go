@@ -64,18 +64,20 @@ func ShuffleN(a interface{}, n int) {
 }
 
 // 根据a[i]比重随机下标i
-func Index(a []int) int {
-	var part, sum int
-	for _, n := range a {
-		sum += n
+func Index(a interface{}) int {
+	var part, sum int64
+	lst := reflect.ValueOf(a)
+	for i := 0; i < lst.Len(); i++ {
+		sum += lst.Index(i).Int()
 	}
+
 	if sum <= 0 {
 		return -1
 	}
-	r := rand.Intn(sum)
 
-	for i, n := range a {
-		part += n
+	r := rand.Int63n(sum)
+	for i := 0; i < lst.Len(); i++ {
+		part += lst.Index(i).Int()
 		if r < part {
 			return i
 		}
