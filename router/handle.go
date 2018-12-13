@@ -140,5 +140,5 @@ func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	// args := data.(*Args)
 	// gRouter.Remove(ctx.Out)
 	// TODO
-	log.Info("server lose connection")
+	// log.Info("server lose connection")
 }
