@@ -230,6 +230,7 @@ type Args struct {
 
 func init() {
 	Bind(S2C_GetServerAddr, (*Args)(nil))
+	Bind(C2S_RegisterOk, (*Args)(nil))
 
 	Bind(FUNC_Test, (*Args)(nil))
 }
@@ -249,6 +250,10 @@ func S2C_GetServerAddr(ctx *Context, iArgs interface{}) {
 
 func FUNC_Test(ctx *Context, iArgs interface{}) {
 	// empty
+}
+
+func C2S_RegisterOk(ctx *Context, iArgs interface{}) {
+	// TODO
 }
 
 // 触发客户端重连
