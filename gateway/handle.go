@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/guogeer/husky/cmd"
 	"github.com/guogeer/husky/log"
 	"net"
@@ -60,9 +59,9 @@ func FUNC_Route(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
 	// log.Info("route", ctx.Ssid)
 	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
-		client := ctx.Out.(*cmd.Client)
-		id := fmt.Sprintf("%s.%s", client.ServerName(), args.Id)
-		ss.Out.WriteJSON(id, args.Data)
+		// client := ctx.Out.(*cmd.Client)
+		// id := fmt.Sprintf("%s.%s", client.ServerName(), args.Id)
+		ss.Out.WriteJSON(args.Id, args.Data)
 	}
 }
 
