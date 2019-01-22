@@ -23,11 +23,13 @@ const (
 )
 
 var (
-	enableDebug              = true
-	defaultLogPath           = getDefaultLogPath()
-	defaultLogLevel          = LDebug
-	fileLog         *FileLog = NewFileLog(defaultLogPath, defaultLogLevel)
-	logTags                  = []string{"", "TEST", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"}
+	enableDebug     = true
+	defaultLogPath  = getDefaultLogPath()
+	defaultLogLevel = LDebug
+	fileLog         = NewFileLog(defaultLogPath, defaultLogLevel)
+	logTags         = []string{
+		"", "TEST", "DEBUG", "INFO", "WARN", "ERROR", "FATAL",
+	}
 )
 
 // default path
