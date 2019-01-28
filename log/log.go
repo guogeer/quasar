@@ -104,7 +104,7 @@ func (l *FileLog) cleanFiles(path string) {
 		if try == 0 {
 			path2 = path
 		}
-		if _, err := os.Stat(path); os.IsNotExist(err) {
+		if _, err := os.Stat(path2); os.IsNotExist(err) {
 			break
 		}
 		os.Remove(path2)
@@ -123,8 +123,9 @@ func (l *FileLog) Output(level int, s string) {
 	}
 
 	now := time.Now()
-	newPath := l.Path
-	datePath := fmt.Sprintf("%s.%02d-%02d", newPath, now.Month(), now.Day())
+	path := updateLogPath(l.Path)
+	newPath := path
+	datePath := fmt.Sprintf("%s.%02d-%02d", path, now.Month(), now.Day())
 
 	datePath = updateLogPath(datePath)
 	if l.t.YearDay() != now.YearDay() {
@@ -132,8 +133,8 @@ func (l *FileLog) Output(level int, s string) {
 		l.t = now
 
 		t := now.Add(-time.Duration(l.MaxSaveDays+1) * 24 * time.Hour)
-		path := fmt.Sprintf("%s.%02d-%02d", l.Path, t.Month(), t.Day())
-		l.cleanFiles(path)
+		path2 := fmt.Sprintf("%s.%02d-%02d", path, t.Month(), t.Day())
+		l.cleanFiles(path2)
 	}
 
 	if l.lines&(l.lines-1) == 0 {
@@ -151,7 +152,7 @@ func (l *FileLog) Output(level int, s string) {
 		}
 	}
 
-	if newPath != l.Path {
+	if newPath != path {
 		l.moveFile(datePath, newPath)
 	}
 
