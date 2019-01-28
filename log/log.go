@@ -22,81 +22,76 @@ const (
 	LAll
 )
 
+const MaxFileNumPerDay = 1024
+
 var (
-	enableDebug     = true
-	defaultLogPath  = getDefaultLogPath()
-	defaultLogLevel = LDebug
-	fileLog         = NewFileLog(defaultLogPath, defaultLogLevel)
-	logTags         = []string{
+	enableDebug = true
+	logTags     = []string{
 		"", "TEST", "DEBUG", "INFO", "WARN", "ERROR", "FATAL",
 	}
+	MyFileLog = FileLog{
+		Path:        "log/{proc_name}/run.log",
+		Level:       LDebug,
+		MaxSaveDays: 10,
+		MaxFileSize: 512 * 1024 * 1024, // 512M
+	}
+	fileLog = &MyFileLog
 )
 
-// default path
-func getDefaultLogPath() string {
+func updateLogPath(path string) string {
 	procPath := string(os.Args[0])
 	n := strings.LastIndexByte(procPath, os.PathSeparator)
 	procName := procPath[n+1:]
-	return fmt.Sprintf("log%c%s%crun.log", os.PathSeparator, procName, os.PathSeparator)
+	return strings.Replace(path, "{proc_name}", procName, -1)
 }
 
 type FileLog struct {
-	path   string
-	cycle  int
-	Level  int
-	t      time.Time
-	f      *os.File
-	logger *log.Logger
-	mu     sync.RWMutex
+	Path        string
+	Level       int
+	MaxSaveDays int
+	MaxFileSize int64
+
+	t       time.Time
+	f       *os.File
+	logger  *log.Logger
+	mu      sync.Mutex
+	newPath string
+
+	lines int
+	size  int64
 }
 
-func NewFileLog(path string, level int) *FileLog {
-	l := &FileLog{
-		path:  path,
-		Level: level,
-		cycle: 10,
-	}
-	l.t, _ = time.Parse("2006-01-01", "1900-01-01")
-	f, _ := os.Open(os.DevNull)
-	l.logger = log.New(f, "", log.Lshortfile|log.LstdFlags)
-	if enableDebug {
-		log.SetOutput(os.Stdout)
-		log.SetFlags(log.Lshortfile | log.LstdFlags)
-	}
-	return l
-}
-
-func (l *FileLog) NewFile(newPath string) error {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	now := time.Now()
-	// prevent enter again on one day
-	if l.t.YearDay() == now.YearDay() {
-		return nil
+// 将oldPath移动至newPath并创建新oldPath
+func (l *FileLog) moveFile(oldPath, newPath string) {
+	if l.newPath == newPath {
+		return
 	}
 	if l.f != nil {
 		l.f.Close()
-		os.Rename(l.path, newPath)
 	}
-	n := strings.LastIndexByte(l.path, os.PathSeparator)
-	if n >= 0 {
-		dir := l.path[:n]
+	l.f = nil
+	os.Rename(oldPath, newPath)
+
+	if n := strings.LastIndexByte(newPath, os.PathSeparator); n >= 0 {
+		dir := newPath[:n]
 		os.MkdirAll(dir, 0755)
 	}
-	deadline := now.Add(-time.Duration(l.cycle) * time.Hour * 24)
-	deadlinePath := fmt.Sprintf("%s.%02d-%02d", l.path, deadline.Month(), deadline.Day())
-	// fmt.Println(deadlinePath)
-	if _, err := os.Lstat(deadlinePath); err == nil {
-		os.Remove(deadlinePath)
-	}
-	f, err := os.OpenFile(l.path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0664)
+	f, err := os.OpenFile(oldPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0664)
 	if err != nil {
 		panic("create log file error")
 	}
 	l.f = f
-	l.t = now
+	l.size = 0
+	l.lines = 0
+	l.newPath = newPath
+	if l.logger == nil {
+		l.logger = log.New(f, "", log.Lshortfile|log.LstdFlags)
+		if enableDebug {
+			log.SetOutput(os.Stdout)
+			log.SetFlags(log.Lshortfile | log.LstdFlags)
+		}
+	}
 	l.logger.SetOutput(f)
-	return nil
 }
 
 func (l *FileLog) Output(level int, s string) {
@@ -104,20 +99,41 @@ func (l *FileLog) Output(level int, s string) {
 		return
 	}
 
-	l.mu.RLock()
-	t, minLevel, path := l.t, l.Level, l.path
-	l.mu.RUnlock()
-	if level < minLevel {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if level < l.Level || l.Path == "" {
 		return
 	}
+
 	now := time.Now()
-	if t.YearDay() != now.YearDay() {
-		newPath := fmt.Sprintf("%s.%02d-%02d", path, t.Month(), t.Day())
-		l.NewFile(newPath)
+	newPath := l.Path
+	datePath := fmt.Sprintf("%s.%02d-%02d", newPath, now.Month(), now.Day())
+
+	datePath = updateLogPath(datePath)
+	if l.t.YearDay() != now.YearDay() {
+		newPath = datePath
+		l.t = now
 	}
-	if l.logger == nil {
-		panic("Log output path unset")
+
+	if l.lines&(l.lines-1) == 0 {
+		if info, err := os.Stat(datePath); err == nil {
+			l.size = info.Size()
+		}
 	}
+	l.lines += 1
+	if l.size > l.MaxFileSize {
+		for try := 1; try < MaxFileNumPerDay; try++ {
+			newPath = fmt.Sprintf("%s.%d", datePath, try)
+			if _, err := os.Stat(newPath); os.IsNotExist(err) {
+				break
+			}
+		}
+	}
+
+	if newPath != l.Path {
+		l.moveFile(datePath, newPath)
+	}
+
 	s = fmt.Sprintf("[%s] %s", logTags[level], s)
 	l.logger.Output(3, s)
 	if enableDebug {
@@ -150,14 +166,6 @@ func SetLevel(lv int) {
 func SetLevelByTag(tag string) {
 	lv := getLevelByTag(tag)
 	fileLog.SetLevel(lv)
-}
-
-func SetOutput(path string) {
-	if fileLog.path == path {
-		return
-	}
-	fileLog.NewFile(path)
-	fileLog.path = path
 }
 
 func Testf(format string, v ...interface{}) {
