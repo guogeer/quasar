@@ -94,6 +94,23 @@ func (l *FileLog) moveFile(oldPath, newPath string) {
 	l.logger.SetOutput(f)
 }
 
+// 清理过期文件
+func (l *FileLog) cleanFiles(path string) {
+	if l.MaxSaveDays == 0 {
+		return
+	}
+	for try := 0; try < MaxFileNumPerDay; try++ {
+		path2 := fmt.Sprintf("%s.%d", path, try)
+		if try == 0 {
+			path2 = path
+		}
+		if _, err := os.Stat(path); os.IsNotExist(err) {
+			break
+		}
+		os.Remove(path2)
+	}
+}
+
 func (l *FileLog) Output(level int, s string) {
 	if level <= 0 || level > LAll {
 		return
@@ -113,6 +130,10 @@ func (l *FileLog) Output(level int, s string) {
 	if l.t.YearDay() != now.YearDay() {
 		newPath = datePath
 		l.t = now
+
+		t := now.Add(-time.Duration(l.MaxSaveDays+1) * 24 * time.Hour)
+		path := fmt.Sprintf("%s.%02d-%02d", l.Path, t.Month(), t.Day())
+		l.cleanFiles(path)
 	}
 
 	if l.lines&(l.lines-1) == 0 {
