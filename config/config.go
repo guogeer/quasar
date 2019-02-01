@@ -63,6 +63,8 @@ var defaultConfig Env
 
 func init() {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	f, _ := os.Open(os.DevNull)
+	fs.SetOutput(f) // 不打印错误信息
 	path := flag.String("config", "config.xml", "config file path")
 	fs.Parse(os.Args[1:])
 
