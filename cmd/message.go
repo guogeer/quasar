@@ -2,19 +2,19 @@ package cmd
 
 import (
 	"crypto/md5"
-	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"github.com/buger/jsonparser"
-	"github.com/guogeer/husky/env"
 	"github.com/guogeer/husky/log"
+	"strings"
 	"time"
 )
 
 var (
-	ErrInvalidSign   = errors.New("invalid sign")
-	ErrPackageExpire = errors.New("package expire")
+	ErrInvalidSign     = errors.New("invalid sign")
+	errPackageExpire   = errors.New("package expire")
+	errTooLargeMessage = errors.New("too large message")
 )
 
 type Conn interface {
@@ -97,88 +97,20 @@ type PackageParser interface {
 	Decode([]byte) (*Package, error)
 }
 
-var gRawParser PackageParser = &rawParser{}
-var gHashParser PackageParser = &hashParser{tempSign: "12345678"}
-var gAuthParser PackageParser = &authParser{tempSign: "a9542bb104fe3f4d562e1d275e03f5ba"}
-
-// 自定义客户端发送的数据处理
-func SetParser(parser PackageParser) {
-	gHashParser = parser
+var defaultRawParser PackageParser = &rawParser{}
+var defaultHashParser PackageParser = &hashParser{
+	ref:      []int{0, 3, 4, 8, 10, 11, 13, 14},
+	tempSign: "12345678",
 }
-
-// 服务器内部身份认证
-type authParser struct {
-	tempSign string
-}
-
-func (parser *authParser) Encode(pkg *Package) ([]byte, error) {
-	pkg.Sign = parser.tempSign
-	pkg.SendTime = time.Now().Unix()
-
-	buf, err := json.Marshal(pkg)
-	if err != nil {
-		return nil, err
-	}
-	if _, err := parser.Signature(buf); err != nil {
-		return nil, err
-	}
-	return NewMessageBytes(AuthMessage, buf)
-}
-
-func (parser *authParser) Decode(buf []byte) (*Package, error) {
-	pkg := &Package{}
-	if err := json.Unmarshal(buf, pkg); err != nil {
-		return nil, err
-	}
-
-	ts := int64(pkg.SendTime)
-	ts0 := time.Now().Unix()
-	if ts > ts0 || ts+5 < ts0 {
-		return nil, ErrPackageExpire
-	}
-
-	sign, err := parser.Signature(buf)
-	if err != nil {
-		return nil, err
-	}
-	if pkg.Sign != sign {
-		return nil, ErrInvalidSign
-	}
-	return pkg, nil
-}
-
-func (parser *authParser) Signature(data []byte) (string, error) {
-	key := env.Config().ProductKey
-	buf := make([]byte, len(key)+len(data))
-	copy(buf[:], []byte(key))
-	copy(buf[len(key):], data)
-
-	tempSign := parser.tempSign
-	_, _, n, err := jsonparser.Get(data, "Sign")
-	if err != nil {
-		return "", err
-	}
-	if signLen := len(tempSign) + 1; n >= signLen {
-		copy(buf[len(key)+n-signLen:], tempSign)
-	}
-
-	sum := md5.Sum(buf)
-	hexSum := hex.EncodeToString(sum[:])
-	if signLen := len(tempSign) + 1; n >= signLen {
-		copy(data[n-signLen:n], hexSum)
-	}
-	return string(hexSum), nil
-
+var defaultAuthParser PackageParser = &hashParser{
+	secs:     5,
+	tempSign: "a9542bb104fe3f4d562e1d275e03f5ba",
 }
 
 type rawParser struct{}
 
 func (parser *rawParser) Encode(pkg *Package) ([]byte, error) {
-	buf, err := json.Marshal(pkg)
-	if err != nil {
-		return nil, err
-	}
-	return NewMessageBytes(RawMessage, buf)
+	return json.Marshal(pkg)
 }
 
 func (parser *rawParser) Decode(buf []byte) (*Package, error) {
@@ -190,10 +122,18 @@ func (parser *rawParser) Decode(buf []byte) (*Package, error) {
 }
 
 // 哈希
-type hashParser struct{ tempSign string }
+type hashParser struct {
+	secs     int
+	ref      []int
+	key      string
+	tempSign string
+}
 
 func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
 	pkg.Sign = parser.tempSign
+	if secs := parser.secs; secs > 0 {
+		pkg.SendTime = time.Now().Unix()
+	}
 
 	buf, err := json.Marshal(pkg)
 	if err != nil {
@@ -210,6 +150,13 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 	if err := json.Unmarshal(buf, pkg); err != nil {
 		return nil, err
 	}
+	if secs := int64(parser.secs); secs > 0 {
+		ts := pkg.SendTime
+		ts0 := time.Now().Unix()
+		if ts > ts0 || ts+secs < ts0 {
+			return nil, errPackageExpire
+		}
+	}
 
 	sign, err := parser.Signature(buf)
 	if err != nil {
@@ -223,8 +170,7 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 }
 
 func (parser *hashParser) Signature(data []byte) (string, error) {
-	key := env.Config().ProductKey
-	ref := []int{0, 3, 4, 8, 10, 11, 13, 14}
+	ref, key := parser.ref, parser.key
 	buf := make([]byte, len(key)+len(data))
 	copy(buf[:], []byte(key))
 	copy(buf[len(key):], data)
@@ -238,24 +184,27 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 		copy(buf[len(key)+n-signLen:], tempSign)
 	}
 
-	sign := make([]byte, len(ref))
 	sum := md5.Sum(buf)
-	hexSum := hex.EncodeToString(sum[:])
-	for k, v := range ref {
-		sign[k] = hexSum[v]
+	sign := hex.EncodeToString(sum[:])
+	if len(ref) == len(tempSign) {
+		sign2 := make([]byte, len(ref))
+		for k, v := range ref {
+			sign2[k] = sign[v]
+		}
+		sign = string(sign2)
 	}
 	if signLen := len(tempSign) + 1; n >= signLen {
 		copy(data[n-signLen:n], sign)
 	}
-	return string(sign), nil
+	return sign, nil
 }
 
 func Encode(pkg *Package) ([]byte, error) {
-	return gHashParser.Encode(pkg)
+	return defaultHashParser.Encode(pkg)
 }
 
 func Decode(buf []byte) (*Package, error) {
-	return gHashParser.Decode(buf)
+	return defaultHashParser.Decode(buf)
 }
 
 func Encode2(name string, i interface{}) ([]byte, error) {
@@ -280,15 +229,12 @@ func MarshalJSON(i interface{}) ([]byte, error) {
 	return json.Marshal(i)
 }
 
-func NewMessageBytes(mt int, data []byte) ([]byte, error) {
-	if len(data) > maxMessageSize {
-		return nil, errors.New("too big message")
+func routeMessage(server, message string) (string, string) {
+	if server != "" {
+		message = server + "." + message
 	}
-	buf := make([]byte, len(data)+3)
-	// 协议头
-	copy(buf, []byte{byte(mt), 0x0, 0x0})
-	binary.BigEndian.PutUint16(buf[1:3], uint16(len(data)))
-	// 协议数据
-	copy(buf[3:], data)
-	return buf, nil
+	if subs := strings.SplitN(message, ".", 2); len(subs) > 1 {
+		server, message = subs[0], subs[1]
+	}
+	return server, message
 }

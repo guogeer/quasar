@@ -88,8 +88,8 @@ func (c *ServeConn) serve() {
 			c.rwc.Close()
 			// 当前上下文
 			ctx := &Context{Ssid: c.ssid, Out: c}
-			Enqueue(ctx, closeConn, nil)
-			GetCmdSet().Handle(ctx, "FUNC_Close", nil)
+			defaultCmdSet.Handle(ctx, "CMD_Close", nil)
+			defaultCmdSet.Handle(ctx, "FUNC_Close", nil)
 
 			// 删除会话
 			removeSession(c.ssid)
@@ -101,13 +101,12 @@ func (c *ServeConn) serve() {
 				if ok == false {
 					return
 				}
-				if _, err := c.rwc.Write(buf); err != nil {
+				if _, err := c.writeMsg(RawMessage, buf); err != nil {
 					log.Debugf("write %v", err)
 					return
 				}
 			case <-ticker.C: // heart beat
-				ping, _ := NewMessageBytes(PingMessage, nil)
-				if _, err := c.rwc.Write(ping); err != nil {
+				if _, err := c.writeMsg(PingMessage, nil); err != nil {
 					return
 				}
 
@@ -131,8 +130,7 @@ func (c *ServeConn) serve() {
 			return
 		}
 		if isFirstPackage == true {
-			if _, err = gAuthParser.Decode(buf); err != nil {
-				log.Debug(err)
+			if _, err = defaultAuthParser.Decode(buf); err != nil {
 				return
 			}
 		}
@@ -142,14 +140,13 @@ func (c *ServeConn) serve() {
 
 		isFirstPackage = false
 		if mt == RawMessage {
-			pkg, err := gRawParser.Decode(buf)
+			pkg, err := defaultRawParser.Decode(buf)
 			if err != nil {
-				log.Debug(err, string(buf))
 				return
 			}
 
 			id, ssid, data := pkg.Id, pkg.Ssid, pkg.Data
-			err = GetCmdSet().Handle(&Context{Out: c, Ssid: ssid}, id, data)
+			err = defaultCmdSet.Handle(&Context{Out: c, Ssid: ssid}, id, data)
 			if err != nil {
 				log.Debug(err)
 			}

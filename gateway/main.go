@@ -8,11 +8,11 @@ import (
 	"github.com/guogeer/husky/util"
 	"net/http"
 	"runtime"
+	_ "third/env"
 )
 
 var port = flag.Int("port", 8201, "gateway server port")
 var proxy = flag.String("proxy", "", "gateway server proxy addr")
-var logTag = flag.String("log", "DEBUG", "log level DEBUG,INFI,ERROR")
 
 func main() {
 	flag.Parse()
@@ -43,7 +43,6 @@ func main() {
 		}
 	}()
 
-	log.SetLevelByTag(*logTag)
 	for {
 		util.TickTimerRun()
 		// handle message

@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	// "game"
 	"github.com/guogeer/husky/cmd"
-	"github.com/guogeer/husky/env"
+	"github.com/guogeer/husky/config"
 	"github.com/guogeer/husky/log"
 	"github.com/guogeer/husky/util"
 	"net"
@@ -13,7 +12,7 @@ import (
 )
 
 func main() {
-	addr := env.Config().Server("router").Addr
+	addr := config.Config().Server("router").Addr
 	_, portStr, _ := net.SplitHostPort(addr)
 	port, _ := strconv.Atoi(portStr)
 	log.Infof("start router server, listen %d", port)
@@ -29,7 +28,6 @@ func main() {
 		}
 	}()
 
-	log.Infof("start ....")
 	for {
 		util.TickTimerRun()
 		// handle message

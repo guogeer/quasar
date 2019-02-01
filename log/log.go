@@ -3,9 +3,11 @@
 package log
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +39,19 @@ var (
 	}
 	fileLog = &MyFileLog
 )
+
+func init() {
+	f, _ := os.Open(os.DevNull)
+	fileLog.logger = log.New(f, "", log.Lshortfile|log.LstdFlags)
+	if enableDebug {
+		log.SetOutput(os.Stdout)
+		log.SetFlags(log.Lshortfile | log.LstdFlags)
+	}
+	fs := flag.NewFlagSet("", flag.ContinueOnError)
+	tag := flag.String("log", "DEBUG", "log level: DEBUG|INFO|ERROR")
+	fs.Parse(os.Args[1:])
+	SetLevelByTag(*tag)
+}
 
 func updateLogPath(path string) string {
 	procPath := string(os.Args[0])
@@ -72,11 +87,11 @@ func (l *FileLog) moveFile(oldPath, newPath string) {
 	l.f = nil
 	os.Rename(oldPath, newPath)
 
-	if n := strings.LastIndexByte(newPath, os.PathSeparator); n >= 0 {
-		dir := newPath[:n]
-		os.MkdirAll(dir, 0755)
-	}
-	f, err := os.OpenFile(oldPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0664)
+	dir := path.Dir(newPath)
+	mode := os.O_WRONLY | os.O_CREATE | os.O_APPEND
+
+	os.MkdirAll(dir, 0755)
+	f, err := os.OpenFile(oldPath, mode, 0664)
 	if err != nil {
 		panic("create log file error")
 	}
@@ -84,13 +99,6 @@ func (l *FileLog) moveFile(oldPath, newPath string) {
 	l.size = 0
 	l.lines = 0
 	l.newPath = newPath
-	if l.logger == nil {
-		l.logger = log.New(f, "", log.Lshortfile|log.LstdFlags)
-		if enableDebug {
-			log.SetOutput(os.Stdout)
-			log.SetFlags(log.Lshortfile | log.LstdFlags)
-		}
-	}
 	l.logger.SetOutput(f)
 }
 

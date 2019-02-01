@@ -80,11 +80,7 @@ func FUNC_ServerClose(ctx *cmd.Context, data interface{}) {
 }
 
 func HeartBeat(ctx *cmd.Context, data interface{}) {
-	ss := cmd.GetSession(ctx.Ssid)
-	if ss == nil {
-		return
-	}
-	ss.Out.WriteJSON("HeartBeat", struct{}{})
+	ctx.Out.WriteJSON("HeartBeat", struct{}{})
 }
 
 func FUNC_RegisterServiceInGateway(ctx *cmd.Context, data interface{}) {

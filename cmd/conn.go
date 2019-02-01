@@ -9,11 +9,11 @@ import (
 	"net"
 	"reflect"
 	"regexp"
-	"runtime"
-	"strings"
 	"sync"
 	"time"
 )
+
+var errInvalidMessageID = errors.New("invalid message ID")
 
 const (
 	writeWait      = 10 * time.Second
@@ -70,7 +70,6 @@ func (c *TCPConn) ReadMessage() (mt uint8, buf []byte, err error) {
 	// 0xf2 PONG
 	n := int(binary.BigEndian.Uint16(head[1:3]))
 
-	// log.Infof("read message %x %d", code, n)
 	// 消息
 	mt = uint8(head[0])
 	switch mt {
@@ -88,6 +87,19 @@ func (c *TCPConn) ReadMessage() (mt uint8, buf []byte, err error) {
 	return
 }
 
+func (c *TCPConn) NewMessageBytes(mt int, data []byte) ([]byte, error) {
+	if len(data) > maxMessageSize {
+		return nil, errTooLargeMessage
+	}
+	buf := make([]byte, len(data)+3)
+	// 协议头
+	copy(buf, []byte{byte(mt), 0x0, 0x0})
+	binary.BigEndian.PutUint16(buf[1:3], uint16(len(data)))
+	// 协议数据
+	copy(buf[3:], data)
+	return buf, nil
+}
+
 func (c *TCPConn) WriteJSON(name string, i interface{}) error {
 	// 4K缓存
 	s, err := MarshalJSON(i)
@@ -96,7 +108,7 @@ func (c *TCPConn) WriteJSON(name string, i interface{}) error {
 	}
 	// 消息格式
 	pkg := &Package{Id: name, Data: s}
-	buf, err := json.Marshal(pkg)
+	buf, err := defaultRawParser.Encode(pkg)
 	if err != nil {
 		return err
 	}
@@ -105,22 +117,22 @@ func (c *TCPConn) WriteJSON(name string, i interface{}) error {
 
 func (c *TCPConn) Write(data []byte) error {
 	if c.isClose == true {
-		return nil
+		return errors.New("connection is closed")
 	}
-	buf, err := NewMessageBytes(RawMessage, data)
-	if err != nil {
-		return err
-	}
-	return c.writeMessage(buf)
-}
-
-func (c *TCPConn) writeMessage(msg []byte) error {
 	select {
-	case c.send <- msg:
+	case c.send <- data:
 	default:
 		return errors.New("write too busy")
 	}
 	return nil
+}
+
+func (c *TCPConn) writeMsg(mt int, msg []byte) (int, error) {
+	buf, err := c.NewMessageBytes(mt, msg)
+	if err != nil {
+		return 0, err
+	}
+	return c.rwc.Write(buf)
 }
 
 type Handler func(*Context, interface{})
@@ -136,38 +148,30 @@ type CmdSet struct {
 	mu       sync.RWMutex
 }
 
-var defaultCmdSet = NewCmdSet()
-
-func GetCmdSet() *CmdSet {
-	return defaultCmdSet
-}
-
-func NewCmdSet() *CmdSet {
-	return &CmdSet{
-		services: make(map[string]bool),
-		e:        make(map[string]*cmdEntry),
-	}
+var defaultCmdSet = &CmdSet{
+	services: make(map[string]bool),
+	e:        make(map[string]*cmdEntry),
 }
 
 func (s *CmdSet) RemoveService(name string) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.services[name] = false
-	s.mu.Unlock()
 }
 
 func (s *CmdSet) RegisterService(name string) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	s.services[name] = true
-	s.mu.Unlock()
 }
 
 // 恢复服务
 func (s *CmdSet) RecoverService(name string) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	if _, ok := s.services[name]; ok {
 		s.services[name] = true
 	}
-	s.mu.Unlock()
 }
 
 func (s *CmdSet) Bind(name string, h Handler, i interface{}) {
@@ -180,47 +184,30 @@ func (s *CmdSet) Bind(name string, h Handler, i interface{}) {
 	s.e[name] = &cmdEntry{h: h, type_: type_}
 }
 
-func (s *CmdSet) Parse(name string, data []byte) (Handler, interface{}, error) {
-	s.mu.RLock()
-	e, ok := s.e[name]
-	s.mu.RUnlock()
-	if ok == false {
-		return nil, nil, errors.New("unkown message id " + name)
-	}
-
-	// unmarshal argument
-	args := reflect.New(e.type_.Elem()).Interface()
-	if err := json.Unmarshal(data, args); err != nil {
-		return nil, nil, err
-	}
-	return e.h, args, nil
-}
-
-func (s *CmdSet) Handle(ctx *Context, name string, data []byte) error {
+func (s *CmdSet) Handle(ctx *Context, messageID string, data []byte) error {
 	// 空数据使用默认JSON格式数据
 	if data == nil || len(data) == 0 {
 		data = []byte("{}")
 	}
 
-	var serverName string
-	if subs := strings.SplitN(name, ".", 2); len(subs) > 1 {
-		serverName, name = subs[0], subs[1]
-	}
+	serverName, name := routeMessage("", messageID)
+	// 网关转发的消息ID仅允许包含字母、数字
 	if ctx.isGateway == true {
-		// 网关转发的消息ID仅允许包含字母、数字
-		match, err := regexp.MatchString("^[A-Za-z0-9]*$", name)
+		match, err := regexp.MatchString("^[A-Za-z0-9]+$", name)
 		if err == nil && !match {
 			return errors.New("invalid message id")
 		}
 	}
+
+	s.mu.RLock()
+	e := s.e[name]
+	isService := s.services[serverName]
+	s.mu.RUnlock()
 	// router
 	if len(serverName) > 0 {
 		if ctx.isGateway == true {
-			s.mu.RLock()
-			isRegister := s.services[serverName]
-			s.mu.RUnlock()
 			// 网关仅允许转发已注册的逻辑服务器
-			if isRegister == false {
+			if isService == false {
 				return errors.New("gateway try to route invalid service")
 			}
 		}
@@ -231,33 +218,20 @@ func (s *CmdSet) Handle(ctx *Context, name string, data []byte) error {
 		return nil
 	}
 
+	if e == nil {
+		return errInvalidMessageID
+	}
+
 	// unmarshal argument
-	h, args, err := s.Parse(name, data)
-	if err != nil {
+	args := reflect.New(e.type_.Elem()).Interface()
+	if err := json.Unmarshal(data, args); err != nil {
 		return err
 	}
-	Enqueue(ctx, h, args)
+
+	Enqueue(ctx, e.h, args)
 	return nil
 }
 
-func BindWithName(name string, h Handler, args interface{}) {
-	GetCmdSet().Bind(name, h, args)
-}
-
-func RegisterServiceInGateway(name string) {
-	GetCmdSet().RegisterService(name)
-}
-
-func Bind(h Handler, args interface{}) {
-	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
-	n := strings.LastIndexByte(name, '.')
-	if n >= 0 {
-		name = name[n+1:]
-	}
-	// log.Debug("method name =", name)
-	BindWithName(name, h, args)
-}
-
-func closeConn(ctx *Context, i interface{}) {
+func funcClose(ctx *Context, i interface{}) {
 	ctx.Out.Close()
 }

@@ -103,8 +103,9 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 			c.ws.Close()
 			ticker.Stop() // 关闭定时器
 
-			Enqueue(&Context{Ssid: c.ssid, Out: c}, closeConn, nil)
-			GetCmdSet().Handle(&Context{Ssid: c.ssid, Out: c}, "FUNC_Close", nil)
+			ctx := &Context{Ssid: c.ssid, Out: c}
+			defaultCmdSet.Handle(ctx, "CMD_Close", nil)
+			defaultCmdSet.Handle(ctx, "FUNC_Close", nil)
 			removeSession(c.ssid)
 		}()
 
@@ -168,7 +169,8 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		// log.Info("read", c.ssid)
-		GetCmdSet().Handle(&Context{Out: c, Ssid: c.ssid, isGateway: true}, id, data)
+		ctx := &Context{Out: c, Ssid: c.ssid, isGateway: true}
+		defaultCmdSet.Handle(ctx, id, data)
 		if err != nil {
 			log.Errorf("handle client %s %v", remoteAddr, err)
 		}
