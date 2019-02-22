@@ -81,9 +81,7 @@ type ServeConn struct {
 func (c *ServeConn) serve() {
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
-		ticker := time.NewTicker(pingPeriod)
 		defer func() {
-			ticker.Stop() // 关闭定时器
 			// 关闭网络连接
 			c.rwc.Close()
 			// 当前上下文
@@ -105,11 +103,6 @@ func (c *ServeConn) serve() {
 					log.Debugf("write %v", err)
 					return
 				}
-			case <-ticker.C: // heart beat
-				if _, err := c.writeMsg(PingMessage, nil); err != nil {
-					return
-				}
-
 			case <-doneCtx.Done():
 				return
 			}
@@ -118,10 +111,10 @@ func (c *ServeConn) serve() {
 
 	// 读关闭通知
 	defer cancel()
-	c.rwc.SetReadDeadline(time.Now().Add(2 * time.Second))
+	// 新连接5s内未收到有效数据判定无效
+	c.rwc.SetReadDeadline(time.Now().Add(5 * time.Second))
 
-	var isFirstPackage = true
-	for {
+	for seq := 0; true; seq++ {
 		mt, buf, err := c.TCPConn.ReadMessage()
 		if err != nil {
 			if err != io.EOF {
@@ -129,16 +122,15 @@ func (c *ServeConn) serve() {
 			}
 			return
 		}
-		if isFirstPackage == true {
+		if seq == 0 {
 			if _, err = defaultAuthParser.Decode(buf); err != nil {
 				return
 			}
 		}
-		if isFirstPackage || mt == PongMessage {
+		if seq == 0 || mt == PingMessage || mt == PongMessage {
 			c.rwc.SetReadDeadline(time.Now().Add(pongWait))
 		}
 
-		isFirstPackage = false
 		if mt == RawMessage {
 			pkg, err := defaultRawParser.Decode(buf)
 			if err != nil {
@@ -148,7 +140,7 @@ func (c *ServeConn) serve() {
 			id, ssid, data := pkg.Id, pkg.Ssid, pkg.Data
 			err = defaultCmdSet.Handle(&Context{Out: c, Ssid: ssid}, id, data)
 			if err != nil {
-				log.Debug(err)
+				log.Debugf("handle msg error: %v", err)
 			}
 		}
 	}

@@ -33,7 +33,9 @@ func (c *Client) ServerName() string {
 func (c *Client) start() {
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
+		ticker := time.NewTicker(pingPeriod)
 		defer func() {
+			ticker.Stop() // 关闭定时器
 			c.rwc.Close() // 关闭连接
 
 			// 关闭后，自动重连，并消息通知
@@ -56,7 +58,10 @@ func (c *Client) start() {
 					return
 				}
 				if _, err := c.writeMsg(RawMessage, buf); err != nil {
-					log.Debugf("write %v", err)
+					return
+				}
+			case <-ticker.C: // heart beat
+				if _, err := c.writeMsg(PingMessage, nil); err != nil {
 					return
 				}
 			case <-doneCtx.Done():
@@ -75,9 +80,7 @@ func (c *Client) start() {
 			return
 		}
 		switch mt {
-		case PingMessage:
-			c.writeMsg(PongMessage, nil)
-		case PongMessage:
+		case PingMessage, PongMessage:
 		case RawMessage:
 			// log.Info("read", string(buf[:n]))
 			pkg, err := defaultRawParser.Decode(buf)
