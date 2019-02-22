@@ -31,6 +31,8 @@ func (c *Client) ServerName() string {
 }
 
 func (c *Client) start() {
+	defaultCmdSet.RecoverService(c.name) // 恢复服务
+
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
 		ticker := time.NewTicker(pingPeriod)
@@ -157,7 +159,6 @@ func (cm *clientManage) connect(serverName string) {
 			}
 			rwc, err := net.Dial("tcp", addr)
 			if err == nil {
-				defaultCmdSet.RecoverService(client.name) // 恢复服务
 				client.rwc = rwc
 				client.start()
 				return
