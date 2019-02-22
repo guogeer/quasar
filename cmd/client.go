@@ -48,7 +48,7 @@ func (c *Client) start() {
 		if err != nil {
 			return
 		}
-		if _, err := c.writeMsg(RawMessage, firstPackage); err != nil {
+		if _, err := c.writeMsg(AuthMessage, firstPackage); err != nil {
 			return
 		}
 		for {
