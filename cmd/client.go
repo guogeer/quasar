@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"github.com/guogeer/husky/config"
 	"github.com/guogeer/husky/log"
 	"net"
 	"sync"
@@ -145,7 +146,7 @@ func (cm *clientManage) connect(serverName string) {
 	cm.mu.RUnlock()
 
 	go func() {
-		addr := defaultRouter
+		addr := config.Config().Server("router").Addr
 		for try, ms := range []int{100, 400, 1600, 3200, 5000} {
 			if serverName != "router" {
 				addr2, err := RequestServerAddr(serverName)

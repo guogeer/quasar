@@ -10,11 +10,11 @@ import (
 	"strings"
 )
 
-var defaultRouter string
+var invalidAddr = errors.New("request empty address")
 
 func init() {
-	defaultRouter = config.Config().Server("router").Addr
-	if defaultRouter == "" {
+	addr := config.Config().Server("router").Addr
+	if addr == "" {
 		panic("NOTE router address is empty")
 	}
 
@@ -111,9 +111,17 @@ func Forward(servers interface{}, messageId string, i interface{}) {
 	Route("router", "C2S_Route", args)
 }
 
-// TODO 当前仅支持router
-func Request(serverName string, messageId string, in interface{}) ([]byte, error) {
-	addr := defaultRouter
+// 同步请求
+func Request(serverName, msgId string, in interface{}) ([]byte, error) {
+	var addr string
+	if serverName == "router" {
+		addr = config.Config().Server("router").Addr
+	} else {
+		addr, _ = RequestServerAddr(serverName)
+	}
+	if addr == "" {
+		return nil, invalidAddr
+	}
 	rwc, err := net.Dial("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -130,7 +138,7 @@ func Request(serverName string, messageId string, in interface{}) ([]byte, error
 	if err != nil {
 		return nil, err
 	}
-	req := &Package{Id: messageId, Data: data}
+	req := &Package{Id: msgId, Data: data}
 	buf, err := defaultRawParser.Encode(req)
 	if err != nil {
 		return nil, err
