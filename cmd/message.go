@@ -90,6 +90,9 @@ type Package struct {
 	Ssid     string          `json:",omitempty"`    // 会话ID
 	Version  int             `json:"Ver,omitempty"` // 版本
 	SendTime int64           `json:",omitempty"`    // 发送的时间戳
+
+	Body  interface{} `json:"-"` // 传入的参数
+	IsRaw bool        `json:"-"`
 }
 
 type PackageParser interface {
@@ -97,7 +100,16 @@ type PackageParser interface {
 	Decode([]byte) (*Package, error)
 }
 
-var defaultRawParser PackageParser = &rawParser{}
+func (pkg *Package) beforeEncode(parser PackageParser) (err error) {
+	body := pkg.Body
+	if body == nil {
+		return
+	}
+	pkg.Data, err = marshalJSON(body)
+	return
+}
+
+var defaultRawParser PackageParser = &hashParser{}
 var defaultHashParser PackageParser = &hashParser{
 	ref:      []int{0, 3, 4, 8, 10, 11, 13, 14},
 	tempSign: "12345678",
@@ -105,20 +117,6 @@ var defaultHashParser PackageParser = &hashParser{
 var defaultAuthParser PackageParser = &hashParser{
 	secs:     5,
 	tempSign: "a9542bb104fe3f4d562e1d275e03f5ba",
-}
-
-type rawParser struct{}
-
-func (parser *rawParser) Encode(pkg *Package) ([]byte, error) {
-	return json.Marshal(pkg)
-}
-
-func (parser *rawParser) Decode(buf []byte) (*Package, error) {
-	pkg := &Package{}
-	if err := json.Unmarshal(buf, pkg); err != nil {
-		return nil, err
-	}
-	return pkg, nil
 }
 
 // 哈希
@@ -135,12 +133,17 @@ func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
 		pkg.SendTime = time.Now().Unix()
 	}
 
+	if err := pkg.beforeEncode(parser); err != nil {
+		return nil, err
+	}
 	buf, err := json.Marshal(pkg)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := parser.Signature(buf); err != nil {
-		return nil, err
+	if parser.tempSign != "" {
+		if _, err := parser.Signature(buf); err != nil {
+			return nil, err
+		}
 	}
 	return buf, nil
 }
@@ -200,7 +203,11 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 }
 
 func Encode(pkg *Package) ([]byte, error) {
-	return defaultHashParser.Encode(pkg)
+	parser := defaultHashParser
+	if pkg.IsRaw == true {
+		parser = defaultRawParser
+	}
+	return parser.Encode(pkg)
 }
 
 func Decode(buf []byte) (*Package, error) {
@@ -208,18 +215,10 @@ func Decode(buf []byte) (*Package, error) {
 }
 
 func Encode2(name string, i interface{}) ([]byte, error) {
-	data, err := MarshalJSON(i)
-	if err != nil {
-		return nil, err
-	}
-	pkg := &Package{
-		Id:   name,
-		Data: data,
-	}
-	return Encode(pkg)
+	return Encode(&Package{Id: name, Body: i})
 }
 
-func MarshalJSON(i interface{}) ([]byte, error) {
+func marshalJSON(i interface{}) ([]byte, error) {
 	switch i.(type) {
 	case []byte:
 		return i.([]byte), nil

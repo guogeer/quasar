@@ -101,13 +101,8 @@ func (c *TCPConn) NewMessageBytes(mt int, data []byte) ([]byte, error) {
 }
 
 func (c *TCPConn) WriteJSON(name string, i interface{}) error {
-	// 4K缓存
-	s, err := MarshalJSON(i)
-	if err != nil {
-		return err
-	}
 	// 消息格式
-	pkg := &Package{Id: name, Data: s}
+	pkg := &Package{Id: name, Body: i}
 	buf, err := defaultRawParser.Encode(pkg)
 	if err != nil {
 		return err

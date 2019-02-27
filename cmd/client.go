@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"github.com/guogeer/husky/config"
 	"github.com/guogeer/husky/log"
 	"net"
@@ -174,12 +173,8 @@ func (cm *clientManage) connect(serverName string) {
 }
 
 func (cm *clientManage) Route3(serverName, messageId string, i interface{}) {
-	data, err := MarshalJSON(i)
-	if err != nil {
-		return
-	}
 	serverName, messageId = routeMessage(serverName, messageId)
-	msg, err := json.Marshal(&Package{Id: messageId, Data: data})
+	msg, err := Encode(&Package{Id: messageId, Body: i, IsRaw: true})
 	if err != nil {
 		return
 	}

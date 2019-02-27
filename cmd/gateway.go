@@ -4,7 +4,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"github.com/gorilla/websocket"
 	"github.com/guogeer/husky/log"
@@ -50,14 +49,9 @@ func (c *WsConn) Close() {
 }
 
 func (c *WsConn) WriteJSON(name string, i interface{}) error {
-	s, err := MarshalJSON(i)
-	if err != nil {
-		return err
-	}
-
 	// 消息格式
-	pkg := &Package{Id: name, Data: s}
-	buf, err := json.Marshal(pkg)
+	pkg := &Package{Id: name, Body: i}
+	buf, err := defaultRawParser.Encode(pkg)
 	if err != nil {
 		return err
 	}

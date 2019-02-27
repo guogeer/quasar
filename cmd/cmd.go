@@ -55,11 +55,15 @@ func Bind(h Handler, args interface{}) {
 }
 
 func Handle(ctx *Context, name string, args interface{}) {
-	b, err := MarshalJSON(args)
+	b, err := defaultRawParser.Encode(&Package{Id: name, Body: args})
 	if err != nil {
 		return
 	}
-	defaultCmdSet.Handle(ctx, name, b)
+	pkg, err := defaultRawParser.Decode(b)
+	if err != nil {
+		return
+	}
+	defaultCmdSet.Handle(ctx, name, pkg.Data)
 }
 
 func Route(serverName, messageId string, data interface{}) {
@@ -87,7 +91,7 @@ type ForwardArgs struct {
 
 // 消息通过router转发
 func Forward(servers interface{}, messageId string, i interface{}) {
-	buf, err := MarshalJSON(i)
+	buf, err := marshalJSON(i)
 	if err != nil {
 		return
 	}
@@ -134,11 +138,7 @@ func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 	if _, err := c.writeMsg(AuthMessage, firstPackage); err != nil {
 		return nil, err
 	}
-	data, err := MarshalJSON(in)
-	if err != nil {
-		return nil, err
-	}
-	req := &Package{Id: msgId, Data: data}
+	req := &Package{Id: msgId, Body: in}
 	buf, err := defaultRawParser.Encode(req)
 	if err != nil {
 		return nil, err

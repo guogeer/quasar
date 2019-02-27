@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"github.com/guogeer/husky/log"
 	"sync"
 )
@@ -16,17 +15,9 @@ func (ss *Session) GetServerName() string {
 	return client.name
 }
 
-func (ss *Session) Encode(name string, i interface{}) ([]byte, error) {
-	data, err := MarshalJSON(i)
-	if err != nil {
-		return nil, err
-	}
-	pkg := &Package{Id: name, Data: data, Ssid: ss.Id}
-	return json.Marshal(pkg)
-}
-
 func (ss *Session) Route(serverName, name string, i interface{}) {
-	buf, err := ss.Encode(name, i)
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, IsRaw: true}
+	buf, err := Encode(pkg)
 	if err != nil {
 		return
 	}
@@ -34,7 +25,8 @@ func (ss *Session) Route(serverName, name string, i interface{}) {
 }
 
 func (ss *Session) WriteJSON(name string, i interface{}) {
-	buf, err := ss.Encode(name, i)
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, IsRaw: true}
+	buf, err := Encode(pkg)
 	if err != nil {
 		return
 	}
