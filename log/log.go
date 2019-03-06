@@ -50,7 +50,7 @@ func init() {
 	fs := flag.NewFlagSet("", flag.ContinueOnError)
 	f2, _ := os.Open(os.DevNull)
 	fs.SetOutput(f2) // 不打印错误信息
-	tag := flag.String("log", "DEBUG", "log level: DEBUG|INFO|ERROR")
+	tag := fs.String("log", "DEBUG", "log level: DEBUG|INFO|ERROR")
 	fs.Parse(os.Args[1:])
 	f2.Close()
 
