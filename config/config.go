@@ -67,6 +67,7 @@ func init() {
 	fs.SetOutput(f) // 不打印错误信息
 	path := flag.String("config", "config.xml", "config file path")
 	fs.Parse(os.Args[1:])
+	f.Close()
 
 	LoadConfig(*path, &defaultConfig)
 	defaultConfig.path = *path

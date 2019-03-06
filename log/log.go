@@ -52,6 +52,8 @@ func init() {
 	fs.SetOutput(f2) // 不打印错误信息
 	tag := flag.String("log", "DEBUG", "log level: DEBUG|INFO|ERROR")
 	fs.Parse(os.Args[1:])
+	f2.Close()
+
 	SetLevelByTag(*tag)
 }
 
