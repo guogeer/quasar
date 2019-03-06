@@ -8,7 +8,6 @@ import (
 	"github.com/guogeer/husky/util"
 	"net/http"
 	"runtime"
-	_ "third/env"
 )
 
 var port = flag.Int("port", 8201, "gateway server port")
