@@ -1,8 +1,10 @@
 package randutil
 
 import (
+	"fmt"
 	"math/rand"
 	"reflect"
+	"strconv"
 )
 
 const sampleSize = 100 * 10000 // 100W
@@ -65,10 +67,17 @@ func ShuffleN(a interface{}, n int) {
 
 // 根据a[i]比重随机下标i
 func Index(a interface{}) int {
+	var numbers []int64
+	var vals = reflect.ValueOf(a)
+	for i := 0; i < vals.Len(); i++ {
+		s := fmt.Sprintf("%v", vals.Index(i))
+		f, _ := strconv.ParseFloat(s, 64)
+		numbers = append(numbers, int64(f*sampleSize))
+	}
+
 	var part, sum int64
-	lst := reflect.ValueOf(a)
-	for i := 0; i < lst.Len(); i++ {
-		sum += lst.Index(i).Int()
+	for _, n := range numbers {
+		sum += n
 	}
 
 	if sum <= 0 {
@@ -76,8 +85,8 @@ func Index(a interface{}) int {
 	}
 
 	r := rand.Int63n(sum)
-	for i := 0; i < lst.Len(); i++ {
-		part += lst.Index(i).Int()
+	for i, n := range numbers {
+		part += n
 		if r < part {
 			return i
 		}

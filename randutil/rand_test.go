@@ -15,7 +15,7 @@ func TestIndex(t *testing.T) {
 		{2, 0, 1, 100000},
 		{2, 0, 0, 100000},
 		{2, 0, 0, 1},
-		{0, 8000, 1000, 1000, 0, 0, 0},
+		{0, 8000, 1, 1, 0, 0, 0},
 	}
 	for _, data := range datalist {
 		n := Index(data[1:])
@@ -23,6 +23,23 @@ func TestIndex(t *testing.T) {
 			t.Error("fail index", data)
 		}
 	}
+	var floats = [][]float64{
+		{0, 1.0},
+		{0, 1.2, 0},
+		{0, 10000.001, 1},
+		{1, 0, 1, 0},
+		{2, 0, 1, 100000},
+		{2, 0, 0, 100000.3},
+		{2, 0, 0, 1.3},
+		{0, 8000, 1.00, 1, 0, 0, 0},
+	}
+	for _, data := range floats {
+		n := Index(data[1:])
+		if n != int(data[0]) {
+			t.Error("fail index", data)
+		}
+	}
+
 }
 
 func TestShuffeN(t *testing.T) {
