@@ -1,65 +1,62 @@
 package util
 
 import (
-	. "reflect"
-	"github.com/guogeer/husky/log"
+	"reflect"
 )
 
-// deep copy from struct to struct
+// 深拷贝
+// 结构体之间递归深拷贝
+// 整数、浮点数、字符串、布尔类型直接拷贝，其他类型忽略
 func DeepCopy(dst, src interface{}) {
-	// log.Debugf("%#v %#v", dst, src)
 	if dst == nil || src == nil {
-		log.Info("nil value")
 		return
 	}
-
-	srcVal := Indirect(ValueOf(src))
-	dstVal := Indirect(ValueOf(dst))
-	if !(srcVal.Kind() == Struct && dstVal.Kind() == Struct) {
-		log.Error("type is not struct ptr")
+	sval := reflect.Indirect(reflect.ValueOf(src))
+	dval := reflect.Indirect(reflect.ValueOf(dst))
+	if !(sval.Kind() == reflect.Struct && dval.Kind() == reflect.Struct) {
 		return
 	}
-
-	srcType := srcVal.Type()
-	// dstType := dstVal.Type()
-	for i := 0; i < srcVal.NumField(); i++ {
-		srcField := srcVal.Field(i)
-		name := srcType.Field(i).Name
-		dstField := dstVal.FieldByName(name)
-		if !dstField.CanSet() {
+	for i := 0; i < sval.NumField(); i++ {
+		sfield := sval.Field(i)
+		sname := sval.Type().Field(i).Name
+		dfield := dval.FieldByName(sname)
+		sfield = reflect.Indirect(sfield)
+		dfield = reflect.Indirect(dfield)
+		if !(sfield.IsValid() && dfield.IsValid()) {
 			continue
 		}
-
-		if getKind(srcField) != getKind(dstField) {
+		if dfield.CanSet() == false {
 			continue
 		}
-		switch getKind(srcField) {
-		case Int64:
-			dstField.SetInt(srcField.Int())
-		case Uint64:
-			dstField.SetUint(srcField.Uint())
-		case Float64:
-			dstField.SetFloat(srcField.Float())
-		case Bool, String:
-			dstField.Set(srcField)
-		case Ptr:
-			DeepCopy(dstField.Interface(), srcField.Interface())
-		default:
-			// log.Infof("%#v %#v", srcField, dstField)
+		if testKind(sfield.Kind()) != testKind(dfield.Kind()) {
+			continue
+		}
+		switch testKind(sfield.Kind()) {
+		case reflect.Int64:
+			dfield.SetInt(sfield.Int())
+		case reflect.Uint64:
+			dfield.SetUint(sfield.Uint())
+		case reflect.Float64:
+			dfield.SetFloat(sfield.Float())
+		case reflect.Bool, reflect.String:
+			dfield.Set(sfield)
+		case reflect.Struct:
+			dfield = dfield.Addr()
+			DeepCopy(dfield.Interface(), sfield.Interface())
 		}
 	}
 }
 
-func getKind(v Value) Kind {
-	kind := v.Kind()
-	switch kind {
-	case Int, Int8, Int16, Int32, Int64:
-		return Int64
-	case Uint, Uint8, Uint16, Uint32, Uint64:
-		return Uint64
-	case Float32, Float64:
-		return Float64
-	default:
-		return kind
+func testKind(k reflect.Kind) reflect.Kind {
+	switch k {
+	case reflect.Float32, reflect.Float64:
+		return reflect.Float64
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Int:
+		return reflect.Int64
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Uint:
+		return reflect.Uint64
 	}
+	return k
 }
