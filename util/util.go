@@ -24,12 +24,16 @@ func ParseTime(s string) (time.Time, error) {
 	return time.ParseInLocation(match, s, loc)
 }
 
-func SkipPeriodTime(startTime time.Time, d time.Duration) time.Time {
-	endTime := startTime
-	if diff := time.Now().Sub(startTime); diff > 0 && d > 0 {
-		endTime = startTime.Add(time.Duration((diff + d - 1) / d * d))
+func SkipPeriodTime(start time.Time, d time.Duration) time.Time {
+	return skipPeriodTime3(time.Now(), start, d)
+}
+
+func skipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
+	end := now
+	if diff := now.Sub(start); diff > 0 && d > 0 {
+		end = start.Add(time.Duration((diff + d - 1) / d * d))
 	}
-	return endTime
+	return end
 }
 
 // Monday,Thursday...
