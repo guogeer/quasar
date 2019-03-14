@@ -58,7 +58,7 @@ func TestSructCopy(t *testing.T) {
 		AA1: AA{N1: 11, N2: 12, S1: "AAS1", B1: true},
 		AA3: AA{N1: 21, N2: 22, S1: "AAS2", B1: false},
 	}
-	b1 := &B{AA1: &AB{}}
+	b1 := &B{}
 	b2 := &B{AA1: &AB{}}
 	DeepCopy(b1, a)
 	s1, _ := json.Marshal(b1)
