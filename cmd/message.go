@@ -163,7 +163,7 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 
 	sign, err := parser.Signature(buf)
 	if err != nil {
-		return nil, ErrInvalidSign
+		return pkg, ErrInvalidSign
 	}
 	if pkg.Sign != sign {
 		return pkg, ErrInvalidSign
