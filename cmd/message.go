@@ -163,7 +163,7 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 
 	sign, err := parser.Signature(buf)
 	if err != nil {
-		return nil, err
+		return nil, ErrInvalidSign
 	}
 	if pkg.Sign != sign {
 		return pkg, ErrInvalidSign
@@ -174,6 +174,9 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 
 func (parser *hashParser) Signature(data []byte) (string, error) {
 	ref, key := parser.ref, parser.key
+	if key == "" {
+		return "", nil
+	}
 	buf := make([]byte, len(key)+len(data))
 	copy(buf[:], []byte(key))
 	copy(buf[len(key):], data)
@@ -181,11 +184,13 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 	tempSign := parser.tempSign
 	_, _, n, err := jsonparser.Get(data, "Sign")
 	if err != nil {
-		return "", nil
+		return "", err
 	}
-	if signLen := len(tempSign) + 1; n >= signLen {
-		copy(buf[len(key)+n-signLen:], tempSign)
+	signLen := len(tempSign) + 1
+	if n < signLen {
+		return "", ErrInvalidSign
 	}
+	copy(buf[len(key)+n-signLen:], tempSign)
 
 	sum := md5.Sum(buf)
 	sign := hex.EncodeToString(sum[:])
