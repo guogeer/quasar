@@ -201,9 +201,7 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 		}
 		sign = string(sign2)
 	}
-	if signLen := len(tempSign) + 1; n >= signLen {
-		copy(data[n-signLen:n], sign)
-	}
+	copy(data[n-signLen:n], sign)
 	return sign, nil
 }
 
