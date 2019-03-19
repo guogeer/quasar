@@ -177,10 +177,7 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 	if key == "" {
 		return "", nil
 	}
-	buf := make([]byte, len(key)+len(data))
-	copy(buf[:], []byte(key))
-	copy(buf[len(key):], data)
-
+	buf := append([]byte(key), data...)
 	tempSign := parser.tempSign
 	_, _, n, err := jsonparser.Get(data, "Sign")
 	if err != nil {
