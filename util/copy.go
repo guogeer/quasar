@@ -1,7 +1,7 @@
 package util
 
 import (
-	_ "fmt"
+	// "fmt"
 	"reflect"
 )
 
@@ -21,10 +21,10 @@ func DeepCopy(dst, src interface{}) {
 		sfield := sval.Field(i)
 		sname := sval.Type().Field(i).Name
 		dfield := dval.FieldByName(sname)
-		if sfield.IsValid() == false {
+		// fmt.Println("==", sname, dfield.Kind(), sfield.CanSet())
+		if !sfield.IsValid() || !dfield.CanSet() {
 			continue
 		}
-		// fmt.Println("==", sname, dfield.Kind())
 		if dfield.Kind() == reflect.Ptr {
 			dfield.Set(reflect.New(dfield.Type().Elem()))
 		}
@@ -33,9 +33,6 @@ func DeepCopy(dst, src interface{}) {
 		dfield = reflect.Indirect(dfield)
 		// fmt.Println(sname, dfield.Kind())
 
-		if dfield.CanSet() == false {
-			continue
-		}
 		if testKind(sfield.Kind()) != testKind(dfield.Kind()) {
 			continue
 		}

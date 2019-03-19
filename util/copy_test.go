@@ -25,6 +25,8 @@ type AB struct {
 	B1 bool
 	M1 map[string]string
 	M2 map[string]string
+	n1 int32
+	N3 int
 }
 
 type A struct {
@@ -36,7 +38,8 @@ type A struct {
 	M3  map[string]string
 	M4  map[string]string
 	AA1 AA
-	AA3 AA
+	AA3 *AA
+	aa1 AA
 }
 
 type B struct {
@@ -49,6 +52,7 @@ type B struct {
 	AA1 *AB
 	AA2 AB
 	AA3 AA
+	aa1 *AA
 }
 
 func TestSructCopy(t *testing.T) {
@@ -56,7 +60,7 @@ func TestSructCopy(t *testing.T) {
 		N1: 1, N2: 2,
 		S1:  "S1",
 		AA1: AA{N1: 11, N2: 12, S1: "AAS1", B1: true},
-		AA3: AA{N1: 21, N2: 22, S1: "AAS2", B1: false},
+		AA3: &AA{N1: 21, N2: 22, S1: "AAS2", B1: false},
 	}
 	b1 := &B{}
 	b2 := &B{AA1: &AB{}}
@@ -65,7 +69,9 @@ func TestSructCopy(t *testing.T) {
 	s2, _ := json.Marshal(a)
 	json.Unmarshal(s2, b2)
 	s2, _ = json.Marshal(b2)
+	// t.Log(string(s1))
+	// t.Log(string(s2))
 	if bytes.Compare(s1, s2) != 0 {
-		t.Error("deep copy error", b1, b2)
+		t.Error("deep copy error", string(s1), string(s2))
 	}
 }
