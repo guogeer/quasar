@@ -140,10 +140,8 @@ func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if parser.tempSign != "" {
-		if _, err := parser.Signature(buf); err != nil {
-			return nil, err
-		}
+	if _, err := parser.Signature(buf); err != nil {
+		return nil, err
 	}
 	return buf, nil
 }
