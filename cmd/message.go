@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/buger/jsonparser"
-	"github.com/guogeer/husky/log"
+	// "github.com/guogeer/husky/log"
 	"strings"
 	"time"
 )
@@ -45,19 +45,32 @@ func NewSafeQueue(size int) *SafeQueue {
 	return &SafeQueue{q: make(chan interface{}, size)}
 }
 
-func (safeQueue *SafeQueue) Enqueue(i interface{}) {
-	safeQueue.q <- i
+func (h *SafeQueue) Enqueue(i interface{}) {
+	h.q <- i
 }
 
-func (safeQueue *SafeQueue) Dequeue() interface{} {
-	select {
-	case msg, ok := <-safeQueue.q:
-		if ok == false {
-			log.Debug("use closed queue in fault")
+func (h *SafeQueue) Dequeue(delay time.Duration) interface{} {
+	if delay > 0 {
+		select {
+		case msg, _ := <-h.q:
+			return msg
+		case <-time.After(delay):
+			return nil
 		}
-		return msg
-	case <-time.After(40 * time.Millisecond):
-		return nil
+	}
+	if delay == 0 {
+		select {
+		case msg, _ := <-h.q:
+			return msg
+		default:
+			return nil
+		}
+	}
+	if delay < 0 {
+		select {
+		case msg, _ := <-h.q:
+			return msg
+		}
 	}
 	return nil
 }
@@ -69,8 +82,9 @@ func GetMessageQueue() *SafeQueue {
 }
 
 func RunOnce() {
+	delay := 40 * time.Millisecond
 	for i := 0; i < 64; i++ {
-		front := GetMessageQueue().Dequeue()
+		front := GetMessageQueue().Dequeue(delay)
 		if front == nil {
 			break
 		}
