@@ -6,48 +6,58 @@ import (
 )
 
 // 深拷贝
-// 结构体之间递归深拷贝
+// 结构体、切片之间递归深拷贝
 // 整数、浮点数、字符串、布尔类型直接拷贝，其他类型忽略
 func DeepCopy(dst, src interface{}) {
-	if dst == nil || src == nil {
+	sval := reflect.ValueOf(src)
+	dval := reflect.ValueOf(dst)
+	doCopy(dval, sval)
+}
+
+func doCopy(dval, sval reflect.Value) {
+	if !sval.IsValid() {
 		return
 	}
-	sval := reflect.Indirect(reflect.ValueOf(src))
-	dval := reflect.Indirect(reflect.ValueOf(dst))
-	if !(sval.Kind() == reflect.Struct && dval.Kind() == reflect.Struct) {
+	if dval.Kind() == reflect.Ptr && dval.IsNil() && dval.CanSet() {
+		dval.Set(reflect.New(dval.Type().Elem()))
+	}
+	sval = reflect.Indirect(sval)
+	dval = reflect.Indirect(dval)
+	if !dval.CanSet() {
 		return
 	}
-	for i := 0; i < sval.NumField(); i++ {
-		sfield := sval.Field(i)
-		sname := sval.Type().Field(i).Name
-		dfield := dval.FieldByName(sname)
-		// fmt.Println("==", sname, dfield.Kind(), sfield.CanSet())
-		if !sfield.IsValid() || !dfield.CanSet() {
-			continue
+	// fmt.Println(sval.IsValid(), dval.CanSet())
+	if testKind(sval.Kind()) != testKind(dval.Kind()) {
+		return
+	}
+	switch testKind(sval.Kind()) {
+	case reflect.Int64:
+		dval.SetInt(sval.Int())
+	case reflect.Uint64:
+		dval.SetUint(sval.Uint())
+	case reflect.Float64:
+		dval.SetFloat(sval.Float())
+	case reflect.Bool, reflect.String:
+		dval.Set(sval)
+	case reflect.Struct:
+		for i := 0; i < sval.NumField(); i++ {
+			sfield := sval.Field(i)
+			sname := sval.Type().Field(i).Name
+			dfield := dval.FieldByName(sname)
+			// fmt.Println("==", sname, dfield.Kind(), dfield.CanSet())
+			// sfield = reflect.Indirect(sfield)
+			// dfield = reflect.Indirect(dfield)
+			// fmt.Println("====", sname, dfield.Kind())
+			doCopy(dfield, sfield)
 		}
-		if dfield.Kind() == reflect.Ptr {
-			dfield.Set(reflect.New(dfield.Type().Elem()))
-		}
-
-		sfield = reflect.Indirect(sfield)
-		dfield = reflect.Indirect(dfield)
-		// fmt.Println(sname, dfield.Kind())
-
-		if testKind(sfield.Kind()) != testKind(dfield.Kind()) {
-			continue
-		}
-		switch testKind(sfield.Kind()) {
-		case reflect.Int64:
-			dfield.SetInt(sfield.Int())
-		case reflect.Uint64:
-			dfield.SetUint(sfield.Uint())
-		case reflect.Float64:
-			dfield.SetFloat(sfield.Float())
-		case reflect.Bool, reflect.String:
-			dfield.Set(sfield)
-		case reflect.Struct:
-			dfield = dfield.Addr()
-			DeepCopy(dfield.Interface(), sfield.Interface())
+	case reflect.Slice:
+		if size := sval.Len(); size > 0 {
+			newval := reflect.MakeSlice(dval.Type(), size, size)
+			for i := 0; i < size; i++ {
+				v1, v2 := newval.Index(i), sval.Index(i)
+				doCopy(v1, v2)
+			}
+			dval.Set(newval)
 		}
 	}
 }
