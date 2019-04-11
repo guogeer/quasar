@@ -154,7 +154,7 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 		}
 		if recvPackageCounter >= 0 {
 			recvPackageCounter++
-			if time.Now().Before(deadline) {
+			if time.Now().After(deadline) {
 				recvPackageCounter = -1
 			}
 			if recvPackageCounter >= clientPackageSpeedPer2s {
