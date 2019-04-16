@@ -10,25 +10,21 @@ import (
 	"strings"
 )
 
-var invalidAddr = errors.New("request empty address")
+var errInvalidAddr = errors.New("request empty address")
 
 func init() {
-	addr := config.Config().Server("router").Addr
-	if addr == "" {
-		panic("NOTE router address is empty")
-	}
-
 	// 服务器内部数据校验KEY
-	if h, ok := defaultAuthParser.(*hashParser); ok {
-		h.key = config.Config().Sign
+	cfg := config.Config()
+	sign, productKey := cfg.Sign, cfg.ProductKey
+	if h, ok := defaultAuthParser.(*hashParser); ok && sign != "" {
+		h.key = sign
 	}
 	// 客户端与服务器数据校验KEY
-	if h, ok := defaultHashParser.(*hashParser); ok {
-		h.key = config.Config().ProductKey
+	if h, ok := defaultHashParser.(*hashParser); ok && productKey != "" {
+		h.key = productKey
 	}
 
 	BindWithName("C2S_RegisterOk", funcRegisterOk, (*cmdArgs)(nil))
-
 	// 某些情况下需要发送一个包去探路，这个包可能会发送失败
 	BindWithName("FUNC_Test", funcTest, (*cmdArgs)(nil))
 	// 断线后自动重连
@@ -124,7 +120,7 @@ func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 		addr, _ = RequestServerAddr(serverName)
 	}
 	if addr == "" {
-		return nil, invalidAddr
+		return nil, errInvalidAddr
 	}
 	rwc, err := net.Dial("tcp", addr)
 	if err != nil {

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Config>
 	<!-- 服务器内部数据校验KEY -->
-	<Sign>D101C5EFB2FF020307dh965FFE87sks</Sign>
+	<Sign>420e57b017066b44e05ea1577f6e2e12</Sign>
 	<!-- 客户端与服务器数据校验KEY -->
-	<ProductKey>hellokitty</ProductKey>
+	<ProductKey>helloworld!</ProductKey>
    	<ServerList>
 		<!--路由服-->
 		<Server>
 			<Name>router</Name>
-			<Address>172.18.31.94:9003</Address>
+			<Address>127.0.0.1:9003</Address>
 		</Server>
 	</ServerList>
 </Config>

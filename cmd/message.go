@@ -81,9 +81,8 @@ func GetMessageQueue() *SafeQueue {
 	return defaultMessageQueue
 }
 
-func RunOnce() {
-	delay := 40 * time.Millisecond
-	for i := 0; i < 64; i++ {
+func waitAndRunOnce(loop int, delay time.Duration) {
+	for i := 0; i < loop; i++ {
 		front := GetMessageQueue().Dequeue(delay)
 		if front == nil {
 			break
@@ -91,6 +90,10 @@ func RunOnce() {
 		msg := front.(*Message)
 		msg.h(msg.ctx, msg.args)
 	}
+}
+
+func RunOnce() {
+	waitAndRunOnce(64, 40*time.Millisecond)
 }
 
 func Enqueue(ctx *Context, h Handler, args interface{}) {
@@ -126,10 +129,12 @@ func (pkg *Package) beforeEncode(parser PackageParser) (err error) {
 var defaultRawParser PackageParser = &hashParser{}
 var defaultHashParser PackageParser = &hashParser{
 	ref:      []int{0, 3, 4, 8, 10, 11, 13, 14},
+	key:      "helloworld!",
 	tempSign: "12345678",
 }
 var defaultAuthParser PackageParser = &hashParser{
 	secs:     5,
+	key:      "420e57b017066b44e05ea1577f6e2e12",
 	tempSign: "a9542bb104fe3f4d562e1d275e03f5ba",
 }
 

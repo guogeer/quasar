@@ -5,7 +5,6 @@ package config
 import (
 	"encoding/json"
 	"encoding/xml"
-	"errors"
 	"flag"
 	"github.com/go-yaml/yaml"
 	"io/ioutil"
@@ -16,11 +15,11 @@ import (
 func LoadConfig(path string, conf interface{}) error {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
-		panic(err)
+		return err
 	}
 	switch pathlib.Ext(path) {
 	default:
-		err = errors.New("only support xml|json|yaml")
+		panic("only support xml|json|yaml")
 	case ".xml":
 		err = xml.Unmarshal(b, &conf)
 	case ".json":
@@ -28,10 +27,7 @@ func LoadConfig(path string, conf interface{}) error {
 	case ".yaml":
 		err = yaml.Unmarshal(b, &conf)
 	}
-	if err != nil {
-		panic(err)
-	}
-	return nil
+	return err
 }
 
 type server struct {

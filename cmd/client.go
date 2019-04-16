@@ -150,7 +150,7 @@ func (cm *clientManage) connect(serverName string) {
 			if serverName != "router" {
 				addr2, err := RequestServerAddr(serverName)
 				if err != nil {
-					log.Errorf("connect %d %v", serverName, err)
+					log.Errorf("connect %s %v", serverName, err)
 				}
 				addr = addr2
 			}

@@ -136,7 +136,7 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 		_, message, err := c.ws.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway) {
-				log.Infof("websocket close, %v", err)
+				log.Debugf("websocket close, %v", err)
 			}
 			return
 		}
