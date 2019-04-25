@@ -3,7 +3,6 @@
 package log
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -47,14 +46,6 @@ func init() {
 		log.SetOutput(os.Stdout)
 		log.SetFlags(log.Lshortfile | log.LstdFlags)
 	}
-	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	f2, _ := os.Open(os.DevNull)
-	fs.SetOutput(f2) // 不打印错误信息
-	tag := fs.String("log", "DEBUG", "log level: DEBUG|INFO|ERROR")
-	fs.Parse(os.Args[1:])
-	f2.Close()
-
-	SetLevelByTag(*tag)
 }
 
 func updateLogPath(path string) string {

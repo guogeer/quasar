@@ -5,11 +5,13 @@ package config
 import (
 	"encoding/json"
 	"encoding/xml"
-	"flag"
 	"github.com/go-yaml/yaml"
+	"github.com/guogeer/husky/log"
 	"io/ioutil"
 	"os"
 	pathlib "path"
+	"regexp"
+	"strings"
 )
 
 func LoadConfig(path string, conf interface{}) error {
@@ -58,17 +60,27 @@ func (cf Env) Path() string {
 var defaultConfig Env
 
 func init() {
-	fs := flag.NewFlagSet("", flag.ContinueOnError)
-	f, _ := os.Open(os.DevNull)
-	fs.SetOutput(f) // 不打印错误信息
-	path := fs.String("config", "config.xml", "config file path")
-	fs.Parse(os.Args[1:])
-	f.Close()
+	path := ParseArgs(os.Args[1:], "config")
+	LoadConfig(path, &defaultConfig)
+	defaultConfig.path = path
 
-	LoadConfig(*path, &defaultConfig)
-	defaultConfig.path = *path
+	tag := ParseArgs(os.Args[1:], "log")
+	log.SetLevelByTag(tag)
 }
 
 func Config() Env {
 	return defaultConfig
+}
+
+// 解析命令行参数，支持4种格式
+// -name=value -name value --name=value --name value
+func ParseArgs(args []string, name string) string {
+	s := " " + strings.Join(args, " ")
+	re := regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))\S+`)
+
+	s = re.FindString(s)
+	re = regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))`)
+
+	prefix := re.FindString(s)
+	return s[len(prefix):]
 }

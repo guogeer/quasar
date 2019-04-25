@@ -82,8 +82,8 @@ func TestSructCopy(t *testing.T) {
 	s2, _ := json.Marshal(a)
 	json.Unmarshal(s2, b2)
 	s2, _ = json.Marshal(b2)
-	t.Log(string(s1))
-	t.Log(string(s2))
+	// t.Log(string(s1))
+	// t.Log(string(s2))
 	DeepCopy(nil, a)
 	DeepCopy(nil, nil)
 	if bytes.Compare(s1, s2) != 0 {
