@@ -3,6 +3,7 @@ package util
 import (
 	"fmt"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -112,4 +113,15 @@ func InArray(array interface{}, some interface{}) int {
 		}
 	}
 	return counter
+}
+
+func ParseArgs(name string, args []string) string {
+	s := " " + strings.Join(args, " ")
+	re := regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))\S+`)
+
+	s = re.FindString(s)
+	re = regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))`)
+
+	prefix := re.FindString(s)
+	return s[len(prefix):]
 }
