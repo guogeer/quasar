@@ -60,11 +60,11 @@ func (cf Env) Path() string {
 var defaultConfig Env
 
 func init() {
-	path := ParseArgs(os.Args[1:], "config")
+	path := ParseArgs(os.Args[1:], "config", "config.xml")
 	LoadConfig(path, &defaultConfig)
 	defaultConfig.path = path
 
-	tag := ParseArgs(os.Args[1:], "log")
+	tag := ParseArgs(os.Args[1:], "log", "DEBUG")
 	log.SetLevelByTag(tag)
 }
 
@@ -74,11 +74,14 @@ func Config() Env {
 
 // 解析命令行参数，支持4种格式
 // -name=value -name value --name=value --name value
-func ParseArgs(args []string, name string) string {
+func ParseArgs(args []string, name, def string) string {
 	s := " " + strings.Join(args, " ")
 	re := regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))\S+`)
 
 	s = re.FindString(s)
+	if s == "" {
+		return def
+	}
 	re = regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))`)
 
 	prefix := re.FindString(s)
