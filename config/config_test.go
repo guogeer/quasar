@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestLoad(t *testing.T) {
+func TestLoadConfig(t *testing.T) {
 	t.Log("load config.xml", defaultConfig)
 }
 
