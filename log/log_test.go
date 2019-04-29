@@ -6,14 +6,9 @@ import (
 	"testing"
 )
 
-func TestUpdateLogPath(t *testing.T) {
-	path := updateLogPath("log/{proc_name}/run.log")
-	t.Log(updateLogPath(path))
-}
-
 func TestNoFileLog(t *testing.T) {
 	// fileLog.Path = ""
-	fileLog.MaxFileSize = 64
+	fileLog.maxFileSize = 64
 	for i := 0; i < 1; i++ {
 		Debugf("%d", i)
 	}
@@ -30,8 +25,11 @@ func TestStat(t *testing.T) {
 }
 
 func TestDebug(t *testing.T) {
-	fileLog.MaxFileSize = 64
+	fileLog.maxFileSize = 64
 	for i := 0; i < 16; i++ {
+		if i == 8 {
+			fileLog.Create("log/{proc_name}/run.log")
+		}
 		Debugf("%d", i)
 	}
 }

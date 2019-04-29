@@ -1,4 +1,6 @@
 // log
+// 2019-04-28
+// 默认输出到标准输出，设置路径后同时输出到文件
 
 package log
 
@@ -6,7 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -23,20 +25,19 @@ const (
 	LAll
 )
 
-const MaxFileNumPerDay = 1024
+const maxFileNumPerDay = 1024
 
 var (
 	enableDebug = true
 	logTags     = []string{
 		"", "TEST", "DEBUG", "INFO", "WARN", "ERROR", "FATAL",
 	}
-	MyFileLog = FileLog{
-		Path:        "log/{proc_name}/run.log",
-		Level:       LDebug,
-		MaxSaveDays: 10,
-		MaxFileSize: 512 * 1024 * 1024, // 512M
+	fileLog = &FileLog{
+		// path:        "log/{proc_name}/run.log",
+		level:       LDebug,
+		maxSaveDays: 10,
+		maxFileSize: 512 * 1024 * 1024, // 512M
 	}
-	fileLog = &MyFileLog
 )
 
 func init() {
@@ -48,18 +49,11 @@ func init() {
 	}
 }
 
-func updateLogPath(path string) string {
-	procPath := string(os.Args[0])
-	n := strings.LastIndexByte(procPath, os.PathSeparator)
-	procName := procPath[n+1:]
-	return strings.Replace(path, "{proc_name}", procName, -1)
-}
-
 type FileLog struct {
-	Path        string
-	Level       int
-	MaxSaveDays int
-	MaxFileSize int64
+	path        string
+	level       int
+	maxSaveDays int
+	maxFileSize int64
 
 	t       time.Time
 	f       *os.File
@@ -82,7 +76,7 @@ func (l *FileLog) moveFile(oldPath, newPath string) {
 	l.f = nil
 	os.Rename(oldPath, newPath)
 
-	dir := path.Dir(newPath)
+	dir := filepath.Dir(newPath)
 	mode := os.O_WRONLY | os.O_CREATE | os.O_APPEND
 
 	os.MkdirAll(dir, 0755)
@@ -99,10 +93,10 @@ func (l *FileLog) moveFile(oldPath, newPath string) {
 
 // 清理过期文件
 func (l *FileLog) cleanFiles(path string) {
-	if l.MaxSaveDays == 0 {
+	if l.maxSaveDays == 0 || path == "" {
 		return
 	}
-	for try := 0; try < MaxFileNumPerDay; try++ {
+	for try := 0; try < maxFileNumPerDay; try++ {
 		path2 := fmt.Sprintf("%s.%d", path, try)
 		if try == 0 {
 			path2 = path
@@ -121,22 +115,20 @@ func (l *FileLog) Output(level int, s string) {
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if level < l.Level || l.Path == "" {
+	if level < l.level {
 		return
 	}
 
 	now := time.Now()
-	path := updateLogPath(l.Path)
-	newPath := path
-	datePath := fmt.Sprintf("%s.%02d-%02d", path, now.Month(), now.Day())
+	datePath := fmt.Sprintf("%s.%02d-%02d", l.path, now.Month(), now.Day())
 
-	datePath = updateLogPath(datePath)
-	if l.t.YearDay() != now.YearDay() {
+	newPath := l.path
+	if l.path != "" && l.t.YearDay() != now.YearDay() {
 		newPath = datePath
 		l.t = now
 
-		t := now.Add(-time.Duration(l.MaxSaveDays+1) * 24 * time.Hour)
-		path2 := fmt.Sprintf("%s.%02d-%02d", path, t.Month(), t.Day())
+		t := now.Add(-time.Duration(l.maxSaveDays+1) * 24 * time.Hour)
+		path2 := fmt.Sprintf("%s.%02d-%02d", l.path, t.Month(), t.Day())
 		l.cleanFiles(path2)
 	}
 
@@ -146,8 +138,8 @@ func (l *FileLog) Output(level int, s string) {
 		}
 	}
 	l.lines += 1
-	if l.size > l.MaxFileSize {
-		for try := 1; try < MaxFileNumPerDay; try++ {
+	if l.size > l.maxFileSize {
+		for try := 1; try < maxFileNumPerDay; try++ {
 			newPath = fmt.Sprintf("%s.%d", datePath, try)
 			if _, err := os.Stat(newPath); os.IsNotExist(err) {
 				break
@@ -155,7 +147,7 @@ func (l *FileLog) Output(level int, s string) {
 		}
 	}
 
-	if newPath != path {
+	if l.path != "" && newPath != l.path {
 		l.moveFile(datePath, newPath)
 	}
 
@@ -166,13 +158,25 @@ func (l *FileLog) Output(level int, s string) {
 	}
 }
 
+func (l *FileLog) Create(path string) {
+	procName := filepath.Base(string(os.Args[0]))
+	path = strings.Replace(path, "{proc_name}", procName, -1)
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if l.path == path {
+		return
+	}
+	l.path = path
+}
+
 func (l *FileLog) SetLevel(level int) {
 	if level <= 0 || level >= LAll {
 		return
 	}
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.Level = level
+	l.level = level
 }
 
 func getLevelByTag(tag string) int {
@@ -182,6 +186,10 @@ func getLevelByTag(tag string) int {
 		}
 	}
 	panic("invalid log tag: " + tag)
+}
+
+func Create(path string) {
+	fileLog.Create(path)
 }
 
 func SetLevel(lv int) {
