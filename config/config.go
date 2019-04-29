@@ -5,21 +5,25 @@ package config
 import (
 	"encoding/json"
 	"encoding/xml"
+	"flag"
 	"github.com/go-yaml/yaml"
 	"github.com/guogeer/husky/log"
 	"io/ioutil"
 	"os"
-	pathlib "path"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
 
-func LoadConfig(path string, conf interface{}) error {
+var logTag = flag.String("log", "DEBUG", "log DEBUG|INFO|ERROR")
+var configPath = flag.String("config", "config.xml", "config xml|json|yaml")
+
+func LoadFile(path string, conf interface{}) error {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}
-	switch pathlib.Ext(path) {
+	switch filepath.Ext(path) {
 	default:
 		panic("only support xml|json|yaml")
 	case ".xml":
@@ -60,12 +64,12 @@ func (cf Env) Path() string {
 var defaultConfig Env
 
 func init() {
-	path := ParseArgs(os.Args[1:], "config", "config.xml")
-	LoadConfig(path, &defaultConfig)
-	defaultConfig.path = path
+	s := ParseCmdArgs(os.Args[1:], "log", "DEBUG")
+	log.SetLevelByTag(s)
 
-	tag := ParseArgs(os.Args[1:], "log", "DEBUG")
-	log.SetLevelByTag(tag)
+	path := ParseCmdArgs(os.Args[1:], "config", "config.xml")
+	LoadFile(path, &defaultConfig)
+	defaultConfig.path = path
 }
 
 func Config() Env {
@@ -74,7 +78,7 @@ func Config() Env {
 
 // 解析命令行参数，支持4种格式
 // -name=value -name value --name=value --name value
-func ParseArgs(args []string, name, def string) string {
+func ParseCmdArgs(args []string, name, def string) string {
 	s := " " + strings.Join(args, " ")
 	re := regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))\S+`)
 

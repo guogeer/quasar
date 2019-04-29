@@ -33,7 +33,6 @@ var (
 		"", "TEST", "DEBUG", "INFO", "WARN", "ERROR", "FATAL",
 	}
 	fileLog = &FileLog{
-		// path:        "log/{proc_name}/run.log",
 		level:       LDebug,
 		maxSaveDays: 10,
 		maxFileSize: 512 * 1024 * 1024, // 512M
@@ -47,6 +46,7 @@ func init() {
 		log.SetOutput(os.Stdout)
 		log.SetFlags(log.Lshortfile | log.LstdFlags)
 	}
+	fileLog.Create("log/{proc_name}/run.log")
 }
 
 type FileLog struct {
