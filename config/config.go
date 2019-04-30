@@ -64,10 +64,13 @@ func (cf Env) Path() string {
 var defaultConfig Env
 
 func init() {
-	s := ParseCmdArgs(os.Args[1:], "log", "DEBUG")
-	log.SetLevelByTag(s)
+	tag, path := *logTag, *configPath
+	if !flag.Parsed() {
+		tag = ParseCmdArgs(os.Args[1:], "log", tag)
+		path = ParseCmdArgs(os.Args[1:], "config", path)
+	}
 
-	path := ParseCmdArgs(os.Args[1:], "config", "config.xml")
+	log.SetLevelByTag(tag)
 	LoadFile(path, &defaultConfig)
 	defaultConfig.path = path
 }

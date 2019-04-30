@@ -30,6 +30,7 @@ const (
 )
 
 var (
+	enableDebug = false
 	gTableFiles sync.Map
 	gTableRows  [255]*tableRow
 )
@@ -224,7 +225,6 @@ func readFile(path string, rc io.ReadCloser) {
 
 	ext := filepath.Ext(path)
 	if ext != tableFileSuffix {
-		log.Debugf("emit table file %s", path)
 		return
 	}
 
@@ -244,7 +244,9 @@ func LoadLocalTables(fileName string) {
 	// 第一步加载tables.zip
 	zipFile := fileName + ".zip"
 	if _, err := os.Stat(zipFile); err == nil {
-		log.Infof("load tables %s", zipFile)
+		if enableDebug {
+			log.Infof("load tables %s", zipFile)
+		}
 		r, err := zip.OpenReader(fileName + ".zip")
 		if err != nil {
 			panic(err)
@@ -262,7 +264,9 @@ func LoadLocalTables(fileName string) {
 	// 第二部加载scripts/*.tbl
 	fileInfo, err := os.Stat(fileName)
 	if err == nil && fileInfo.IsDir() {
-		log.Infof("load tables %s/*", fileName)
+		if enableDebug {
+			log.Infof("load tables %s/*", fileName)
+		}
 		files, err := ioutil.ReadDir(fileName)
 		if err != nil {
 			log.Fatal(err)
@@ -389,7 +393,9 @@ func IsPart(s string, match interface{}) bool {
 
 func LoadTable(name string, buf []byte) error {
 	t := NewTableFile(name)
-	log.Infof("load table %s", name)
+	if enableDebug {
+		log.Infof("load table %s", name)
+	}
 	if err := t.Load(buf); err != nil {
 		return err
 	}
