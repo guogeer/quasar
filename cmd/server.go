@@ -99,9 +99,12 @@ func (c *ServeConn) serve() {
 				if ok == false {
 					return
 				}
+				// 忽略过大消息
 				if _, err := c.writeMsg(RawMessage, buf); err != nil {
 					log.Debugf("write %v", err)
-					return
+					if err != errTooLargeMessage {
+						return
+					}
 				}
 			case <-doneCtx.Done():
 				return

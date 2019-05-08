@@ -13,14 +13,18 @@ import (
 	"time"
 )
 
+// 协议格式，前4个字节
+// BYTE0：消息类型，BYTE1-3：消息长度
+
 var errInvalidMessageID = errors.New("invalid message ID")
 
 const (
-	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 32 << 10 // 32K
-	sendQueueSize  = 16 << 10
+	writeWait       = 10 * time.Second
+	pongWait        = 60 * time.Second
+	pingPeriod      = (pongWait * 9) / 10
+	maxMessageSize  = 96 << 10 // 96K
+	sendQueueSize   = 16 << 10
+	messageHeadSize = 4
 )
 
 const (
@@ -58,9 +62,9 @@ func (c *TCPConn) RemoteAddr() string {
 }
 
 func (c *TCPConn) ReadMessage() (mt uint8, buf []byte, err error) {
-	var head [3]byte
+	var head [messageHeadSize]byte
 	// read message
-	if _, err = io.ReadFull(c.rwc, head[:3]); err != nil {
+	if _, err = io.ReadFull(c.rwc, head[:]); err != nil {
 		return
 	}
 
@@ -68,7 +72,7 @@ func (c *TCPConn) ReadMessage() (mt uint8, buf []byte, err error) {
 	// 0xf0 写队列尾部标识
 	// 0xf1 PING
 	// 0xf2 PONG
-	n := int(binary.BigEndian.Uint16(head[1:3]))
+	n := int(binary.BigEndian.Uint16(head[1:]))
 
 	// 消息
 	mt = uint8(head[0])
@@ -91,12 +95,13 @@ func (c *TCPConn) NewMessageBytes(mt int, data []byte) ([]byte, error) {
 	if len(data) > maxMessageSize {
 		return nil, errTooLargeMessage
 	}
-	buf := make([]byte, len(data)+3)
+	buf := make([]byte, len(data)+messageHeadSize)
+
 	// 协议头
-	copy(buf, []byte{byte(mt), 0x0, 0x0})
-	binary.BigEndian.PutUint16(buf[1:3], uint16(len(data)))
+	buf[0] = byte(mt)
+	binary.BigEndian.PutUint16(buf[1:messageHeadSize], uint16(len(data)))
 	// 协议数据
-	copy(buf[3:], data)
+	copy(buf[messageHeadSize:], data)
 	return buf, nil
 }
 
