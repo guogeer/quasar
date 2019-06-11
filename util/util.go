@@ -1,6 +1,8 @@
 package util
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -112,4 +114,12 @@ func InArray(array interface{}, some interface{}) int {
 		}
 	}
 	return counter
+}
+
+// compare a,b json string
+// TODO  ignore struct or map field order
+func DeepEqual(a, b interface{}) bool {
+	b1, _ := json.Marshal(a)
+	b2, _ := json.Marshal(b)
+	return bytes.Compare(b1, b2) == 0
 }

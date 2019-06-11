@@ -40,3 +40,19 @@ func TestFormatMoney(t *testing.T) {
 		}
 	}
 }
+
+func TestDeepEqual(t *testing.T) {
+	a1 := map[string]interface{}{
+		"A": 1,
+		"B": 2,
+		"S": "s",
+	}
+	b1 := map[string]interface{}{
+		"A": 1,
+		"B": 2,
+		"S": "s",
+	}
+	if !DeepEqual(a1, b1) {
+		t.Error("deep equal result expect true")
+	}
+}

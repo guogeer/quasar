@@ -90,3 +90,30 @@ func TestSructCopy(t *testing.T) {
 		t.Error("deep copy error", string(s1), string(s2))
 	}
 }
+
+type Child struct {
+	N int
+	S string
+}
+
+type Father struct {
+	N2 int
+	S2 string
+	Child
+}
+
+type Father2 struct {
+	N2 int
+	S2 string
+	N  int
+	S  string
+}
+
+func TestInheritSructCopy(t *testing.T) {
+	f := &Father{}
+	f2 := &Father2{N2: 22, S2: "sb2", N: 11, S: "sb"}
+	DeepCopy(f, f2)
+	if DeepEqual(f, f2) == false {
+		t.Error("deep copy inherit", f, f2)
+	}
+}
