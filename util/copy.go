@@ -8,6 +8,7 @@ import (
 // 深拷贝
 // 结构体、切片之间递归深拷贝
 // 整数、浮点数、字符串、布尔类型直接拷贝，其他类型忽略
+// 增加tag alias
 func DeepCopy(dst, src interface{}) {
 	sval := reflect.ValueOf(src)
 	dval := reflect.ValueOf(dst)
@@ -43,7 +44,16 @@ func doCopy(dval, sval reflect.Value) {
 		for i := 0; i < sval.NumField(); i++ {
 			sfield := sval.Field(i)
 			sname := sval.Type().Field(i).Name
+			if tag := sval.Type().Field(i).Tag.Get("alias"); tag != "" {
+				sname = tag
+			}
 			dfield := dval.FieldByName(sname)
+			for k := 0; k < dval.NumField(); k++ {
+				field := dval.Field(k)
+				if dval.Type().Field(k).Tag.Get("alias") == sname {
+					dfield = field
+				}
+			}
 			// fmt.Println("==", sname, dfield.Kind(), dfield.CanSet())
 			// sfield = reflect.Indirect(sfield)
 			// dfield = reflect.Indirect(dfield)

@@ -97,21 +97,25 @@ type Child struct {
 }
 
 type Father struct {
-	N2 int
-	S2 string
+	Id   int `alias:"UId" json:"UId"`
+	UId2 int
+	N2   int
+	S2   string
 	Child
 }
 
 type Father2 struct {
-	N2 int
-	S2 string
-	N  int
-	S  string
+	UId int
+	Id2 int `alias:"UId2" json:"UId2"`
+	N2  int
+	S2  string
+	N   int
+	S   string
 }
 
 func TestInheritSructCopy(t *testing.T) {
 	f := &Father{}
-	f2 := &Father2{N2: 22, S2: "sb2", N: 11, S: "sb"}
+	f2 := &Father2{N2: 22, S2: "sb2", N: 11, S: "sb", UId: 100, Id2: 200}
 	DeepCopy(f, f2)
 	if DeepEqual(f, f2) == false {
 		t.Error("deep copy inherit", f, f2)
