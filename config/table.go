@@ -150,10 +150,8 @@ type tableGroup struct {
 }
 
 func getTableGroup(name string) *tableGroup {
-	f := getTableFile(attrTable)
-	if f != nil {
-		group, ok := f.groups[name]
-		if ok == true {
+	if f := getTableFile(attrTable); f != nil {
+		if group, ok := f.groups[name]; ok {
 			return group
 		}
 	}
@@ -288,9 +286,6 @@ func LoadLocalTables(fileName string) {
 func getTableFile(name string) *tableFile {
 	if f, ok := gTableFiles.Load(name); ok {
 		return f.(*tableFile)
-	}
-	if name != attrTable {
-		log.Errorf("cannot find config table %s", name)
 	}
 	return nil
 }
