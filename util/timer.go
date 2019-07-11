@@ -138,8 +138,7 @@ func (tm *timerManage) NewTimer(f func(), d time.Duration) *Timer {
 func (tm *timerManage) NewPeriodTimer(f func(), startTimeString string, period time.Duration) *Timer {
 	startTime, err := ParseTime(startTimeString)
 	if err != nil {
-		log.Errorf("new period timer %v", err)
-		return nil
+		panic(err)
 	}
 
 	timer := &Timer{
