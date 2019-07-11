@@ -18,6 +18,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -337,11 +338,18 @@ func Time(name string, row, col interface{}) (time.Time, bool) {
 	return time.Time{}, false
 }
 
+func parseDuration(s string) (time.Duration, error) {
+	if b, _ := regexp.MatchString(`[0-9]$`, s); b {
+		s = s + "s"
+	}
+	return time.ParseDuration(s)
+}
+
 // 默认单位秒
 // 120s、120m、120h、120d，分别表示秒，分，时，天
 func Duration(name string, row, col interface{}) (time.Duration, bool) {
 	if s, ok := getTableGroup(name).String(row, col); ok && len(s) > 0 {
-		if d, err := time.ParseDuration(s); err == nil {
+		if d, err := parseDuration(s); err == nil {
 			return d, true
 		}
 	}
@@ -353,7 +361,7 @@ func SScan(s string, arg interface{}) {
 	default:
 		scanOne(reflect.ValueOf(arg), s)
 	case *time.Duration:
-		d, _ := time.ParseDuration(s)
+		d, _ := parseDuration(s)
 		*(arg.(*time.Duration)) = d
 	case *time.Time:
 		t, _ := util.ParseTime(s)
