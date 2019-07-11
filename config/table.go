@@ -146,8 +146,11 @@ func (f *tableFile) Rows() []*tableRow {
 }
 
 type tableGroup struct {
-	name    string
 	members []string
+}
+
+func newTableGroup(name string) *tableGroup {
+	return &tableGroup{members: []string{name}}
 }
 
 func getTableGroup(name string) *tableGroup {
@@ -156,13 +159,10 @@ func getTableGroup(name string) *tableGroup {
 			return group
 		}
 	}
-	return &tableGroup{name: name}
+	return newTableGroup(name)
 }
 
 func (g *tableGroup) String(row, col interface{}) (string, bool) {
-	if s, ok := getTableFile(g.name).String(row, col); ok {
-		return s, ok
-	}
 	for _, name := range g.members {
 		if s, ok := getTableFile(name).String(row, col); ok {
 			return s, ok
@@ -209,9 +209,18 @@ func (g *tableGroup) Scan(row, cols interface{}, args []interface{}) (int, error
 	if len(colkeys) != len(args) {
 		panic("args not match")
 	}
-	for i := range args {
+	for i, arg := range args {
 		s, _ := g.String(row, colkeys[i])
-		SScan(s, args[i])
+		switch arg.(type) {
+		default:
+			scanOne(reflect.ValueOf(arg), s)
+		case *time.Duration:
+			d, _ := parseDuration(s)
+			*(arg.(*time.Duration)) = d
+		case *time.Time:
+			t, _ := util.ParseTime(s)
+			*(arg.(*time.Time)) = t
+		}
 	}
 	return 0, nil
 }
@@ -356,19 +365,6 @@ func Duration(name string, row, col interface{}) (time.Duration, bool) {
 	return 0, false
 }
 
-func SScan(s string, arg interface{}) {
-	switch arg.(type) {
-	default:
-		scanOne(reflect.ValueOf(arg), s)
-	case *time.Duration:
-		d, _ := parseDuration(s)
-		*(arg.(*time.Duration)) = d
-	case *time.Time:
-		t, _ := util.ParseTime(s)
-		*(arg.(*time.Time)) = t
-	}
-}
-
 func Scan(name string, row, colArgs interface{}, args ...interface{}) (int, error) {
 	return getTableGroup(name).Scan(row, colArgs, args)
 }
@@ -411,7 +407,7 @@ func LoadTable(name string, buf []byte) error {
 				name, ok := t.String(row, "Group")
 				if ok && name != "" {
 					if _, ok := t.groups[name]; !ok {
-						t.groups[name] = &tableGroup{name: name}
+						t.groups[name] = newTableGroup(name)
 					}
 					g := t.groups[name]
 					g.members = append(g.members, path[0])
