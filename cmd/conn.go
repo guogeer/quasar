@@ -35,13 +35,6 @@ const (
 	AuthMessage  = 0xf3
 )
 
-const (
-	StateClosed = iota
-	StateConecting
-	StateConnected
-	StateClosing
-)
-
 type TCPConn struct {
 	rwc     net.Conn
 	ssid    string
