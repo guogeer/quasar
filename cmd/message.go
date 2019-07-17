@@ -1,12 +1,15 @@
 package cmd
 
 import (
+	"bytes"
+	"compress/zlib"
 	"crypto/md5"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"github.com/buger/jsonparser"
-	// "github.com/guogeer/husky/log"
+	"io"
 	"strings"
 	"time"
 )
@@ -107,32 +110,20 @@ type Package struct {
 	Ssid     string          `json:",omitempty"`    // 会话ID
 	Version  int             `json:"Ver,omitempty"` // 版本
 	SendTime int64           `json:",omitempty"`    // 发送的时间戳
+	ZData    string          `json:",omitempty"`    // zip压缩base64数据
 
 	Body  interface{} `json:"-"` // 传入的参数
 	IsRaw bool        `json:"-"`
+	IsZip bool        `json:"-"`
 }
 
-type PackageParser interface {
-	Encode(*Package) ([]byte, error)
-	Decode([]byte) (*Package, error)
-}
-
-func (pkg *Package) beforeEncode(parser PackageParser) (err error) {
-	body := pkg.Body
-	if body == nil {
-		return
-	}
-	pkg.Data, err = marshalJSON(body)
-	return
-}
-
-var defaultRawParser PackageParser = &hashParser{}
-var defaultHashParser PackageParser = &hashParser{
+var defaultRawParser = &hashParser{}
+var defaultHashParser = &hashParser{
 	ref:      []int{0, 3, 4, 8, 10, 11, 13, 14},
 	key:      "helloworld!",
 	tempSign: "12345678",
 }
-var defaultAuthParser PackageParser = &hashParser{
+var defaultAuthParser = &hashParser{
 	secs:     5,
 	key:      "420e57b017066b44e05ea1577f6e2e12",
 	tempSign: "a9542bb104fe3f4d562e1d275e03f5ba",
@@ -140,10 +131,11 @@ var defaultAuthParser PackageParser = &hashParser{
 
 // 哈希
 type hashParser struct {
-	secs     int
-	ref      []int
-	key      string
-	tempSign string
+	secs            int
+	ref             []int
+	key             string
+	tempSign        string
+	compressPackage int // 压缩数据
 }
 
 func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
@@ -151,10 +143,21 @@ func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
 	if secs := parser.secs; secs > 0 {
 		pkg.SendTime = time.Now().Unix()
 	}
-
-	if err := pkg.beforeEncode(parser); err != nil {
+	body, err := marshalJSON(pkg.Body)
+	if err != nil {
 		return nil, err
 	}
+	pkg.Data = body
+	if n := parser.compressPackage; pkg.IsZip && n > 0 && n < len(pkg.Data) {
+		var b bytes.Buffer
+		w := zlib.NewWriter(&b)
+		w.Write(pkg.Data)
+		w.Close()
+
+		pkg.Data = nil
+		pkg.ZData = base64.StdEncoding.EncodeToString(b.Bytes())
+	}
+
 	buf, err := json.Marshal(pkg)
 	if err != nil {
 		return nil, err
@@ -179,6 +182,22 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 	}
 
 	sign, err := parser.Signature(buf)
+	if pkg.ZData != "" {
+		buf, err := base64.StdEncoding.DecodeString(pkg.ZData)
+		if err != nil {
+			return nil, err
+		}
+		r, err := zlib.NewReader(bytes.NewReader(buf))
+		if err != nil {
+			return nil, err
+		}
+
+		var raw bytes.Buffer
+		io.Copy(&raw, r)
+		r.Close()
+		pkg.Data = raw.Bytes()
+	}
+	pkg.ZData = ""
 	if err != nil {
 		return pkg, ErrInvalidSign
 	}
@@ -186,7 +205,6 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 		return pkg, ErrInvalidSign
 	}
 	return pkg, nil
-
 }
 
 func (parser *hashParser) Signature(data []byte) (string, error) {

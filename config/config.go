@@ -42,10 +42,12 @@ type server struct {
 }
 
 type Env struct {
-	Sign       string
-	ProductKey string
-	ServerList []server `xml:"ServerList>Server"`
-	path       string
+	path string
+
+	Sign            string
+	ProductKey      string
+	ServerList      []server `xml:"ServerList>Server"`
+	CompressPackage int
 }
 
 func (cf Env) Server(name string) server {

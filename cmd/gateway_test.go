@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"github.com/gorilla/websocket"
 	"github.com/guogeer/husky/log"
+	"github.com/guogeer/husky/util"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,25 +17,31 @@ type testArgs struct {
 	S string
 }
 
+var bigPackage []byte
 var clientMsg = &testArgs{N: 100, S: "SEND"}
 var serverMsg = &testArgs{N: 200, S: "RECV"}
 
 func TestMain(m *testing.M) {
 	log.SetLevelByTag("FATAL")
+	bigPackage, _ = ioutil.ReadFile("bigpackage.txt")
 	m.Run()
 }
 
-func testEqual(a, b interface{}) bool {
-	b1, _ := json.Marshal(a)
-	b2, _ := json.Marshal(b)
-	return bytes.Compare(b1, b2) == 0
-}
-
 func testEcho(ctx *Context, iArgs interface{}) {
-	if !testEqual(iArgs, clientMsg) {
+	if !util.DeepEqual(iArgs, clientMsg) {
 		panic("server handle invalid message")
 	}
 	ctx.Out.WriteJSON("Echo", serverMsg)
+}
+
+func BenchmarkCompressZip(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		pkg := &Package{Id: "Test", Body: bigPackage, IsZip: true}
+		b2, _ := defaultRawParser.Encode(pkg)
+		if i == 0 {
+			b.Logf("compress result: %d -> %d %d", len(bigPackage), len(b2), b.N)
+		}
+	}
 }
 
 func TestRecvClientPackage(t *testing.T) {
@@ -62,8 +69,8 @@ func TestRecvClientPackage(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		pkg, _ := Decode(buf)
-		if !testEqual(json.RawMessage(pkg.Data), serverMsg) {
+		pkg, err := Decode(buf)
+		if !util.DeepEqual(json.RawMessage(pkg.Data), serverMsg) {
 			panic("client recv invald message")
 		}
 		t2 := time.Now()

@@ -16,13 +16,17 @@ func init() {
 	// 服务器内部数据校验KEY
 	cfg := config.Config()
 	sign, productKey := cfg.Sign, cfg.ProductKey
-	if h, ok := defaultAuthParser.(*hashParser); ok && sign != "" {
+	if h := defaultAuthParser; sign != "" {
+		h.key = sign
+	}
+	if h := defaultAuthParser; sign != "" {
 		h.key = sign
 	}
 	// 客户端与服务器数据校验KEY
-	if h, ok := defaultHashParser.(*hashParser); ok && productKey != "" {
+	if h := defaultHashParser; productKey != "" {
 		h.key = productKey
 	}
+	defaultRawParser.compressPackage = cfg.CompressPackage
 
 	BindWithName("C2S_RegisterOk", funcRegisterOk, (*cmdArgs)(nil))
 	// 某些情况下需要发送一个包去探路，这个包可能会发送失败

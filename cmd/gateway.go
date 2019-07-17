@@ -1,3 +1,5 @@
+// 2019-07-17 支持大协议数据压缩
+
 package cmd
 
 // 网关
@@ -50,7 +52,7 @@ func (c *WsConn) Close() {
 
 func (c *WsConn) WriteJSON(name string, i interface{}) error {
 	// 消息格式
-	pkg := &Package{Id: name, Body: i}
+	pkg := &Package{Id: name, Body: i, IsZip: true}
 	buf, err := defaultRawParser.Encode(pkg)
 	if err != nil {
 		return err
