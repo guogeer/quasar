@@ -1,6 +1,8 @@
 // log
 // 2019-04-28
 // 默认输出到标准输出，设置路径后同时输出到文件
+// 2019-07-22
+// 默认输出到标准输出，配置日志文件后才输出文件
 
 package log
 
@@ -46,7 +48,7 @@ func init() {
 		log.SetOutput(os.Stdout)
 		log.SetFlags(log.Lshortfile | log.LstdFlags)
 	}
-	fileLog.Create("log/{proc_name}/run.log")
+	// fileLog.Create("log/{proc_name}/run.log")
 }
 
 type FileLog struct {
@@ -159,6 +161,9 @@ func (l *FileLog) Output(level int, s string) {
 }
 
 func (l *FileLog) Create(path string) {
+	if path == "" {
+		return
+	}
 	procName := filepath.Base(string(os.Args[0]))
 	path = strings.Replace(path, "{proc_name}", procName, -1)
 

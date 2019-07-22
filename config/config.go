@@ -48,6 +48,8 @@ type Env struct {
 	ProductKey      string
 	ServerList      []server `xml:"ServerList>Server"`
 	CompressPackage int
+	LogPath         string `xml:"Log>Path"`
+	LogTag          string `xml:"Log>Tag"`
 }
 
 func (cf Env) Server(name string) server {
@@ -66,14 +68,22 @@ func (cf Env) Path() string {
 var defaultConfig Env
 
 func init() {
+	// 命令行参数优先
 	tag, path := *logTag, *configPath
 	if !flag.Parsed() {
-		tag = ParseCmdArgs(os.Args[1:], "log", tag)
+		tag = ParseCmdArgs(os.Args[1:], "log", "")
 		path = ParseCmdArgs(os.Args[1:], "config", path)
 	}
-
-	log.SetLevelByTag(tag)
 	LoadFile(path, &defaultConfig)
+
+	if tag == "" {
+		tag = defaultConfig.LogTag
+	}
+	if path == "" {
+		path = defaultConfig.LogPath
+	}
+	log.Create(path)
+	log.SetLevelByTag(tag)
 	defaultConfig.path = path
 }
 
