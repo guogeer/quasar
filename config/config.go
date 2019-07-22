@@ -5,6 +5,7 @@ package config
 import (
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"flag"
 	"github.com/go-yaml/yaml"
 	"github.com/guogeer/husky/log"
@@ -15,8 +16,9 @@ import (
 	"strings"
 )
 
-var logTag = flag.String("log", "DEBUG", "log DEBUG|INFO|ERROR")
-var configPath = flag.String("config", "config.xml", "config xml|json|yaml")
+var gLogTag = flag.String("log", "DEBUG", "log DEBUG|INFO|ERROR")
+var gLogPath = flag.String("logpath", "log/{proc_name}/run.log", "log path")
+var gConfigPath = flag.String("config", "config.xml", "config xml|json|yaml")
 
 func LoadFile(path string, conf interface{}) error {
 	b, err := ioutil.ReadFile(path)
@@ -25,7 +27,7 @@ func LoadFile(path string, conf interface{}) error {
 	}
 	switch filepath.Ext(path) {
 	default:
-		panic("only support xml|json|yaml")
+		return errors.New("only support xml|json|yaml")
 	case ".xml":
 		err = xml.Unmarshal(b, &conf)
 	case ".json":
@@ -69,22 +71,23 @@ var defaultConfig Env
 
 func init() {
 	// 命令行参数优先
-	tag, path := *logTag, *configPath
-	if !flag.Parsed() {
-		tag = ParseCmdArgs(os.Args[1:], "log", "")
-		path = ParseCmdArgs(os.Args[1:], "config", path)
-	}
-	LoadFile(path, &defaultConfig)
+	logPath, logTag, path := *gLogPath, *gLogTag, *gConfigPath
+	defaultConfig.path = ParseCmdArgs(os.Args[1:], "config", path)
 
-	if tag == "" {
-		tag = defaultConfig.LogTag
+	if err := LoadFile(defaultConfig.path, &defaultConfig); err != nil {
+		log.Errorf("load config %s error %v", defaultConfig.path, err)
 	}
-	if path == "" {
-		path = defaultConfig.LogPath
+	if logPath == "" {
+		logPath = defaultConfig.LogPath
 	}
-	log.Create(path)
-	log.SetLevelByTag(tag)
-	defaultConfig.path = path
+	if logTag == "" {
+		logTag = defaultConfig.LogTag
+	}
+	defaultConfig.LogTag = ParseCmdArgs(os.Args[1:], "log", logTag)
+	defaultConfig.LogPath = ParseCmdArgs(os.Args[1:], "logpath", logPath)
+
+	log.Create(defaultConfig.LogPath)
+	log.SetLevelByTag(defaultConfig.LogTag)
 }
 
 func Config() Env {
