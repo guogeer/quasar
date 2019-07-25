@@ -8,7 +8,6 @@ package config
 
 import (
 	"archive/zip"
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/guogeer/husky/log"
@@ -63,25 +62,23 @@ func NewTableFile(name string) *tableFile {
 
 func (f *tableFile) Load(buf []byte) error {
 	// f.rowName = make(map[string]int)
-	buf = bytes.Replace(buf, []byte("\r\n"), []byte("\n"), -1)
-	// 尾部追加换行
-	if n := len(buf); n > 0 && buf[n-1] != '\n' {
-		buf = append(buf, '\n')
-	}
+	s := string(buf) + "\n"
+	s = strings.ReplaceAll(s, "\r\n", "\n")
 
-	var colKeys [][]byte
-	for rowID := 0; len(buf) > 0; rowID++ {
-		line := buf
-		if n := bytes.IndexByte(buf, '\n'); n >= 0 {
-			line = buf[:n]
+	var colKeys []string
+	for rowID := 0; len(s) > 0; rowID++ {
+		line := s
+		if n := strings.Index(s, "\n"); n >= 0 {
+			line = s[:n]
 		}
-		buf = buf[len(line)+1:]
-
-		lineCells := bytes.Split(line, []byte("\t"))
-		if len(lineCells) == 0 {
-			log.Warnf("config %s:%d empty", f.name, rowID)
+		s = s[len(line)+1:]
+		// 忽略空字符串
+		if b, _ := regexp.MatchString(`\S`, line); !b {
+			// log.Warnf("config %s:%d empty", f.name, rowID)
+			continue
 		}
 
+		lineCells := strings.Split(line, "\t")
 		switch rowID {
 		case 0: // 表格第一行为标题注释，忽略
 		case 1: // 表格第二行列索引
@@ -95,7 +92,7 @@ func (f *tableFile) Load(buf []byte) error {
 				colKey := string(colKeys[k])
 				if colKey == ".Private" && len(cell) > 0 {
 					attrs := make(map[string]interface{})
-					json.Unmarshal(cell, &attrs)
+					json.Unmarshal([]byte(cell), &attrs)
 					for attrk, attrv := range attrs {
 						cells[attrk] = fmt.Sprintf("%v", attrv)
 					}
