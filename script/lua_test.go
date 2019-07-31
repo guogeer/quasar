@@ -39,8 +39,8 @@ func TestCall(t *testing.T) {
 		AI2: []int{10, 10, 10},
 		AS2: []string{"ss", "ss"},
 	}
-	res, err := Call("test1.lua", "testcall", p)
-	if err != nil {
+	res := Call("test1.lua", "testcall", p)
+	if err := res.Err; err != nil {
 		t.Error(err)
 	}
 	if !util.DeepEqual(p, p2) {
@@ -73,8 +73,7 @@ func TestPreloadModule(t *testing.T) {
 	LoadLocalScripts(".")
 
 	var n int
-	res1, _ := Call("test1.lua", "test_sum", 1, 2)
-	res1.Scan(&n)
+	Call("test1.lua", "test_sum", 1, 2).Scan(&n)
 	if n != 3 {
 		t.Error("fail 1+2=3")
 	}

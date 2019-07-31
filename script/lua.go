@@ -37,22 +37,25 @@ func NewScriptFile(path string) *scriptFile {
 	return f
 }
 
-type Result []lua.LValue
+type Result struct {
+	rets []lua.LValue
+	Err  error
+}
 
 func (res Result) Scan(args ...interface{}) int {
-	maxn := len(res)
+	maxn := len(res.rets)
 	if maxn > len(args) {
 		maxn = len(args)
 	}
 	for i := 0; i < maxn; i++ {
-		fmt.Sscanf(res[i].String(), "%v", args[i])
+		fmt.Sscanf(res.rets[i].String(), "%v", args[i])
 	}
 	return maxn
 }
 
 // 返回值通过参数传入
 // TODO 传入参数仅支持数值、字符串
-func (script *scriptFile) Call(funcName string, args ...interface{}) (Result, error) {
+func (script *scriptFile) Call(funcName string, args ...interface{}) *Result {
 	L := script.L
 	largs := make([]lua.LValue, 0, 4)
 	for _, arg := range args {
@@ -64,16 +67,16 @@ func (script *scriptFile) Call(funcName string, args ...interface{}) (Result, er
 		NRet:    lua.MultRet,
 		Protect: true,
 	}, largs...); err != nil {
-		return nil, err
+		return &Result{Err: err}
 	}
 	// TODO 返回值暂时不考虑
 	top := L.GetTop()
-	res := make([]lua.LValue, 0, 4)
+	rets := make([]lua.LValue, 0, 4)
 	for i := oldTop; i < top; i++ {
-		res = append(res, L.Get(-1))
+		rets = append(rets, L.Get(-1))
 		L.Pop(1)
 	}
-	return res, nil
+	return &Result{rets: rets}
 }
 
 type Runtime struct {
@@ -118,12 +121,12 @@ func (rt *Runtime) LoadString(path, body string) error {
 	return nil
 }
 
-func (rt *Runtime) Call(fileName, funcName string, args ...interface{}) (Result, error) {
+func (rt *Runtime) Call(fileName, funcName string, args ...interface{}) *Result {
 	rt.mtx.RLock()
 	script, ok := rt.files[fileName]
 	rt.mtx.RUnlock()
 	if ok == false {
-		return nil, ErrInvalidFile
+		return &Result{Err: ErrInvalidFile}
 	}
 
 	script.run.RLock()
@@ -135,8 +138,12 @@ func LoadString(path, body string) error {
 	return gRuntime.LoadString(path, body)
 }
 
-func Call(fileName, funcName string, args ...interface{}) (Result, error) {
-	return gRuntime.Call(fileName, funcName, args...)
+func Call(fileName, funcName string, args ...interface{}) *Result {
+	res := gRuntime.Call(fileName, funcName, args...)
+	if res.Err != nil {
+		log.Errorf("call script %s:%s error: %v", fileName, funcName, res.Err)
+	}
+	return res
 }
 
 func PreloadModule(name string, f lua.LGFunction) {
