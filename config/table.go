@@ -353,11 +353,13 @@ func parseDuration(s string) (time.Duration, error) {
 
 // 默认单位秒
 // 120s、120m、120h、120d，分别表示秒，分，时，天
-func Duration(name string, row, col interface{}) (time.Duration, bool) {
+func Duration(name string, row, col interface{}, def ...time.Duration) (time.Duration, bool) {
 	if s, ok := getTableGroup(name).String(row, col); ok && len(s) > 0 {
-		if d, err := parseDuration(s); err == nil {
-			return d, true
-		}
+		d, _ := parseDuration(s)
+		return d, true
+	}
+	for _, d := range def {
+		return d, false
 	}
 	return 0, false
 }
