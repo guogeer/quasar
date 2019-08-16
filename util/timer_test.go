@@ -8,8 +8,8 @@ import (
 
 func TestTimerGroup(t *testing.T) {
 	isNice := true
-	g1 := NewTimerGroup()
-	g2 := NewTimerGroup()
+	g1 := TimerGroup{}
+	g2 := TimerGroup{}
 	for i := 0; i < 100; i++ {
 		t1, t2 := i, i
 		g1.NewTimer(func() { fmt.Printf("g1 %d\n", t1) }, time.Duration(i)*time.Second)

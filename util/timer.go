@@ -158,19 +158,13 @@ type TimerGroup struct {
 	set     *timerSet
 }
 
-func NewTimerGroup(set ...*timerSet) *TimerGroup {
-	g := &TimerGroup{}
-	for _, v := range set {
-		g.set = v
-	}
-	if g.set == nil {
-		g.set = GetTimerSet()
-	}
-	return g
-}
-
 func (g *TimerGroup) NewTimer(f func(), d time.Duration) *Timer {
-	t := g.set.NewTimer(f, d)
+	set := g.set
+	// 默认全局命令集
+	if set == nil {
+		set = GetTimerSet()
+	}
+	t := set.NewTimer(f, d)
 	t.group = g
 	return t
 }
