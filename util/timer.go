@@ -1,4 +1,5 @@
 // timer
+// 2019-08-16 增加分组，分组定时器可全部关闭
 
 package util
 
@@ -8,22 +9,22 @@ import (
 	"time"
 )
 
-type TimerHeap []*Timer
+type timerHeap []*Timer
 
-func (h TimerHeap) Len() int           { return len(h) }
-func (h TimerHeap) Less(i, j int) bool { return h[i].t.Before(h[j].t) }
-func (h TimerHeap) Swap(i, j int) {
+func (h timerHeap) Len() int           { return len(h) }
+func (h timerHeap) Less(i, j int) bool { return h[i].t.Before(h[j].t) }
+func (h timerHeap) Swap(i, j int) {
 	h[i], h[j] = h[j], h[i]
 	h[i].pos, h[j].pos = i, j
 }
 
-func (h *TimerHeap) Push(x interface{}) {
+func (h *timerHeap) Push(x interface{}) {
 	timer := x.(*Timer)
 	*h = append(*h, timer)
 	timer.pos = len(*h) - 1
 }
 
-func (h *TimerHeap) Pop() interface{} {
+func (h *timerHeap) Pop() interface{} {
 	old := *h
 	n := len(old)
 	timer := old[n-1]
@@ -33,6 +34,7 @@ func (h *TimerHeap) Pop() interface{} {
 	timer.pos = -1
 	timer.period = 0 // 清理周期
 	timer.repeat = 0
+	timer.group = nil
 	return timer
 }
 
@@ -43,6 +45,7 @@ type Timer struct {
 	startTime time.Time
 	period    time.Duration
 	repeat    int
+	group     *TimerGroup
 }
 
 func (timer *Timer) Expire() time.Time {
@@ -53,29 +56,28 @@ func (timer *Timer) IsValid() bool {
 	return timer != nil && timer.pos >= 0
 }
 
-type timerManage struct {
-	h TimerHeap
+type timerSet struct {
+	h timerHeap
 }
 
-func NewTimerManage() *timerManage {
-	tm := new(timerManage)
+func NewTimerSet() *timerSet {
+	tm := new(timerSet)
 	heap.Init(&tm.h)
 	return tm
 }
 
-var defaultTimerManage = NewTimerManage()
-
-func GetTimerManage() *timerManage {
-	return defaultTimerManage
-}
-
-func (tm *timerManage) Run() {
+func (tm *timerSet) RunOnce() {
 	now := time.Now()
 	for i := 0; i < 64 && tm.h.Len() > 0; i++ {
 		top := tm.h[0]
 		if now.Before(top.t) {
 			break
 		}
+		// 分组已失效
+		if top.group != nil && top.group.isClose {
+			top.f = nil
+		}
+
 		f := top.f
 		if period := top.period; period > 0 {
 			top.repeat++
@@ -95,7 +97,7 @@ func (tm *timerManage) Run() {
 	}
 }
 
-func (tm *timerManage) StopTimer(timer *Timer) {
+func (tm *timerSet) StopTimer(timer *Timer) {
 	if timer == nil {
 		return
 	}
@@ -109,7 +111,7 @@ func (tm *timerManage) StopTimer(timer *Timer) {
 	heap.Remove(&tm.h, timer.pos)
 }
 
-func (tm *timerManage) ResetTimer(timer *Timer, d time.Duration) {
+func (tm *timerSet) ResetTimer(timer *Timer, d time.Duration) {
 	if timer == nil {
 		return
 	}
@@ -126,7 +128,7 @@ func (tm *timerManage) ResetTimer(timer *Timer, d time.Duration) {
 	heap.Fix(&tm.h, timer.pos)
 }
 
-func (tm *timerManage) NewTimer(f func(), d time.Duration) *Timer {
+func (tm *timerSet) NewTimer(f func(), d time.Duration) *Timer {
 	timer := &Timer{
 		f: f,
 		t: time.Now().Add(d),
@@ -135,38 +137,66 @@ func (tm *timerManage) NewTimer(f func(), d time.Duration) *Timer {
 	return timer
 }
 
-func (tm *timerManage) NewPeriodTimer(f func(), startTimeString string, period time.Duration) *Timer {
-	startTime, err := ParseTime(startTimeString)
+func (tm *timerSet) NewPeriodTimer(f func(), startTime string, period time.Duration) *Timer {
+	start, err := ParseTime(startTime)
 	if err != nil {
 		panic(err)
 	}
 
 	timer := &Timer{
 		f:         f,
-		t:         SkipPeriodTime(startTime, period),
-		startTime: startTime,
+		t:         SkipPeriodTime(start, period),
+		startTime: start,
 		period:    period,
 	}
 	heap.Push(&tm.h, timer)
 	return timer
 }
 
+type TimerGroup struct {
+	isClose bool
+	set     *timerSet
+}
+
+func NewTimerGroup(set ...*timerSet) *TimerGroup {
+	g := &TimerGroup{}
+	for _, v := range set {
+		g.set = v
+	}
+	if g.set == nil {
+		g.set = GetTimerSet()
+	}
+	return g
+}
+
+func (g *TimerGroup) NewTimer(f func(), d time.Duration) *Timer {
+	t := g.set.NewTimer(f, d)
+	t.group = g
+	return t
+}
+
+func (g *TimerGroup) StopAllTimer() {
+	g.isClose = true
+}
+
+var defaultTimerSet = NewTimerSet()
+
+func GetTimerSet() *timerSet {
+	return defaultTimerSet
+}
+
 func StopTimer(t *Timer) {
-	GetTimerManage().StopTimer(t)
+	GetTimerSet().StopTimer(t)
 }
 
 func ResetTimer(t *Timer, d time.Duration) {
-	GetTimerManage().ResetTimer(t, d)
+	GetTimerSet().ResetTimer(t, d)
 }
 
 func NewTimer(f func(), d time.Duration) *Timer {
-	return GetTimerManage().NewTimer(f, d)
+	return GetTimerSet().NewTimer(f, d)
 }
 
-func NewPeriodTimer(f func(), startTimeString string, period time.Duration) *Timer {
-	return GetTimerManage().NewPeriodTimer(f, startTimeString, period)
-}
-
-func TickTimerRun() {
-	GetTimerManage().Run()
+func NewPeriodTimer(f func(), startTime string, period time.Duration) *Timer {
+	return GetTimerSet().NewPeriodTimer(f, startTime, period)
 }
