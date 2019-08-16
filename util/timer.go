@@ -160,13 +160,19 @@ type TimerGroup struct {
 
 func (g *TimerGroup) NewTimer(f func(), d time.Duration) *Timer {
 	set := g.set
-	// 默认全局命令集
+	// 默认全局定时器集
 	if set == nil {
-		set = GetTimerSet()
+		set = defaultTimerSet
 	}
+
 	t := set.NewTimer(f, d)
 	t.group = g
 	return t
+}
+
+func (g *TimerGroup) ResetTimer(t **Timer, f func(), d time.Duration) {
+	StopTimer(*t)
+	*t = g.NewTimer(f, d)
 }
 
 func (g *TimerGroup) StopAllTimer() {
