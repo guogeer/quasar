@@ -5,6 +5,7 @@ package config
 // 表格第二行为字段KEY
 // 表格第一列默认索引
 // Version 2.0.0 支持隐藏属性，属性格式：".Key"，其中".Private"私有属性
+// Version 2.1.0 列索引忽略大小写
 
 import (
 	"archive/zip"
@@ -89,11 +90,12 @@ func (f *tableFile) Load(buf []byte) error {
 
 			cells := make(map[string]string)
 			for k, cell := range lineCells {
-				colKey := string(colKeys[k])
-				if colKey == ".Private" && len(cell) > 0 {
+				colKey := strings.ToLower(string(colKeys[k]))
+				if colKey == ".private" && len(cell) > 0 {
 					attrs := make(map[string]interface{})
 					json.Unmarshal([]byte(cell), &attrs)
 					for attrk, attrv := range attrs {
+						attrk = strings.ToLower(attrk)
 						cells[attrk] = fmt.Sprintf("%v", attrv)
 					}
 				}
@@ -102,6 +104,7 @@ func (f *tableFile) Load(buf []byte) error {
 			f.cells = append(f.cells, cells)
 		}
 	}
+	// 列索引忽略大小写
 	return nil
 }
 
@@ -110,6 +113,7 @@ func (f *tableFile) String(row, col interface{}) (string, bool) {
 		return "", false
 	}
 	colKey := fmt.Sprintf("%v", col)
+	colKey = strings.ToLower(colKey)
 
 	rowN := -1
 	if r, ok := row.(*tableRow); ok {
@@ -202,12 +206,13 @@ func scanOne(val reflect.Value, s string) {
 
 func (g *tableGroup) Scan(row, cols interface{}, args []interface{}) (int, error) {
 	s := fmt.Sprintf("%v", cols)
-	colkeys := strings.Split(s, ",")
-	if len(colkeys) != len(args) {
+	colKeys := strings.Split(s, ",")
+	if len(colKeys) != len(args) {
 		panic("args not match")
 	}
 	for i, arg := range args {
-		s, _ := g.String(row, colkeys[i])
+		colKey := strings.ToLower(colKeys[i])
+		s, _ := g.String(row, colKey)
 		switch arg.(type) {
 		default:
 			scanOne(reflect.ValueOf(arg), s)
