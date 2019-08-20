@@ -77,4 +77,7 @@ func TestPreloadModule(t *testing.T) {
 	if n != 3 {
 		t.Error("fail 1+2=3")
 	}
+	var s JSONString
+	Call("test1.lua", "test_json").Scan(&s)
+	t.Log(s)
 }

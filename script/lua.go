@@ -7,6 +7,7 @@ import (
 	"github.com/guogeer/husky/log"
 	"github.com/yuin/gopher-lua"
 	"io/ioutil"
+	luajson "layeh.com/gopher-json"
 	luahelper "layeh.com/gopher-luar"
 	"os"
 	"path/filepath"
@@ -16,6 +17,7 @@ import (
 const fileSuffix = ".lua"
 
 var (
+	ErrUnkownType  = errors.New("unknow lua type")
 	ErrInvalidFile = errors.New("script file not exist")
 	gRuntime       = &Runtime{
 		files:   make(map[string]*scriptFile),
@@ -42,15 +44,36 @@ type Result struct {
 	Err  error
 }
 
-func (res Result) Scan(args ...interface{}) int {
+type Scaner interface {
+	Scan(v lua.LValue) error
+}
+
+type JSONString string
+
+func (s *JSONString) Scan(v lua.LValue) error {
+	b, err := luajson.Encode(v)
+	*s = JSONString(b)
+	return err
+}
+
+func (res Result) Scan(args ...interface{}) error {
 	maxn := len(res.rets)
 	if maxn > len(args) {
 		maxn = len(args)
 	}
 	for i := 0; i < maxn; i++ {
-		fmt.Sscanf(res.rets[i].String(), "%v", args[i])
+		err := ErrUnkownType
+		ret := res.rets[i]
+		if lua.LVCanConvToString(ret) {
+			_, err = fmt.Sscanf(ret.String(), "%v", args[i])
+		} else if scan, ok := args[i].(Scaner); ok {
+			err = scan.Scan(ret)
+		}
+		if err != nil {
+			return err
+		}
 	}
-	return maxn
+	return nil
 }
 
 // 返回值通过参数传入

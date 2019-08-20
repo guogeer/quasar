@@ -20,3 +20,7 @@ function test_sum(m,n)
 	return m + n
 end
 
+function test_json()
+	local t = {["A"]=1,["B"]=2,["S"]="hell world"}
+	return t
+end
