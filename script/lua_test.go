@@ -73,9 +73,9 @@ func TestPreloadModule(t *testing.T) {
 	LoadLocalScripts(".")
 
 	var n int
-	Call("test1.lua", "test_sum", 1, 2).Scan(&n)
-	if n != 3 {
-		t.Error("fail 1+2=3")
+	Call("test1.lua", "test_sum", 1, 2, []int{4, 5, 6}).Scan(&n)
+	if n != 18 {
+		t.Error("fail sum", n)
 	}
 	var s JSONString
 	Call("test1.lua", "test_json").Scan(&s)

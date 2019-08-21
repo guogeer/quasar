@@ -16,8 +16,12 @@ function testcall(p)
 	return "123"
 end
 
-function test_sum(m,n)
-	return m + n
+function test_sum(m,n,p)
+	local sum = m + n
+	for i=1,#p do
+		sum = sum + p[i]
+	end
+	return sum
 end
 
 function test_json()

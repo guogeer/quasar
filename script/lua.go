@@ -208,14 +208,24 @@ func loadScripts(dir, filename string) error {
 				return err
 			}
 		}
-		return nil
 	}
 
+	// 脚本目录存在
 	if fileInfo, err := os.Stat(dir); err != nil || !fileInfo.IsDir() {
 		return errors.New("scripts is not exists")
 	}
 
-	return filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
+	// 调整工作目录
+	mainDir, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+	if err := os.Chdir(dir); err != nil {
+		return err
+	}
+	defer os.Chdir(mainDir)
+
+	return filepath.Walk(".", func(path string, f os.FileInfo, err error) error {
 		if f == nil {
 			return errors.New("walk scripts error")
 		}
