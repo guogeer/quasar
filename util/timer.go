@@ -76,6 +76,7 @@ func (tm *timerSet) RunOnce() {
 		// 分组已失效
 		if top.group != nil && top.group.isClose {
 			top.f = nil
+			top.period = 0
 		}
 
 		f := top.f
@@ -166,6 +167,18 @@ func (g *TimerGroup) NewTimer(f func(), d time.Duration) *Timer {
 	}
 
 	t := set.NewTimer(f, d)
+	t.group = g
+	return t
+}
+
+func (g *TimerGroup) NewPeriodTimer(f func(), startTime string, period time.Duration) *Timer {
+	set := g.set
+	// 默认全局定时器集
+	if set == nil {
+		set = defaultTimerSet
+	}
+
+	t := set.NewPeriodTimer(f, startTime, period)
 	t.group = g
 	return t
 }
