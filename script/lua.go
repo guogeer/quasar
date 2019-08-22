@@ -27,14 +27,22 @@ var (
 
 type scriptFile struct {
 	L    *lua.LState
-	Path string
+	path string
 	run  sync.RWMutex
 }
 
-func NewScriptFile(path string) *scriptFile {
+func NewScriptFile(root, path string) *scriptFile {
 	f := &scriptFile{
-		Path: path,
+		path: path,
 		L:    lua.NewState(),
+	}
+	// 默认加载脚本同目录下模块
+	if root != "" {
+		code := fmt.Sprintf(`package.path="%s/?.lua;..package.path"`, root)
+		fmt.Println(code)
+		if err := f.L.DoString(code); err != nil {
+			panic("try load lua package error")
+		}
 	}
 	return f
 }
@@ -115,8 +123,8 @@ func (rt *Runtime) PreloadModule(name string, loader lua.LGFunction) {
 	rt.modules[name] = loader
 }
 
-func (rt *Runtime) LoadString(path, body string) error {
-	script := NewScriptFile(path)
+func (rt *Runtime) LoadString(root, path, body string) error {
+	script := NewScriptFile(root, path)
 	rt.mtx.RLock()
 	for module, loader := range rt.modules {
 		script.L.PreloadModule(module, loader)
@@ -157,8 +165,8 @@ func (rt *Runtime) Call(fileName, funcName string, args ...interface{}) *Result 
 	return script.Call(funcName, args...)
 }
 
-func loadString(path, body string) error {
-	return gRuntime.LoadString(path, body)
+func loadString(root, path, body string) error {
+	return gRuntime.LoadString(root, path, body)
 }
 
 func Call(fileName, funcName string, args ...interface{}) *Result {
@@ -202,7 +210,7 @@ func loadScripts(dir, filename string) error {
 			return err
 		}
 		log.Debugf("load script %s from %s/", name, dir)
-		if err := loadString(name, string(buf)); err != nil {
+		if err := loadString(dir, name, string(buf)); err != nil {
 			return err
 		}
 		return nil
