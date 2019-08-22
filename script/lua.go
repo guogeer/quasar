@@ -1,7 +1,7 @@
 package script
 
 import (
-	"archive/zip"
+	// "archive/zip"
 	"errors"
 	"fmt"
 	"github.com/guogeer/husky/log"
@@ -157,7 +157,7 @@ func (rt *Runtime) Call(fileName, funcName string, args ...interface{}) *Result 
 	return script.Call(funcName, args...)
 }
 
-func LoadString(path, body string) error {
+func loadString(path, body string) error {
 	return gRuntime.LoadString(path, body)
 }
 
@@ -173,59 +173,16 @@ func PreloadModule(name string, f lua.LGFunction) {
 	gRuntime.PreloadModule(name, f)
 }
 
+// 遇到脚本引入模块路径查找失败问题
+// 简化设计，移除脚本压缩包加载支持
 func loadScripts(dir, filename string) error {
 	log.Debugf("start load %s/%s", dir, filename)
-
-	// 首先判断{dir}.zip
-	if _, err := os.Stat(dir + ".zip"); err == nil {
-		r, err := zip.OpenReader(dir + ".zip")
-		if err != nil {
-			return err
-		}
-		defer r.Close()
-
-		for _, f := range r.File {
-			_, name := filepath.Split(f.Name)
-			if filepath.Ext(name) != fileSuffix {
-				continue
-			}
-			if filename != "" && name != filename {
-				continue
-			}
-
-			rc, err := f.Open()
-			if err != nil {
-				return err
-			}
-			buf, err := ioutil.ReadAll(rc)
-			if err != nil {
-				return err
-			}
-			rc.Close()
-
-			log.Debugf("load script %s from %s.zip", name, dir)
-			if err := LoadString(name, string(buf)); err != nil {
-				return err
-			}
-		}
-	}
-
 	// 脚本目录存在
 	if fileInfo, err := os.Stat(dir); err != nil || !fileInfo.IsDir() {
 		return errors.New("scripts is not exists")
 	}
 
-	// 调整工作目录
-	mainDir, err := os.Getwd()
-	if err != nil {
-		return err
-	}
-	if err := os.Chdir(dir); err != nil {
-		return err
-	}
-	defer os.Chdir(mainDir)
-
-	return filepath.Walk(".", func(path string, f os.FileInfo, err error) error {
+	return filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
 			return errors.New("walk scripts error")
 		}
@@ -245,7 +202,7 @@ func loadScripts(dir, filename string) error {
 			return err
 		}
 		log.Debugf("load script %s from %s/", name, dir)
-		if err := LoadString(name, string(buf)); err != nil {
+		if err := loadString(name, string(buf)); err != nil {
 			return err
 		}
 		return nil
