@@ -31,7 +31,7 @@ func SkipPeriodTime(start time.Time, d time.Duration) time.Time {
 }
 
 func skipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
-	end := now
+	end := start
 	if diff := now.Sub(start); diff > 0 && d > 0 {
 		end = start.Add(time.Duration((diff + d - 1) / d * d))
 	}
