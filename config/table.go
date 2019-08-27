@@ -6,6 +6,7 @@ package config
 // 表格第一列默认索引
 // Version 2.0.0 支持隐藏属性，属性格式：".Key"，其中".Private"私有属性
 // Version 2.1.0 列索引忽略大小写
+// Version 2.2.0 表格名索引忽略大小写
 
 import (
 	"archive/zip"
@@ -54,7 +55,7 @@ type tableRow struct {
 	n int
 }
 
-func NewTableFile(name string) *tableFile {
+func newTableFile(name string) *tableFile {
 	name = strings.ToLower(name)
 	return &tableFile{
 		name:    name,
@@ -152,10 +153,12 @@ type tableGroup struct {
 }
 
 func newTableGroup(name string) *tableGroup {
+	name = strings.ToLower(name)
 	return &tableGroup{members: []string{name}}
 }
 
 func getTableGroup(name string) *tableGroup {
+	name = strings.ToLower(name)
 	if f := getTableFile(attrTable); f != nil {
 		if group, ok := f.groups[name]; ok {
 			return group
@@ -397,7 +400,8 @@ func IsPart(s string, match interface{}) bool {
 }
 
 func LoadTable(name string, buf []byte) error {
-	t := NewTableFile(name)
+	name = strings.ToLower(name)
+	t := newTableFile(name)
 	if enableDebug {
 		log.Infof("load table %s", name)
 	}
@@ -410,12 +414,13 @@ func LoadTable(name string, buf []byte) error {
 			s, _ := t.String(row, "Field")
 			path := strings.Split(s, ".")
 			if len(path) > 1 && path[1] == "*" {
-				name, ok := t.String(row, "Group")
-				if ok && name != "" {
-					if _, ok := t.groups[name]; !ok {
-						t.groups[name] = newTableGroup(name)
+				gname, ok := t.String(row, "Group")
+				if ok && gname != "" {
+					gname = strings.ToLower(gname)
+					if _, ok := t.groups[gname]; !ok {
+						t.groups[gname] = newTableGroup(gname)
 					}
-					g := t.groups[name]
+					g := t.groups[gname]
 					g.members = append(g.members, path[0])
 				}
 			}
