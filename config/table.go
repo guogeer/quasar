@@ -55,6 +55,7 @@ type tableRow struct {
 }
 
 func NewTableFile(name string) *tableFile {
+	name = strings.ToLower(name)
 	return &tableFile{
 		name:    name,
 		rowName: make(map[string]int),
@@ -296,6 +297,7 @@ func LoadLocalTables(fileName string) {
 }
 
 func getTableFile(name string) *tableFile {
+	name = strings.ToLower(name)
 	if f, ok := gTableFiles.Load(name); ok {
 		return f.(*tableFile)
 	}
