@@ -39,7 +39,7 @@ func NewScriptFile(root, path string) *scriptFile {
 	// 默认加载脚本同目录下模块
 	if root != "" {
 		code := fmt.Sprintf(`package.path="%s/?.lua;..package.path"`, root)
-		fmt.Println(code)
+		// fmt.Println(code)
 		if err := f.L.DoString(code); err != nil {
 			panic("try load lua package error")
 		}
