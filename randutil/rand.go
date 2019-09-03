@@ -65,31 +65,46 @@ func ShuffleN(a interface{}, n int) {
 	}
 }
 
-// 根据a[i]比重随机下标i
-func Index(a interface{}) int {
+func IndexN(a interface{}, num int) []int {
 	var numbers []int64
 	var vals = reflect.ValueOf(a)
+
+	if num == -1 {
+		num = vals.Len()
+	}
 	for i := 0; i < vals.Len(); i++ {
 		s := fmt.Sprintf("%v", vals.Index(i))
 		f, _ := strconv.ParseFloat(s, 64)
 		numbers = append(numbers, int64(f*sampleSize))
 	}
 
-	var part, sum int64
-	for _, n := range numbers {
-		sum += n
-	}
+	res := make([]int, 0, 4)
+	for try := 0; try < num; try++ {
+		var part, sum int64
+		for _, n := range numbers {
+			sum += n
+		}
 
-	if sum <= 0 {
-		return -1
-	}
-
-	r := rand.Int63n(sum)
-	for i, n := range numbers {
-		part += n
-		if r < part {
-			return i
+		if sum > 0 {
+			r := rand.Int63n(sum)
+			for i, n := range numbers {
+				part += n
+				if r < part {
+					res = append(res, i)
+					numbers[i] = 0
+					break
+				}
+			}
 		}
 	}
-	panic("invalid rand array")
+	return res
+}
+
+// 根据a[i]比重随机下标i
+func Index(a interface{}) int {
+	res := IndexN(a, 1)
+	for _, v := range res {
+		return v
+	}
+	return -1
 }

@@ -57,3 +57,20 @@ func TestShuffeN(t *testing.T) {
 		t.Log(data)
 	}
 }
+
+func TestIndexN(t *testing.T) {
+	var datalist = [][]int{
+		{1000, 1, 1, 1},
+		{1, 0, 3, 5},
+		{10000, 1},
+		{0, 1, 0},
+		{0, 1, 100000},
+		{0, 0, 100000},
+		{0, 0, 1},
+		{8000, 1, 1, 0, 0, 0},
+	}
+	for _, data := range datalist {
+		res := IndexN(data, -1)
+		t.Logf("IndexN: %v %v", data, res)
+	}
+}
