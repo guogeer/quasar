@@ -29,7 +29,7 @@ func main() {
 	}()
 
 	for {
-		util.TickTimerRun()
+		util.GetTimerSet().RunOnce()
 		// handle message
 		cmd.RunOnce()
 	}
