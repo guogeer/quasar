@@ -94,11 +94,16 @@ func (f *tableFile) Load(buf []byte) error {
 			for k, cell := range lineCells {
 				colKey := strings.ToLower(string(colKeys[k]))
 				if colKey == ".private" && len(cell) > 0 {
-					attrs := make(map[string]interface{})
+					attrs := make(map[string]json.RawMessage)
 					json.Unmarshal([]byte(cell), &attrs)
 					for attrk, attrv := range attrs {
 						attrk = strings.ToLower(attrk)
-						cells[attrk] = fmt.Sprintf("%v", attrv)
+						s := string(attrv)
+						// 格式"message"移除前缀后缀
+						if ok, _ := regexp.MatchString(`^".?"$`, s); ok {
+							s = s[1 : len(s)-1]
+						}
+						cells[attrk] = s
 					}
 				}
 				cells[colKey] = string(cell)

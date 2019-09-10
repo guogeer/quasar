@@ -1,4 +1,4 @@
 ID	Aa	Bb	Cc	Dd	私有属性
 ID	A	B	C	D	.Private
-1	1	2	3	4	{"P1":1,"PS":"S"}
+1	1	2	3	4	{"P1":1,"PS":"S","Array3":[1,2,3]}
 2	10	11	12	13
