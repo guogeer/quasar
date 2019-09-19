@@ -16,9 +16,10 @@ func DeepCopy(dst, src interface{}) {
 }
 
 func doCopy(dval, sval reflect.Value) {
-	if !sval.IsValid() {
+	if sval.IsZero() {
 		return
 	}
+	// fmt.Println(sval.IsZero(), sval.IsValid())
 	if dval.Kind() == reflect.Ptr && dval.IsNil() && dval.CanSet() {
 		dval.Set(reflect.New(dval.Type().Elem()))
 	}

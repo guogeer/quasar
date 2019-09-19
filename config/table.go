@@ -100,7 +100,7 @@ func (f *tableFile) Load(buf []byte) error {
 						attrk = strings.ToLower(attrk)
 						s := string(attrv)
 						// 格式"message"移除前缀后缀
-						if ok, _ := regexp.MatchString(`^".?"$`, s); ok {
+						if ok, _ := regexp.MatchString(`^".*"$`, s); ok {
 							s = s[1 : len(s)-1]
 						}
 						cells[attrk] = s
