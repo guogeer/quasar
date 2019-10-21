@@ -106,11 +106,6 @@ var (
 	messageStats  map[string]messageStat
 )
 
-func init() {
-	lastPrintTime = time.Now()
-	messageStats = map[string]messageStat{}
-}
-
 // TODO 暂时未考虑并发访问
 func waitAndRunOnce(loop int, delay time.Duration) {
 	var t1, t2 time.Time
@@ -137,6 +132,13 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 		}
 	}
 	if enableDebug == true {
+		if lastPrintTime.IsZero() {
+			lastPrintTime = time.Now()
+		}
+		if len(messageStats) == 0 {
+			messageStats = map[string]messageStat{}
+		}
+
 		for id, stat := range stats {
 			stat2 := messageStats[id]
 			stat2.merge(&stat)
@@ -151,8 +153,7 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 		}
 
 		d := time.Now().Sub(lastPrintTime)
-		if d >= 10*time.Minute {
-			lastPrintTime = time.Now()
+		if d >= 10*time.Second {
 			log.Debug("=========== message stats start  ============")
 			sort.SliceStable(tpc, func(i, j int) bool {
 				return tpc[i].d.Seconds()/float64(tpc[i].call) > tpc[j].d.Seconds()/float64(tpc[j].call)
@@ -163,6 +164,10 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 				log.Debugf("cost time per call: %s %.2fms, call per second %s %.2f", stat1.id, stat1.d.Seconds()*1000/float64(stat1.call), stat2.id, float64(stat2.call)/d.Seconds())
 			}
 			log.Debug("=========== message stats end  ============")
+
+			// 清理旧数据
+			messageStats = nil
+			lastPrintTime = time.Time{}
 		}
 	}
 }
