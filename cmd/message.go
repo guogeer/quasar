@@ -153,7 +153,7 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 		}
 
 		d := time.Now().Sub(lastPrintTime)
-		if d >= 10*time.Second {
+		if d >= 10*time.Minute {
 			log.Debug("=========== message stats start  ============")
 			sort.SliceStable(tpc, func(i, j int) bool {
 				return tpc[i].d.Seconds()/float64(tpc[i].call) > tpc[j].d.Seconds()/float64(tpc[j].call)
