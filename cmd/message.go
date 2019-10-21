@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/buger/jsonparser"
+	"github.com/guogeer/husky/log"
 	"io"
+	"sort"
 	"strings"
 	"time"
 )
@@ -35,6 +37,7 @@ type Context struct {
 }
 
 type Message struct {
+	id   string
 	h    Handler
 	ctx  *Context
 	args interface{}
@@ -84,14 +87,83 @@ func GetMessageQueue() *SafeQueue {
 	return defaultMessageQueue
 }
 
+// 统计消息平均负载&访问频率等
+type messageStat struct {
+	id   string
+	d    time.Duration // 耗时
+	call int           // 调用次数
+}
+
+func (stat *messageStat) merge(stat2 *messageStat) {
+	if stat2 != nil {
+		stat.d += stat2.d
+		stat.call += stat2.call
+	}
+}
+
+var (
+	lastPrintTime time.Time // 10分钟打印一次
+	messageStats  map[string]messageStat
+)
+
+func init() {
+	lastPrintTime = time.Now()
+	messageStats = map[string]messageStat{}
+}
+
+// TODO 暂时未考虑并发访问
 func waitAndRunOnce(loop int, delay time.Duration) {
+	var t1, t2 time.Time
+	var stats map[string]messageStat
+	if enableDebug {
+		stats = map[string]messageStat{}
+	}
 	for i := 0; i < loop; i++ {
 		front := GetMessageQueue().Dequeue(delay)
 		if front == nil {
 			break
 		}
+		if enableDebug {
+			t1 = time.Now()
+		}
 		msg := front.(*Message)
 		msg.h(msg.ctx, msg.args)
+
+		if enableDebug == true {
+			t2 = time.Now()
+			stat := stats[msg.id]
+			stat.merge(&messageStat{d: t2.Sub(t1), call: 1})
+			stats[msg.id] = stat
+		}
+	}
+	if enableDebug == true {
+		for id, stat := range stats {
+			stat2 := messageStats[id]
+			stat2.merge(&stat)
+			messageStats[id] = stat2
+		}
+		tpc := make([]messageStat, 0, 256) // cost time per call
+		cps := make([]messageStat, 0, 256) // call per second
+		for id, stat := range messageStats {
+			stat.id = id
+			tpc = append(tpc, stat)
+			cps = append(cps, stat)
+		}
+
+		d := time.Now().Sub(lastPrintTime)
+		if d >= 10*time.Minute {
+			lastPrintTime = time.Now()
+			log.Debug("=========== message stats start  ============")
+			sort.SliceStable(tpc, func(i, j int) bool {
+				return tpc[i].d.Seconds()/float64(tpc[i].call) > tpc[j].d.Seconds()/float64(tpc[j].call)
+			})
+			sort.SliceStable(cps, func(i, j int) bool { return cps[i].call > cps[j].call })
+			for i := 0; i < 10 && i < len(messageStats); i++ {
+				stat1, stat2 := tpc[i], cps[i]
+				log.Debugf("cost time per call: %s %.2fms, call per second %s %.2f", stat1.id, stat1.d.Seconds()*1000/float64(stat1.call), stat2.id, float64(stat2.call)/d.Seconds())
+			}
+			log.Debug("=========== message stats end  ============")
+		}
 	}
 }
 

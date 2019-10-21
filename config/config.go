@@ -52,6 +52,7 @@ type Env struct {
 	CompressPackage int
 	LogPath         string `xml:"Log>Path"`
 	LogTag          string `xml:"Log>Tag"`
+	EnableDebug     bool   // 开启调试，将输出消息统计日志等
 }
 
 func (cf Env) Server(name string) server {

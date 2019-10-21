@@ -10,7 +10,10 @@ import (
 	"strings"
 )
 
-var errInvalidAddr = errors.New("request empty address")
+var (
+	enableDebug    = false
+	errInvalidAddr = errors.New("request empty address")
+)
 
 func init() {
 	// 服务器内部数据校验KEY
@@ -27,6 +30,9 @@ func init() {
 		h.key = productKey
 	}
 	defaultRawParser.compressPackage = cfg.CompressPackage
+	if cfg.EnableDebug {
+		enableDebug = true
+	}
 
 	BindWithName("C2S_RegisterOk", funcRegisterOk, (*cmdArgs)(nil))
 	// 某些情况下需要发送一个包去探路，这个包可能会发送失败

@@ -221,7 +221,8 @@ func (s *CmdSet) Handle(ctx *Context, messageID string, data []byte) error {
 		return err
 	}
 
-	Enqueue(ctx, e.h, args)
+	msg := &Message{id: name, ctx: ctx, h: e.h, args: args}
+	defaultMessageQueue.Enqueue(msg)
 	return nil
 }
 
