@@ -2,6 +2,7 @@ package script
 
 import (
 	// "archive/zip"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/guogeer/husky/log"
@@ -52,16 +53,21 @@ type Result struct {
 	Err  error
 }
 
-type Scaner interface {
+type Scanner interface {
 	Scan(v lua.LValue) error
 }
 
-type JSONString string
+type jsonArg struct {
+	value interface{}
+}
 
-func (s *JSONString) Scan(v lua.LValue) error {
-	b, err := luajson.Encode(v)
-	*s = JSONString(b)
-	return err
+func JSON(v interface{}) *jsonArg {
+	return &jsonArg{value: v}
+}
+
+func (arg *jsonArg) Scan(v lua.LValue) error {
+	b, _ := luajson.Encode(v)
+	return json.Unmarshal(b, arg.value)
 }
 
 func (res Result) Scan(args ...interface{}) error {
@@ -70,17 +76,19 @@ func (res Result) Scan(args ...interface{}) error {
 		maxn = len(args)
 	}
 	for i := 0; i < maxn; i++ {
-		err := ErrUnkownType
+		arg := args[i]
 		ret := res.rets[i]
-		if lua.LVCanConvToString(ret) {
-			if s, ok := args[i].(*string); ok {
-				*s = ret.String()
+		err := ErrUnkownType
+		if scanner, ok := arg.(Scanner); ok {
+			err = scanner.Scan(ret)
+		} else if lua.LVCanConvToString(ret) {
+			s := ret.String()
+			if sp, ok := arg.(*string); ok {
+				*sp = s
 			} else {
 				// 遇到分隔符会停止
-				_, err = fmt.Sscanf(ret.String(), "%v", args[i])
+				_, err = fmt.Sscanf(s, "%v", arg)
 			}
-		} else if scan, ok := args[i].(Scaner); ok {
-			err = scan.Scan(ret)
 		}
 		if err != nil {
 			return err

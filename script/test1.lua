@@ -25,6 +25,6 @@ function test_sum(m,n,p)
 end
 
 function test_json()
-	local t = {["A"]=1,["B"]=2,["S"]="hell world"}
+	local t = {["A"]=1,["B"]=2,["S"]="hello world"}
 	return t
 end

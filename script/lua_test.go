@@ -77,7 +77,19 @@ func TestPreloadModule(t *testing.T) {
 	if n != 18 {
 		t.Error("fail sum", n)
 	}
-	var s JSONString
-	Call("test1.lua", "test_json").Scan(&s)
-	t.Log(s)
+	type json1 struct {
+		A int
+		B int
+		S string
+	}
+	var data1, data2 json1
+	Call("test1.lua", "test_json").Scan(JSON(&data1))
+	data2 = json1{
+		A: 1,
+		B: 2,
+		S: "hello world",
+	}
+	if !util.DeepEqual(data1, data2) {
+		t.Error("scan json", data1, data2)
+	}
 }
