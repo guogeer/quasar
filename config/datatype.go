@@ -1,0 +1,49 @@
+package config
+
+import (
+	"encoding/json"
+	"github.com/guogeer/husky/util"
+	"regexp"
+	"time"
+)
+
+type Scanner interface {
+	Scan(s string) error
+}
+
+type jsonArg struct {
+	value interface{}
+}
+
+func JSON(v interface{}) *jsonArg {
+	return &jsonArg{value: v}
+}
+
+func (arg *jsonArg) Scan(s string) error {
+	return json.Unmarshal([]byte(s), arg.value)
+}
+
+// 解析时间，格式："2019-10-25 01:02:03" "2019-10-25"
+type timeArg time.Time
+
+func (arg *timeArg) Scan(s string) error {
+	t, err := util.ParseTime(s)
+	*arg = timeArg(t)
+	return err
+}
+
+func parseDuration(s string) (time.Duration, error) {
+	if b, _ := regexp.MatchString(`[0-9]$`, s); b {
+		s = s + "s"
+	}
+	return time.ParseDuration(s)
+}
+
+// 格式同https://golang.google.cn/pkg/time/#ParseDuration
+type durationArg time.Duration
+
+func (arg *durationArg) Scan(s string) error {
+	d, err := parseDuration(s)
+	*arg = durationArg(d)
+	return err
+}

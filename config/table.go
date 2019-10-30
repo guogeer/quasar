@@ -226,9 +226,9 @@ func (g *tableGroup) Scan(row, cols interface{}, args []interface{}) (int, error
 
 		switch arg.(type) {
 		case *time.Duration:
-			arg = (*durationCell)(arg.(*time.Duration))
+			arg = (*durationArg)(arg.(*time.Duration))
 		case *time.Time:
-			arg = (*timeCell)(arg.(*time.Time))
+			arg = (*timeArg)(arg.(*time.Time))
 		}
 		if scanner, ok := arg.(Scanner); ok {
 			scanner.Scan(s)
