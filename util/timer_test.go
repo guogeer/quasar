@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestTimerGroup(t *testing.T) {
+func testTimerGroup(t *testing.T) {
 	isNice := true
 	g1 := TimerGroup{}
 	g2 := TimerGroup{}

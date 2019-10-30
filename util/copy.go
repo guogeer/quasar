@@ -10,9 +10,11 @@ import (
 // 整数、浮点数、字符串、布尔类型直接拷贝，其他类型忽略
 // 增加tag alias
 func DeepCopy(dst, src interface{}) {
-	sval := reflect.ValueOf(src)
-	dval := reflect.ValueOf(dst)
-	doCopy(dval, sval)
+	if dst != nil && src != nil {
+		sval := reflect.ValueOf(src)
+		dval := reflect.ValueOf(dst)
+		doCopy(dval, sval)
+	}
 }
 
 func doCopy(dval, sval reflect.Value) {
