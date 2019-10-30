@@ -185,22 +185,23 @@ func scanOne(val reflect.Value, s string) {
 	if s == "" {
 		return
 	}
-	switch val.Kind() {
+	switch util.ConvertKind(val.Kind()) {
 	default:
 		panic("unsupport type" + val.Type().String())
 	case reflect.Ptr:
 		scanOne(val.Elem(), s)
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Int:
+	case reflect.Int64:
 		n, _ := strconv.ParseInt(s, 10, 64)
 		val.SetInt(n)
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Uint:
+	case reflect.Uint64:
 		n, _ := strconv.ParseUint(s, 10, 64)
 		val.SetUint(n)
-	case reflect.Float32, reflect.Float64:
+	case reflect.Float64:
 		a, _ := strconv.ParseFloat(s, 64)
 		val.SetFloat(a)
+	case reflect.Bool:
+		b, _ := strconv.ParseBool(s)
+		val.SetBool(b)
 	case reflect.String:
 		val.SetString(s)
 	case reflect.Slice:
@@ -222,15 +223,17 @@ func (g *tableGroup) Scan(row, cols interface{}, args []interface{}) (int, error
 	for i, arg := range args {
 		colKey := strings.ToLower(colKeys[i])
 		s, _ := g.String(row, colKey)
+
 		switch arg.(type) {
-		default:
-			scanOne(reflect.ValueOf(arg), s)
 		case *time.Duration:
-			d, _ := parseDuration(s)
-			*(arg.(*time.Duration)) = d
+			arg = (*durationCell)(arg.(*time.Duration))
 		case *time.Time:
-			t, _ := util.ParseTime(s)
-			*(arg.(*time.Time)) = t
+			arg = (*timeCell)(arg.(*time.Time))
+		}
+		if scanner, ok := arg.(Scanner); ok {
+			scanner.Scan(s)
+		} else {
+			scanOne(reflect.ValueOf(arg), s)
 		}
 	}
 	return 0, nil
@@ -357,13 +360,6 @@ func Time(name string, row, col interface{}) (time.Time, bool) {
 		}
 	}
 	return time.Time{}, false
-}
-
-func parseDuration(s string) (time.Duration, error) {
-	if b, _ := regexp.MatchString(`[0-9]$`, s); b {
-		s = s + "s"
-	}
-	return time.ParseDuration(s)
 }
 
 // 默认单位秒

@@ -73,7 +73,12 @@ func (res Result) Scan(args ...interface{}) error {
 		err := ErrUnkownType
 		ret := res.rets[i]
 		if lua.LVCanConvToString(ret) {
-			_, err = fmt.Sscanf(ret.String(), "%v", args[i])
+			if s, ok := args[i].(*string); ok {
+				*s = ret.String()
+			} else {
+				// 遇到分隔符会停止
+				_, err = fmt.Sscanf(ret.String(), "%v", args[i])
+			}
 		} else if scan, ok := args[i].(Scaner); ok {
 			err = scan.Scan(ret)
 		}

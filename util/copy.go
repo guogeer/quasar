@@ -29,10 +29,10 @@ func doCopy(dval, sval reflect.Value) {
 		return
 	}
 	// fmt.Println(sval.IsValid(), dval.CanSet())
-	if testKind(sval.Kind()) != testKind(dval.Kind()) {
+	if ConvertKind(sval.Kind()) != ConvertKind(dval.Kind()) {
 		return
 	}
-	switch testKind(sval.Kind()) {
+	switch ConvertKind(sval.Kind()) {
 	case reflect.Int64:
 		dval.SetInt(sval.Int())
 	case reflect.Uint64:
@@ -73,7 +73,7 @@ func doCopy(dval, sval reflect.Value) {
 	}
 }
 
-func testKind(k reflect.Kind) reflect.Kind {
+func ConvertKind(k reflect.Kind) reflect.Kind {
 	switch k {
 	case reflect.Float32, reflect.Float64:
 		return reflect.Float64

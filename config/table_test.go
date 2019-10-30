@@ -72,6 +72,7 @@ func TestScan(t *testing.T) {
 		F64: 64,
 		FF:  []float32{1.1, 2.2},
 	}
+
 	scanOne(reflect.ValueOf(&data1.N16), "16")
 	scanOne(reflect.ValueOf(&data1.N64), "64")
 	scanOne(reflect.ValueOf(&data1.N), "32")
@@ -87,5 +88,24 @@ func TestScan(t *testing.T) {
 	scanOne(reflect.ValueOf(&data1.FF), "1.1,2.2")
 	if !util.DeepEqual(data1, data2) {
 		t.Error("scan error")
+	}
+}
+
+func TestScanner(t *testing.T) {
+	type json1 struct {
+		P1     int
+		PS     string
+		Array3 []int
+	}
+	data1 := json1{
+		P1:     1,
+		PS:     "S",
+		Array3: []int{1, 2, 3},
+	}
+	var data2 json1
+	Scan("test1", 1, ".Private", JSON(&data2))
+	t.Log(data1, data2)
+	if !util.DeepEqual(data1, data2) {
+		t.Error("scan scanner error")
 	}
 }
