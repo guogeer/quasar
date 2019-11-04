@@ -5,7 +5,7 @@
 
 以当前生产业务下的场景拓扑结构为例
 
-![avatar](doc/service.png)
+![avatar](./doc/service.png)
 
 ## 目录说明
 
