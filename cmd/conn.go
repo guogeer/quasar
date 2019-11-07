@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"github.com/guogeer/husky/log"
+	"github.com/guogeer/quasar/log"
 	"io"
 	"net"
 	"reflect"

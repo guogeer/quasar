@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/guogeer/husky/cmd"
-	// "github.com/guogeer/husky/log"
+	"github.com/guogeer/quasar/cmd"
+	// "github.com/guogeer/quasar/log"
 	"encoding/json"
 )
 

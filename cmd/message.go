@@ -9,7 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/buger/jsonparser"
-	"github.com/guogeer/husky/log"
+	"github.com/guogeer/quasar/log"
 	"io"
 	"sort"
 	"strings"

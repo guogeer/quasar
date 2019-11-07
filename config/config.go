@@ -8,7 +8,7 @@ import (
 	"errors"
 	"flag"
 	"github.com/go-yaml/yaml"
-	"github.com/guogeer/husky/log"
+	"github.com/guogeer/quasar/log"
 	"io/ioutil"
 	"os"
 	"path/filepath"

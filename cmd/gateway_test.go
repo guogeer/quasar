@@ -3,8 +3,8 @@ package cmd
 import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	"github.com/guogeer/husky/log"
-	"github.com/guogeer/husky/util"
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/util"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"

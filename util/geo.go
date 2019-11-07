@@ -3,7 +3,7 @@ package util
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/guogeer/husky/log"
+	"github.com/guogeer/quasar/log"
 	"io/ioutil"
 	"math"
 	"net/http"

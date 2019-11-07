@@ -3,7 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"errors"
-	"github.com/guogeer/husky/config"
+	"github.com/guogeer/quasar/config"
 	"net"
 	"reflect"
 	"runtime"

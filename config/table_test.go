@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/guogeer/husky/util"
+	"github.com/guogeer/quasar/util"
 	"reflect"
 	"testing"
 )

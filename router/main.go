@@ -2,10 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/guogeer/husky/cmd"
-	"github.com/guogeer/husky/config"
-	"github.com/guogeer/husky/log"
-	"github.com/guogeer/husky/util"
+	"github.com/guogeer/quasar/cmd"
+	"github.com/guogeer/quasar/config"
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/util"
 	"net"
 	"runtime"
 	"strconv"

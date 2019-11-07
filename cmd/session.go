@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/guogeer/husky/log"
+	"github.com/guogeer/quasar/log"
 	"sync"
 )
 

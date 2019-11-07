@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"context"
-	"github.com/guogeer/husky/config"
-	"github.com/guogeer/husky/log"
+	"github.com/guogeer/quasar/config"
+	"github.com/guogeer/quasar/log"
 	"net"
 	"sync"
 	"time"

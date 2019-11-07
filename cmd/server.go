@@ -5,8 +5,8 @@ package cmd
 
 import (
 	"context"
-	"github.com/guogeer/husky/log"
-	"github.com/guogeer/husky/util"
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/util"
 	"io"
 	"net"
 	"time"

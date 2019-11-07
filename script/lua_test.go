@@ -1,7 +1,7 @@
 package script
 
 import (
-	"github.com/guogeer/husky/util"
+	"github.com/guogeer/quasar/util"
 	"github.com/yuin/gopher-lua"
 	"testing"
 )

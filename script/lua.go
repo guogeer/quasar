@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/guogeer/husky/log"
+	"github.com/guogeer/quasar/log"
 	"github.com/yuin/gopher-lua"
 	"io/ioutil"
 	luajson "layeh.com/gopher-json"

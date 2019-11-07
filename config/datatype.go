@@ -2,7 +2,7 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/guogeer/husky/util"
+	"github.com/guogeer/quasar/util"
 	"regexp"
 	"time"
 )
