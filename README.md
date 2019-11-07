@@ -5,7 +5,7 @@
 
 以当前生产业务下的场景拓扑结构为例
 
-![avatar](https://github.com/guogeer/husky/blob/master/doc/service.png)
+![avatar](./doc/service.png)
 
 ## 目录说明
 
