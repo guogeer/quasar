@@ -61,10 +61,6 @@ func (c *TCPConn) ReadMessage() (mt uint8, buf []byte, err error) {
 		return
 	}
 
-	// 0x01~0x0f 表示版本
-	// 0xf0 写队列尾部标识
-	// 0xf1 PING
-	// 0xf2 PONG
 	n := int(binary.BigEndian.Uint16(head[1:]))
 
 	// 消息
@@ -158,7 +154,7 @@ func (s *CmdSet) RegisterService(name string) {
 	s.services[name] = true
 }
 
-// 恢复服务
+// 恢复已有的服务
 func (s *CmdSet) RecoverService(name string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -198,11 +194,9 @@ func (s *CmdSet) Handle(ctx *Context, messageID string, data []byte) error {
 	s.mu.RUnlock()
 	// router
 	if len(serverName) > 0 {
-		if ctx.isGateway == true {
-			// 网关仅允许转发已注册的逻辑服务器
-			if isService == false {
-				return errors.New("gateway try to route invalid service")
-			}
+		// 网关仅允许转发已注册的逻辑服务器
+		if ctx.isGateway == true && isService == false {
+			return errors.New("gateway try to route invalid service")
 		}
 
 		if ss := GetSession(ctx.Ssid); ss != nil {

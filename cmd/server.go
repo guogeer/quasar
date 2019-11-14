@@ -76,8 +76,6 @@ type ServeConn struct {
 	*TCPConn
 }
 
-// 网络连接异常关闭后，优先通知主逻辑Goroutine，写Goroutine收到回复后
-// 继续读取写队列，缓存回收完毕后，关闭写队列，关闭写Goroutine
 func (c *ServeConn) serve() {
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {

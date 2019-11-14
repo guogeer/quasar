@@ -16,12 +16,9 @@ var (
 )
 
 func init() {
-	// 服务器内部数据校验KEY
 	cfg := config.Config()
 	sign, productKey := cfg.Sign, cfg.ProductKey
-	if h := defaultAuthParser; sign != "" {
-		h.key = sign
-	}
+	// 服务器内部数据校验KEY
 	if h := defaultAuthParser; sign != "" {
 		h.key = sign
 	}
