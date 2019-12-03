@@ -7,6 +7,8 @@ package config
 // Version 2.0.0 支持隐藏属性，属性格式：".Key"，其中".Private"私有属性
 // Version 2.1.0 列索引忽略大小写
 // Version 2.2.0 表格名索引忽略大小写
+// 2019-12-03 增加类型: INT、JSON、FLOAT、STRING
+// 列1[INT]	列2[JSON]	列3[FLOAT]
 
 import (
 	"archive/zip"
@@ -32,21 +34,22 @@ const (
 )
 
 var (
-	enableDebug = false
-	gTableFiles sync.Map
-	gTableRows  [255]*tableRow
+	enableDebug   = false
+	gTableFiles   sync.Map
+	gTableRowKeys [255]*tableRow
 )
 
 func init() {
-	for i := range gTableRows {
-		gTableRows[i] = &tableRow{n: i}
+	for i := range gTableRowKeys {
+		gTableRowKeys[i] = &tableRow{n: i}
 	}
 }
 
 type tableFile struct {
-	rowName map[string]int // 行名
-	cells   []map[string]string
-	name    string
+	rowName  map[string]int // 行名
+	cells    []map[string]string
+	name     string
+	colTypes map[string]string
 
 	groups map[string]*tableGroup
 }
@@ -58,23 +61,25 @@ type tableRow struct {
 func newTableFile(name string) *tableFile {
 	name = strings.ToLower(name)
 	return &tableFile{
-		name:    name,
-		rowName: make(map[string]int),
+		name:     name,
+		rowName:  make(map[string]int),
+		colTypes: make(map[string]string),
 	}
 }
 
 func (f *tableFile) Load(buf []byte) error {
 	// f.rowName = make(map[string]int)
-	s := string(buf) + "\n"
-	s = strings.ReplaceAll(s, "\r\n", "\n")
+	body := string(buf) + "\n"
+	// windows 环境下环境"\r\n"替换为"\n"
+	body = strings.ReplaceAll(body, "\r\n", "\n")
 
-	var colKeys []string
-	for rowID := 0; len(s) > 0; rowID++ {
-		line := s
-		if n := strings.Index(s, "\n"); n >= 0 {
-			line = s[:n]
+	var line0, line1 []string
+	for rowID := 0; len(body) > 0; rowID++ {
+		line := body
+		if n := strings.Index(body, "\n"); n >= 0 {
+			line = body[:n]
 		}
-		s = s[len(line)+1:]
+		body = body[len(line)+1:]
 		// 忽略空字符串
 		if b, _ := regexp.MatchString(`\S`, line); !b {
 			// log.Warnf("config %s:%d empty", f.name, rowID)
@@ -83,16 +88,29 @@ func (f *tableFile) Load(buf []byte) error {
 
 		lineCells := strings.Split(line, "\t")
 		switch rowID {
-		case 0: // 表格第一行为标题注释，忽略
+		// 表格第一行为标题注释，忽略
+		// 2019-12-03 增加列字段数据类型
+		case 0:
+			line0 = lineCells
 		case 1: // 表格第二行列索引
-			colKeys = lineCells
+			line1 = lineCells
+			for k, cell := range line0 {
+				keys := regexp.MustCompile(`\[[^\]]+\]`).FindString(cell)
+				types := regexp.MustCompile(`[A-Za-z0-9]+`).FindAllStringSubmatch(keys, -1)
+				// TODO 支持多个关键字，当前仅考虑支持一个数据类型
+				for _, typ := range types {
+					if len(typ) > 0 {
+						f.colTypes[line1[k]] = typ[0]
+					}
+				}
+			}
 		default:
 			rowName := string(lineCells[0])
 			f.rowName[rowName] = rowID - 2
 
 			cells := make(map[string]string)
 			for k, cell := range lineCells {
-				colKey := strings.ToLower(string(colKeys[k]))
+				colKey := strings.ToLower(string(line1[k]))
 				if colKey == ".private" && len(cell) > 0 {
 					attrs := make(map[string]json.RawMessage)
 					json.Unmarshal([]byte(cell), &attrs)
@@ -142,8 +160,8 @@ func (f *tableFile) Rows() []*tableRow {
 	if f == nil {
 		return nil
 	}
-	if len(f.cells) < len(gTableRows) {
-		return gTableRows[:len(f.cells)]
+	if len(f.cells) < len(gTableRowKeys) {
+		return gTableRowKeys[:len(f.cells)]
 	}
 
 	rows := make([]*tableRow, 0, 32)
@@ -157,11 +175,6 @@ type tableGroup struct {
 	members []string
 }
 
-func newTableGroup(name string) *tableGroup {
-	name = strings.ToLower(name)
-	return &tableGroup{members: []string{name}}
-}
-
 func getTableGroup(name string) *tableGroup {
 	name = strings.ToLower(name)
 	if f := getTableFile(attrTable); f != nil {
@@ -169,12 +182,23 @@ func getTableGroup(name string) *tableGroup {
 			return group
 		}
 	}
-	return newTableGroup(name)
+	name = strings.ToLower(name)
+	return &tableGroup{members: []string{name}}
 }
 
 func (g *tableGroup) String(row, col interface{}) (string, bool) {
 	for _, name := range g.members {
 		if s, ok := getTableFile(name).String(row, col); ok {
+			return s, ok
+		}
+	}
+	return "", false
+}
+
+func (g *tableGroup) Type(col string) (string, bool) {
+	for _, name := range g.members {
+		f := getTableFile(name)
+		if s, ok := f.colTypes[col]; ok {
 			return s, ok
 		}
 	}
@@ -214,32 +238,41 @@ func scanOne(val reflect.Value, s string) {
 	}
 }
 
-func (g *tableGroup) Scan(row, cols interface{}, args []interface{}) (int, error) {
+// 跳过表格不存在的元素
+func (g *tableGroup) Scan(rows, cols interface{}, args ...interface{}) (int, error) {
 	s := fmt.Sprintf("%v", cols)
 	colKeys := strings.Split(s, ",")
 	if len(colKeys) != len(args) {
 		panic("args not match")
 	}
+
+	counter := 0
 	for i, arg := range args {
 		colKey := strings.ToLower(colKeys[i])
-		s, _ := g.String(row, colKey)
+		if s, exist := g.String(rows, colKey); exist {
+			counter++
+			switch arg.(type) {
+			case *time.Duration:
+				arg = (*durationArg)(arg.(*time.Duration))
+			case *time.Time:
+				arg = (*timeArg)(arg.(*time.Time))
+			}
+			// 自动解析JSON
+			if typ, ok := g.Type(colKey); ok && typ == "JSON" {
+				arg = &jsonArg{value: arg}
+			}
 
-		switch arg.(type) {
-		case *time.Duration:
-			arg = (*durationArg)(arg.(*time.Duration))
-		case *time.Time:
-			arg = (*timeArg)(arg.(*time.Time))
-		}
-		if scanner, ok := arg.(Scanner); ok {
-			scanner.Scan(s)
-		} else {
-			scanOne(reflect.ValueOf(arg), s)
+			if scanner, ok := arg.(Scanner); ok {
+				scanner.Scan(s)
+			} else {
+				scanOne(reflect.ValueOf(arg), s)
+			}
 		}
 	}
-	return 0, nil
+	return counter, nil
 }
 
-func readFile(path string, rc io.ReadCloser) {
+func readTableFile(path string, rc io.ReadCloser) {
 	if rc == nil {
 		return
 	}
@@ -280,7 +313,7 @@ func LoadLocalTables(fileName string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			readFile(f.Name, rc)
+			readTableFile(f.Name, rc)
 		}
 	}
 	// 第二部加载scripts/*.tbl
@@ -302,7 +335,7 @@ func LoadLocalTables(fileName string) {
 			if err != nil {
 				log.Fatal(err)
 			}
-			readFile(path, rc)
+			readTableFile(path, rc)
 		}
 	}
 }
@@ -320,66 +353,54 @@ func Rows(name string) []*tableRow {
 }
 
 func String(name string, row, col interface{}, def ...string) (string, bool) {
-	return getTableGroup(name).String(row, col)
+	var res string
+	for _, v := range def {
+		res = v
+	}
+	n, _ := getTableGroup(name).Scan(row, col, &res)
+	return res, n == 1
 }
 
 func Int(name string, row, col interface{}, def ...int64) (int64, bool) {
-	s, ok := getTableGroup(name).String(row, col)
-	if ok == false {
-		for _, n := range def {
-			return n, false
-		}
-		return 0, false
+	var res int64
+	for _, v := range def {
+		res = v
 	}
-	n, err := strconv.ParseInt(s, 10, 64)
-	if err != nil {
-		log.Errorf("cell %v:%v:%v[%v] invalid %v", name, row, col, s, err)
-	}
-	return n, ok
+	n, _ := getTableGroup(name).Scan(row, col, &res)
+	return res, n == 1
 }
 
 func Float(name string, row, col interface{}, def ...float64) (float64, bool) {
-	s, ok := getTableGroup(name).String(row, col)
-	if ok == false {
-		for _, a := range def {
-			return a, false
-		}
-		return 0.0, false
+	var res float64
+	for _, v := range def {
+		res = v
 	}
-	a, err := strconv.ParseFloat(s, 64)
-	if err != nil {
-		log.Errorf("cellfloat %v:%v:%v[%v] invalid %v", name, row, col, s, err)
-	}
-	return a, ok
+	n, _ := getTableGroup(name).Scan(row, col, &res)
+	return res, n == 1
 }
 
 func Time(name string, row, col interface{}) (time.Time, bool) {
-	if s, ok := getTableGroup(name).String(row, col); ok {
-		if t, err := util.ParseTime(s); err == nil {
-			return t, true
-		}
-	}
-	return time.Time{}, false
+	var res time.Time
+	n, _ := getTableGroup(name).Scan(row, col, &res)
+	return res, n == 1
 }
 
 // 默认单位秒
 // 120s、120m、120h、120d，分别表示秒，分，时，天
 func Duration(name string, row, col interface{}, def ...time.Duration) (time.Duration, bool) {
-	if s, ok := getTableGroup(name).String(row, col); ok && len(s) > 0 {
-		d, _ := parseDuration(s)
-		return d, true
+	var res time.Duration
+	for _, v := range def {
+		res = v
 	}
-	for _, d := range def {
-		return d, false
-	}
-	return 0, false
+	n, _ := getTableGroup(name).Scan(row, col, &res)
+	return res, n == 1
 }
 
 func Scan(name string, row, colArgs interface{}, args ...interface{}) (int, error) {
-	return getTableGroup(name).Scan(row, colArgs, args)
+	return getTableGroup(name).Scan(row, colArgs, args...)
 }
 
-func Row(name string) int {
+func NumRow(name string) int {
 	f := getTableFile(name)
 	if f == nil {
 		return -1
@@ -388,8 +409,8 @@ func Row(name string) int {
 }
 
 func RowId(n int) *tableRow {
-	if n >= 0 && n < len(gTableRows) {
-		return gTableRows[n]
+	if n >= 0 && n < len(gTableRowKeys) {
+		return gTableRowKeys[n]
 	}
 	return &tableRow{n: n}
 }
@@ -419,7 +440,7 @@ func LoadTable(name string, buf []byte) error {
 				if ok && gname != "" {
 					gname = strings.ToLower(gname)
 					if _, ok := t.groups[gname]; !ok {
-						t.groups[gname] = newTableGroup(gname)
+						t.groups[gname] = getTableGroup(gname)
 					}
 					g := t.groups[gname]
 					g.members = append(g.members, path[0])
