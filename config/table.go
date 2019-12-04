@@ -7,8 +7,8 @@ package config
 // Version 2.0.0 支持隐藏属性，属性格式：".Key"，其中".Private"私有属性
 // Version 2.1.0 列索引忽略大小写
 // Version 2.2.0 表格名索引忽略大小写
-// 2019-12-03 增加类型: INT、JSON、FLOAT、STRING
-// 列1[INT]	列2[JSON]	列3[FLOAT]
+// 2019-12-03 增加类型: INT、JSON、FLOAT、STRING，后续计划增强JSON支持
+// 例如：列1[INT]	列2[JSON]	列3[FLOAT]
 
 import (
 	"archive/zip"
@@ -134,7 +134,7 @@ func (f *tableFile) Load(buf []byte) error {
 }
 
 func (f *tableFile) String(row, col interface{}) (string, bool) {
-	if f == nil || row == nil || col == nil {
+	if row == nil || col == nil {
 		return "", false
 	}
 	colKey := fmt.Sprintf("%v", col)
@@ -157,9 +157,6 @@ func (f *tableFile) String(row, col interface{}) (string, bool) {
 }
 
 func (f *tableFile) Rows() []*tableRow {
-	if f == nil {
-		return nil
-	}
 	if len(f.cells) < len(gTableRowKeys) {
 		return gTableRowKeys[:len(f.cells)]
 	}
@@ -188,8 +185,10 @@ func getTableGroup(name string) *tableGroup {
 
 func (g *tableGroup) String(row, col interface{}) (string, bool) {
 	for _, name := range g.members {
-		if s, ok := getTableFile(name).String(row, col); ok {
-			return s, ok
+		if f := getTableFile(name); f != nil {
+			if s, ok := f.String(row, col); ok {
+				return s, ok
+			}
 		}
 	}
 	return "", false
@@ -197,9 +196,10 @@ func (g *tableGroup) String(row, col interface{}) (string, bool) {
 
 func (g *tableGroup) Type(col string) (string, bool) {
 	for _, name := range g.members {
-		f := getTableFile(name)
-		if s, ok := f.colTypes[col]; ok {
-			return s, ok
+		if f := getTableFile(name); f != nil {
+			if s, ok := f.colTypes[col]; ok {
+				return s, ok
+			}
 		}
 	}
 	return "", false
@@ -349,7 +349,10 @@ func getTableFile(name string) *tableFile {
 }
 
 func Rows(name string) []*tableRow {
-	return getTableFile(name).Rows()
+	if f := getTableFile(name); f != nil {
+		return f.Rows()
+	}
+	return nil
 }
 
 func String(name string, row, col interface{}, def ...string) (string, bool) {
@@ -401,11 +404,10 @@ func Scan(name string, row, colArgs interface{}, args ...interface{}) (int, erro
 }
 
 func NumRow(name string) int {
-	f := getTableFile(name)
-	if f == nil {
-		return -1
+	if f := getTableFile(name); f != nil {
+		return len(f.cells)
 	}
-	return len(f.cells)
+	return -1
 }
 
 func RowId(n int) *tableRow {
