@@ -11,7 +11,9 @@ import (
 )
 
 var (
-	enableDebug    = false
+	enableDebug       = false
+	defaultRouterAddr = "127.0.0.1:9003"
+
 	errInvalidAddr = errors.New("request empty address")
 )
 
@@ -29,6 +31,9 @@ func init() {
 	defaultRawParser.compressPackage = cfg.CompressPackage
 	if cfg.EnableDebug {
 		enableDebug = true
+	}
+	if addr := config.Config().Server("router").Addr; addr != "" {
+		defaultRouterAddr = addr
 	}
 
 	BindWithName("C2S_RegisterOk", funcRegisterOk, (*cmdArgs)(nil))
@@ -122,7 +127,7 @@ func Forward(servers interface{}, messageId string, i interface{}) {
 func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 	var addr string
 	if serverName == "router" {
-		addr = config.Config().Server("router").Addr
+		addr = defaultRouterAddr
 	} else {
 		addr, _ = RequestServerAddr(serverName)
 	}

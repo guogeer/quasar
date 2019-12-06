@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/guogeer/quasar/log"
 	"github.com/guogeer/quasar/util"
-	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -22,8 +23,15 @@ var clientMsg = &testArgs{N: 100, S: "SEND"}
 var serverMsg = &testArgs{N: 200, S: "RECV"}
 
 func TestMain(m *testing.M) {
-	log.SetLevelByTag("FATAL")
-	bigPackage, _ = ioutil.ReadFile("bigpackage.txt")
+	log.SetLevel("FATAL")
+	body := map[string]string{}
+	for i := 0; i < 1000; i++ {
+		key := fmt.Sprintf("line_%d", i)
+		body[key] = fmt.Sprintf("%010d", rand.Intn(1234567890))
+	}
+	defaultRawParser.compressPackage = 8 * 1024
+	bigPackage, _ = json.Marshal(body)
+
 	m.Run()
 }
 

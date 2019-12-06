@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"github.com/guogeer/quasar/config"
 	"github.com/guogeer/quasar/log"
 	"net"
 	"sync"
@@ -145,7 +144,7 @@ func (cm *clientManage) connect(serverName string) {
 	cm.mu.RUnlock()
 
 	go func() {
-		addr := config.Config().Server("router").Addr
+		addr := defaultRouterAddr
 		for try, ms := range []int{100, 400, 1600, 3200, 5000} {
 			if serverName != "router" {
 				addr2, err := RequestServerAddr(serverName)
