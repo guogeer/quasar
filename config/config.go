@@ -1,5 +1,6 @@
 package config
 
+// 进程启动时预加载的配置
 // 默认获取进程工作路径下config.xml
 
 import (
@@ -18,7 +19,7 @@ import (
 
 var gLogTag = flag.String("log", "DEBUG", "log DEBUG|INFO|ERROR")
 var gLogPath = flag.String("logpath", "log/{proc_name}/run.log", "log path")
-var gConfigPath = flag.String("config", "config.xml", "config xml|json|yaml")
+var gConfigPath = flag.String("config", "", "config xml|json|yaml")
 
 func LoadFile(path string, conf interface{}) error {
 	b, err := ioutil.ReadFile(path)
@@ -55,27 +56,39 @@ type Env struct {
 	EnableDebug     bool   // 开启调试，将输出消息统计日志等
 }
 
-func (cf Env) Server(name string) server {
-	for _, s := range cf.ServerList {
-		if s.Name == name {
-			return s
+func (env *Env) Server(name string) server {
+	for _, srv := range env.ServerList {
+		if srv.Name == name {
+			return srv
 		}
 	}
-	return server{Name: name}
-}
-
-func (cf Env) Path() string {
-	return cf.path
+	return server{}
 }
 
 var defaultConfig Env
 
+func Config() *Env {
+	return &defaultConfig
+}
+
 func init() {
 	// 命令行参数优先
 	logPath, logTag, path := *gLogPath, *gLogTag, *gConfigPath
-	defaultConfig.path = ParseCmdArgs(os.Args[1:], "config", path)
+	defaultConfig.path = parseCommandLine(os.Args[1:], "config", path)
+	// 未指定配置路径，默认加载当前目录下config.xml
+	if defaultConfig.path == "" {
+		path := "config.xml"
+		if _, err := os.Stat(path); os.IsExist(err) {
+			defaultConfig.path = path
+		}
+	}
+	// 未要求加载配置
+	if defaultConfig.path == "" {
+		return
+	}
 
-	if err := LoadFile(defaultConfig.path, &defaultConfig); err != nil {
+	err := LoadFile(defaultConfig.path, &defaultConfig)
+	if err != nil {
 		log.Errorf("load config %s error %v", defaultConfig.path, err)
 	}
 	if logPath == "" {
@@ -84,29 +97,30 @@ func init() {
 	if logTag == "" {
 		logTag = defaultConfig.LogTag
 	}
-	defaultConfig.LogTag = ParseCmdArgs(os.Args[1:], "log", logTag)
-	defaultConfig.LogPath = ParseCmdArgs(os.Args[1:], "logpath", logPath)
+	defaultConfig.LogTag = parseCommandLine(os.Args[1:], "log", logTag)
+	defaultConfig.LogPath = parseCommandLine(os.Args[1:], "logpath", logPath)
 
 	log.Create(defaultConfig.LogPath)
-	log.SetLevelByTag(defaultConfig.LogTag)
-}
-
-func Config() Env {
-	return defaultConfig
+	log.SetLevel(defaultConfig.LogTag)
 }
 
 // 解析命令行参数，支持4种格式
-// -name=value -name value --name=value --name value
-func ParseCmdArgs(args []string, name, def string) string {
+// 1、-name=value
+// 2、-name value
+// 3、--name=value
+// 4、--name value
+func parseCommandLine(args []string, name, def string) string {
 	s := " " + strings.Join(args, " ")
 	re := regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))\S+`)
 
+	// 匹配的子串
 	s = re.FindString(s)
 	if s == "" {
 		return def
 	}
 	re = regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))`)
 
+	// 前缀关键字
 	prefix := re.FindString(s)
 	return s[len(prefix):]
 }
