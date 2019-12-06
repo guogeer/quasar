@@ -3,6 +3,8 @@
 // 默认输出到标准输出，设置路径后同时输出到文件
 // 2019-07-22
 // 默认输出到标准输出，配置日志文件后才输出文件
+// 2019-12-05
+// 移除日志Tag。上个版本日志等级是整形序列1，2，3，……，现在改动为"INFO"，"TEST"
 
 package log
 
@@ -17,25 +19,28 @@ import (
 )
 
 const (
-	_ = iota
-	LTest
-	LDebug
-	LInfo
-	LWarn
-	LError
-	LFatal
-	LAll
+	LvTest  = "TEST"
+	LvDebug = "DEBUG"
+	LvInfo  = "INFO"
+	LvWarn  = "WARN"
+	LvError = "ERROR"
+	LvFatal = "FATAL"
 )
 
 const maxFileNumPerDay = 1024
 
 var (
 	enableDebug = true
-	logTags     = []string{
-		"", "TEST", "DEBUG", "INFO", "WARN", "ERROR", "FATAL",
+	logLevels   = []string{
+		LvTest,
+		LvDebug,
+		LvInfo,
+		LvWarn,
+		LvError,
+		LvError,
 	}
 	fileLog = &FileLog{
-		level:       LDebug,
+		level:       LvDebug,
 		maxSaveDays: 10,
 		maxFileSize: 512 * 1024 * 1024, // 512M
 	}
@@ -53,7 +58,7 @@ func init() {
 
 type FileLog struct {
 	path        string
-	level       int
+	level       string
 	maxSaveDays int
 	maxFileSize int64
 
@@ -110,15 +115,16 @@ func (l *FileLog) cleanFiles(path string) {
 	}
 }
 
-func (l *FileLog) Output(level int, s string) {
-	if level <= 0 || level > LAll {
-		return
-	}
-
+func (l *FileLog) Output(level, s string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if level < l.level {
-		return
+	for _, level2 := range logLevels {
+		if level2 == level {
+			return
+		}
+		if level2 == l.level {
+			break
+		}
 	}
 
 	now := time.Now()
@@ -153,7 +159,7 @@ func (l *FileLog) Output(level int, s string) {
 		l.moveFile(datePath, newPath)
 	}
 
-	s = fmt.Sprintf("[%s] %s", logTags[level], s)
+	s = fmt.Sprintf("[%s] %s", level, s)
 	l.logger.Output(3, s)
 	if enableDebug {
 		log.Output(3, s)
@@ -175,89 +181,71 @@ func (l *FileLog) Create(path string) {
 	l.path = path
 }
 
-func (l *FileLog) SetLevel(level int) {
-	if level <= 0 || level >= LAll {
-		return
-	}
+func (l *FileLog) SetLevel(level string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.level = level
-}
-
-func getLevelByTag(tag string) int {
-	for k, v := range logTags {
-		if v == tag {
-			return k
-		}
-	}
-	panic("invalid log tag: " + tag)
 }
 
 func Create(path string) {
 	fileLog.Create(path)
 }
 
-func SetLevel(lv int) {
-	fileLog.SetLevel(lv)
-}
-
-func SetLevelByTag(tag string) {
-	lv := getLevelByTag(tag)
+func SetLevel(lv string) {
 	fileLog.SetLevel(lv)
 }
 
 func Testf(format string, v ...interface{}) {
-	fileLog.Output(LTest, fmt.Sprintf(format, v...))
+	fileLog.Output(LvTest, fmt.Sprintf(format, v...))
 }
 
 func Test(v ...interface{}) {
-	fileLog.Output(LTest, fmt.Sprintln(v...))
+	fileLog.Output(LvTest, fmt.Sprintln(v...))
 }
 
 func Debugf(format string, v ...interface{}) {
-	fileLog.Output(LDebug, fmt.Sprintf(format, v...))
+	fileLog.Output(LvDebug, fmt.Sprintf(format, v...))
 }
 
 func Debug(v ...interface{}) {
-	fileLog.Output(LDebug, fmt.Sprintln(v...))
+	fileLog.Output(LvDebug, fmt.Sprintln(v...))
 }
 
 func Infof(format string, v ...interface{}) {
-	fileLog.Output(LInfo, fmt.Sprintf(format, v...))
+	fileLog.Output(LvInfo, fmt.Sprintf(format, v...))
 }
 
 func Info(v ...interface{}) {
-	fileLog.Output(LInfo, fmt.Sprintln(v...))
+	fileLog.Output(LvInfo, fmt.Sprintln(v...))
 }
 
 func Warnf(format string, v ...interface{}) {
-	fileLog.Output(LWarn, fmt.Sprintf(format, v...))
+	fileLog.Output(LvWarn, fmt.Sprintf(format, v...))
 }
 
 func Warn(v ...interface{}) {
-	fileLog.Output(LWarn, fmt.Sprintln(v...))
+	fileLog.Output(LvWarn, fmt.Sprintln(v...))
 }
 
 func Errorf(format string, v ...interface{}) {
-	fileLog.Output(LError, fmt.Sprintf(format, v...))
+	fileLog.Output(LvError, fmt.Sprintf(format, v...))
 }
 
 func Error(v ...interface{}) {
-	fileLog.Output(LError, fmt.Sprintln(v...))
+	fileLog.Output(LvError, fmt.Sprintln(v...))
 }
 
 func Fatalf(format string, v ...interface{}) {
-	fileLog.Output(LFatal, fmt.Sprintf(format, v...))
+	fileLog.Output(LvFatal, fmt.Sprintf(format, v...))
 	os.Exit(0)
 }
 
 func Fatal(v ...interface{}) {
-	fileLog.Output(LFatal, fmt.Sprintln(v...))
+	fileLog.Output(LvFatal, fmt.Sprintln(v...))
 	os.Exit(0)
 }
 
-func Printf(tag, format string, v ...interface{}) {
-	tag = strings.ToUpper(tag)
-	lv := getLevelByTag(tag)
-	fileLog.Output(lv, fmt.Sprintf(format, v...))
+func Printf(level, format string, v ...interface{}) {
+	level = strings.ToUpper(level)
+	fileLog.Output(level, fmt.Sprintf(format, v...))
 }
