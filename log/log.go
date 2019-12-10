@@ -119,11 +119,11 @@ func (l *FileLog) Output(level, s string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	for _, level2 := range logLevels {
-		if level2 == level {
-			return
-		}
 		if level2 == l.level {
 			break
+		}
+		if level2 == level {
+			return
 		}
 	}
 
