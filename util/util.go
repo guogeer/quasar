@@ -74,7 +74,6 @@ func ContainsBySeparator(s, sep, obj string) bool {
 	return false
 }
 
-/*
 func InArray(array interface{}, some interface{}) int {
 	counter := 0
 	someValues := reflect.ValueOf(some)
@@ -93,7 +92,6 @@ func InArray(array interface{}, some interface{}) int {
 	}
 	return counter
 }
-*/
 
 // compare a,b json string
 // TODO  ignore struct or map field order
