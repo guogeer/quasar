@@ -1,12 +1,12 @@
 package util
 
 import (
-	"strconv"
+	// "strconv"
 	"testing"
-	"time"
+	// "time"
 )
 
-func TestSkipPeriodTime(t *testing.T) {
+/*func TestSkipPeriodTime(t *testing.T) {
 	s := "2018-10-21 00:00:22"
 	samples := [][3]string{
 		{"2017-10-21 00:00:11", "1h", "2018-10-21 01:00:11"},
@@ -24,22 +24,7 @@ func TestSkipPeriodTime(t *testing.T) {
 		}
 	}
 }
-
-func TestFormatMoney(t *testing.T) {
-	samples := [][2]string{
-		{"100", "100"},
-		{"0", "0"},
-		{"10000", "10,000"},
-		{"-100000", "-100,000"},
-		{"12345678", "12,345,678"},
-	}
-	for _, sample := range samples {
-		n, _ := strconv.Atoi(sample[0])
-		if FormatMoney(int64(n)) != sample[1] {
-			t.Error(sample)
-		}
-	}
-}
+*/
 
 func TestDeepEqual(t *testing.T) {
 	a1 := map[string]interface{}{

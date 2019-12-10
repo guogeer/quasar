@@ -3,16 +3,14 @@ package util
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
-	"reflect"
+	// "fmt"
+	// "reflect"
 	"strconv"
 	"strings"
 	"time"
 )
 
-var (
-	Separator = ","
-)
+const Separator = ","
 
 func ParseTime(s string) (time.Time, error) {
 	loc, _ := time.LoadLocation("Local")
@@ -76,27 +74,7 @@ func ContainsBySeparator(s, sep, obj string) bool {
 	return false
 }
 
-func FormatMoney(money int64) string {
-	var s, prefix string
-	if money == 0 {
-		s = "0"
-	} else if money < 0 {
-		prefix = "-"
-		money = -money
-	}
-	for money > 0 {
-		mod := money % 1000
-		money /= 1000
-		if money > 0 {
-			s = "," + fmt.Sprintf("%03d", mod) + s
-		} else {
-			s = fmt.Sprintf("%d", mod) + s
-		}
-	}
-	s = prefix + s
-	return s
-}
-
+/*
 func InArray(array interface{}, some interface{}) int {
 	counter := 0
 	someValues := reflect.ValueOf(some)
@@ -115,6 +93,7 @@ func InArray(array interface{}, some interface{}) int {
 	}
 	return counter
 }
+*/
 
 // compare a,b json string
 // TODO  ignore struct or map field order
