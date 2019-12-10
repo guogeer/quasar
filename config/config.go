@@ -56,6 +56,10 @@ type Env struct {
 	EnableDebug     bool   // 开启调试，将输出消息统计日志等
 }
 
+func (env *Env) Path() string {
+	return env.path
+}
+
 func (env *Env) Server(name string) server {
 	for _, srv := range env.ServerList {
 		if srv.Name == name {
@@ -78,7 +82,7 @@ func init() {
 	// 未指定配置路径，默认加载当前目录下config.xml
 	if defaultConfig.path == "" {
 		path := "config.xml"
-		if _, err := os.Stat(path); os.IsExist(err) {
+		if _, err := os.Stat(path); err == nil {
 			defaultConfig.path = path
 		}
 	}
