@@ -22,5 +22,6 @@ func concurrent() {
 }
 
 func init() {
-	util.NewPeriodTimer(concurrent, "2001-01-01", 10*time.Second)
+	startTime, _ := config.ParseTime("2001-01-01")
+	util.NewPeriodTimer(concurrent, startTime, 10*time.Second)
 }

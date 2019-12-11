@@ -43,7 +43,7 @@ func TestCall(t *testing.T) {
 	if err := res.Err; err != nil {
 		t.Error(err)
 	}
-	if !util.DeepEqual(p, p2) {
+	if !util.EqualJSON(p, p2) {
 		t.Error("not equal", p, p2)
 	}
 	var s string
@@ -89,7 +89,7 @@ func TestPreloadModule(t *testing.T) {
 		B: 2,
 		S: "hello world",
 	}
-	if !util.DeepEqual(data1, data2) {
+	if !util.EqualJSON(data1, data2) {
 		t.Error("scan json", data1, data2)
 	}
 }

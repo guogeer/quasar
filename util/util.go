@@ -5,28 +5,10 @@ import (
 	"encoding/json"
 	// "fmt"
 	"reflect"
-	"strconv"
-	"strings"
+	// "strconv"
+	// "strings"
 	"time"
 )
-
-const Separator = ","
-
-func ParseTime(s string) (time.Time, error) {
-	loc, _ := time.LoadLocation("Local")
-	match := "2006-01-02 15:04:05"
-	if form := "2006-01-02"; len(form) == len(s) {
-		match = form
-	}
-	if form := "2006-1-2"; len(form) == len(s) {
-		match = form
-	}
-	return time.ParseInLocation(match, s, loc)
-}
-
-func SkipPeriodTime(start time.Time, d time.Duration) time.Time {
-	return skipPeriodTime3(time.Now(), start, d)
-}
 
 func skipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
 	end := start
@@ -36,42 +18,17 @@ func skipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
 	return end
 }
 
+func SkipPeriodTime(start time.Time, d time.Duration) time.Time {
+	return skipPeriodTime3(time.Now(), start, d)
+}
+
 // Monday,Thursday...
 func GetFirstWeekday(t time.Time) time.Time {
 	weekDays := ((int)(t.Weekday()) + 6) % 7
 	firstDay := t.Add(-time.Duration(weekDays) * 24 * time.Hour)
-	firstDay, _ = ParseTime(firstDay.Format("2006-01-02"))
+	y, h, d := firstDay.Date()
+	firstDay = time.Date(y, h, d, 0, 0, 0, 0, t.Location())
 	return firstDay
-}
-
-func ParseStrings(s string) []string {
-	s = strings.Replace(s, ";", ",", -1)
-	s = strings.Replace(s, "-", ",", -1)
-	s = strings.Replace(s, "~", ",", -1)
-	s = strings.Replace(s, "/", ",", -1)
-	s = strings.Replace(s, "\\", ",", -1)
-	return strings.Split(s, ",")
-}
-
-func ParseIntSlice(s string) []int64 {
-	chips := make([]int64, 0, 8)
-	for _, v := range ParseStrings(s) {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-			chips = append(chips, n)
-		}
-	}
-	return chips
-}
-
-func ContainsBySeparator(s, sep, obj string) bool {
-	s = strings.Replace(s, ";", ",", -1)
-	parts := strings.Split(s, sep)
-	for _, part := range parts {
-		if part == obj {
-			return true
-		}
-	}
-	return false
 }
 
 func InArray(array interface{}, some interface{}) int {
@@ -95,7 +52,7 @@ func InArray(array interface{}, some interface{}) int {
 
 // compare a,b json string
 // TODO  ignore struct or map field order
-func DeepEqual(a, b interface{}) bool {
+func EqualJSON(a, b interface{}) bool {
 	b1, _ := json.Marshal(a)
 	b2, _ := json.Marshal(b)
 	return bytes.Compare(b1, b2) == 0

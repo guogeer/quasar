@@ -138,12 +138,7 @@ func (tm *timerSet) NewTimer(f func(), d time.Duration) *Timer {
 	return timer
 }
 
-func (tm *timerSet) NewPeriodTimer(f func(), startTime string, period time.Duration) *Timer {
-	start, err := ParseTime(startTime)
-	if err != nil {
-		panic(err)
-	}
-
+func (tm *timerSet) NewPeriodTimer(f func(), start time.Time, period time.Duration) *Timer {
 	timer := &Timer{
 		f:         f,
 		t:         SkipPeriodTime(start, period),
@@ -171,14 +166,14 @@ func (g *TimerGroup) NewTimer(f func(), d time.Duration) *Timer {
 	return t
 }
 
-func (g *TimerGroup) NewPeriodTimer(f func(), startTime string, period time.Duration) *Timer {
+func (g *TimerGroup) NewPeriodTimer(f func(), start time.Time, period time.Duration) *Timer {
 	set := g.set
 	// 默认全局定时器集
 	if set == nil {
 		set = defaultTimerSet
 	}
 
-	t := set.NewPeriodTimer(f, startTime, period)
+	t := set.NewPeriodTimer(f, start, period)
 	t.group = g
 	return t
 }
@@ -210,6 +205,6 @@ func NewTimer(f func(), d time.Duration) *Timer {
 	return GetTimerSet().NewTimer(f, d)
 }
 
-func NewPeriodTimer(f func(), startTime string, period time.Duration) *Timer {
-	return GetTimerSet().NewPeriodTimer(f, startTime, period)
+func NewPeriodTimer(f func(), start time.Time, period time.Duration) *Timer {
+	return GetTimerSet().NewPeriodTimer(f, start, period)
 }

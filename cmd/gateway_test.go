@@ -36,7 +36,7 @@ func TestMain(m *testing.M) {
 }
 
 func testEcho(ctx *Context, iArgs interface{}) {
-	if !util.DeepEqual(iArgs, clientMsg) {
+	if !util.EqualJSON(iArgs, clientMsg) {
 		panic("server handle invalid message")
 	}
 	ctx.Out.WriteJSON("Echo", serverMsg)
@@ -78,7 +78,7 @@ func TestRecvClientPackage(t *testing.T) {
 			t.Error(err)
 		}
 		pkg, err := Decode(buf)
-		if !util.DeepEqual(json.RawMessage(pkg.Data), serverMsg) {
+		if !util.EqualJSON(json.RawMessage(pkg.Data), serverMsg) {
 			panic("client recv invald message")
 		}
 		t2 := time.Now()

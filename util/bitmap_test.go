@@ -34,7 +34,7 @@ func TestBitmapMarshalJSON(t *testing.T) {
 	bm.Set(8, 1)
 	bm.Set(2, 1)
 	fake := fakeBitmap{Num: 9, Bits: []uint32{4, 1}}
-	if !DeepEqual(bm, fake) {
+	if !EqualJSON(bm, fake) {
 		t.Error("bit map marshal json")
 	}
 }

@@ -26,7 +26,7 @@ import (
 }
 */
 
-func TestDeepEqual(t *testing.T) {
+func TestEqualJSON(t *testing.T) {
 	a1 := map[string]interface{}{
 		"A": 1,
 		"B": 2,
@@ -37,7 +37,7 @@ func TestDeepEqual(t *testing.T) {
 		"B": 2,
 		"S": "s",
 	}
-	if !DeepEqual(a1, b1) {
+	if !EqualJSON(a1, b1) {
 		t.Error("deep equal result expect true")
 	}
 }

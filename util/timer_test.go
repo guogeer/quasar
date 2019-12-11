@@ -18,8 +18,12 @@ func testTimerGroup(t *testing.T) {
 	g1.NewTimer(func() { g1.StopAllTimer() }, 10*time.Second)
 	g2.NewTimer(func() { g1.StopAllTimer() }, 20*time.Second)
 	NewTimer(func() { isNice = false }, 30*time.Second)
-	NewPeriodTimer(func() { fmt.Println("period 1") }, "2018-01-01 00:00:00", 5*time.Second)
-	NewPeriodTimer(func() { fmt.Println("period 2") }, "2020-01-01 00:00:00", 5*time.Second)
+
+	loc, _ := time.LoadLocation("Local")
+	startTime := time.Date(2018, 1, 1, 0, 0, 0, 0, loc)
+	NewPeriodTimer(func() { fmt.Println("period 1") }, startTime, 5*time.Second)
+	startTime = time.Date(2020, 1, 1, 0, 0, 0, 0, loc)
+	NewPeriodTimer(func() { fmt.Println("period 2") }, startTime, 5*time.Second)
 	for isNice {
 		GetTimerSet().RunOnce()
 		time.Sleep(100 * time.Millisecond)

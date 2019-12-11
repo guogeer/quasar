@@ -117,7 +117,7 @@ func TestInheritSructCopy(t *testing.T) {
 	f := &Father{}
 	f2 := &Father2{N2: 22, S2: "sb2", N: 11, S: "sb", UId: 100, Id2: 200}
 	DeepCopy(f, f2)
-	if DeepEqual(f, f2) == false {
+	if EqualJSON(f, f2) == false {
 		t.Error("deep copy inherit", f, f2)
 	}
 }

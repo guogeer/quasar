@@ -229,7 +229,7 @@ func scanOne(val reflect.Value, s string) {
 	case reflect.String:
 		val.SetString(s)
 	case reflect.Slice:
-		ss := util.ParseStrings(s)
+		ss := ParseStrings(s)
 		newval := reflect.MakeSlice(val.Type(), len(ss), len(ss))
 		for i, s2 := range ss {
 			scanOne(newval.Index(i), s2)

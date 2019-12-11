@@ -31,7 +31,7 @@ func TestLoad(t *testing.T) {
 	st1.PS1, _ = String("test1", 1, "PS")
 	st1.P12, st1.P12ok = Int("test1", 2, "P1")
 	st1.Array3, _ = String("test1", 1, "Array3")
-	if !util.DeepEqual(st1, st2) {
+	if !util.EqualJSON(st1, st2) {
 		t.Error("Load error", st1, st2)
 	}
 }
@@ -86,7 +86,7 @@ func TestScan(t *testing.T) {
 	scanOne(reflect.ValueOf(&data1.F32), "32")
 	scanOne(reflect.ValueOf(&data1.F64), "64")
 	scanOne(reflect.ValueOf(&data1.FF), "1.1,2.2")
-	if !util.DeepEqual(data1, data2) {
+	if !util.EqualJSON(data1, data2) {
 		t.Error("scan error")
 	}
 }
@@ -105,7 +105,7 @@ func TestScanner(t *testing.T) {
 	var data2 json1
 	Scan("test1", 1, ".Private", JSON(&data2))
 	t.Log(data1, data2)
-	if !util.DeepEqual(data1, data2) {
+	if !util.EqualJSON(data1, data2) {
 		t.Error("scan scanner error")
 	}
 }

@@ -2,6 +2,7 @@ package config
 
 import (
 	"encoding/json"
+	"github.com/guogeer/quasar/util"
 	"testing"
 )
 
@@ -38,6 +39,38 @@ func TestParseArgs(t *testing.T) {
 		v := parseCommandLine(sample[1:], "test", "")
 		if v != sample[0] {
 			t.Errorf("parse %v result: %s", sample, v)
+		}
+	}
+}
+
+func TestParseStrings(t *testing.T) {
+	samples := []struct {
+		str string
+		res []string
+	}{
+		{"a,bb,cd,e", []string{"a", "bb", "cd", "e"}},
+		{"ab,cd;efg-hij/k\\l", []string{"ab", "cd", "efg", "hij", "k", "l"}},
+	}
+	for _, sample := range samples {
+		res := ParseStrings(sample.str)
+		if !util.EqualJSON(res, sample.res) {
+			t.Errorf("parse strings %v fail %v", sample, res)
+		}
+	}
+}
+
+func TestParseInts(t *testing.T) {
+	samples := []struct {
+		str string
+		res []int
+	}{
+		{"1,2,3,4", []int{1, 2, 3, 4}},
+		{"11,22;33334/55\\66", []int{11, 22, 33334, 55, 66}},
+	}
+	for _, sample := range samples {
+		res := ParseInts(sample.str)
+		if !util.EqualJSON(res, sample.res) {
+			t.Errorf("parse strings %v fail %v", sample, res)
 		}
 	}
 }
