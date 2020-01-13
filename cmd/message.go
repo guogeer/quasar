@@ -296,7 +296,7 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 	if err != nil {
 		return pkg, ErrInvalidSign
 	}
-	if pkg.Sign != sign {
+	if sign != "" && pkg.Sign != sign {
 		return pkg, ErrInvalidSign
 	}
 	return pkg, nil
