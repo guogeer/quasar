@@ -45,11 +45,12 @@ func (c *Client) start() {
 		}()
 
 		// 第一个包发送校验数据
-		firstPackage, err := defaultAuthParser.Encode(&Package{})
-		if err != nil {
-			return
+		pkg := &Package{
+			SignType:   "md5",
+			ExpireTime: time.Now().Add(5 * time.Second).Unix(),
 		}
-		if _, err := c.writeMsg(AuthMessage, firstPackage); err != nil {
+		firstMsg, _ := pkg.Encode()
+		if _, err := c.writeMsg(AuthMessage, firstMsg); err != nil {
 			return
 		}
 		for {
@@ -173,7 +174,9 @@ func (cm *clientManage) connect(serverName string) {
 
 func (cm *clientManage) Route3(serverName, messageId string, i interface{}) {
 	serverName, messageId = routeMessage(serverName, messageId)
-	msg, err := Encode(&Package{Id: messageId, Body: i, IsRaw: true})
+
+	pkg := Package{Id: messageId, Body: i, SignType: "none"}
+	msg, err := pkg.Encode()
 	if err != nil {
 		return
 	}

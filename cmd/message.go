@@ -181,17 +181,44 @@ func Enqueue(ctx *Context, h Handler, args interface{}) {
 }
 
 type Package struct {
-	Id       string          `json:",omitempty"`    // 消息ID
-	Data     json.RawMessage `json:",omitempty"`    // 数据,object类型
-	Sign     string          `json:",omitempty"`    // 签名
-	Ssid     string          `json:",omitempty"`    // 会话ID
-	Version  int             `json:"Ver,omitempty"` // 版本
-	SendTime int64           `json:",omitempty"`    // 发送的时间戳
-	ZData    string          `json:",omitempty"`    // zip压缩base64数据
+	Id         string          `json:",omitempty"`    // 消息ID
+	Data       json.RawMessage `json:",omitempty"`    // 数据,object类型
+	Sign       string          `json:",omitempty"`    // 签名
+	Ssid       string          `json:",omitempty"`    // 会话ID
+	Version    int             `json:"Ver,omitempty"` // 版本
+	ExpireTime int64           `json:",omitempty"`    // 发送的时间戳
 
-	Body  interface{} `json:"-"` // 传入的参数
-	IsRaw bool        `json:"-"`
-	IsZip bool        `json:"-"`
+	Body interface{} `json:"-"` // 传入的参数
+	// IsRaw    bool        `json:"-"`
+	IsZip    bool   `json:"-"`
+	SignType string `json:"-"` // md5,none
+}
+
+func getParser(typ string) *hashParser {
+	parser := defaultHashParser
+	switch typ {
+	case "none":
+		parser = defaultRawParser
+	case "md5":
+		parser = defaultAuthParser
+	}
+	return parser
+}
+
+func (pkg *Package) Encode() ([]byte, error) {
+	parser := getParser(pkg.SignType)
+	return parser.Encode(pkg)
+}
+
+func (pkg *Package) Decode(buf []byte) error {
+	parser := getParser(pkg.SignType)
+	if _, err := parser.Decode(buf); err != nil {
+		return err
+	}
+	if pkg.Body != nil {
+		return json.Unmarshal(buf, pkg.Body)
+	}
+	return nil
 }
 
 var defaultRawParser = &hashParser{}
@@ -201,7 +228,6 @@ var defaultHashParser = &hashParser{
 	tempSign: "12345678",
 }
 var defaultAuthParser = &hashParser{
-	secs:     5,
 	key:      "420e57b017066b44e05ea1577f6e2e12",
 	tempSign: "a9542bb104fe3f4d562e1d275e03f5ba",
 }
@@ -217,22 +243,19 @@ type hashParser struct {
 
 func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
 	pkg.Sign = parser.tempSign
-	if secs := parser.secs; secs > 0 {
-		pkg.SendTime = time.Now().Unix()
-	}
 	body, err := marshalJSON(pkg.Body)
 	if err != nil {
 		return nil, err
 	}
 	pkg.Data = body
 	if n := parser.compressPackage; pkg.IsZip && n > 0 && n < len(pkg.Data) {
-		var b bytes.Buffer
+		b := bytes.Buffer{}
 		w := zlib.NewWriter(&b)
 		w.Write(pkg.Data)
 		w.Close()
 
-		pkg.Data = nil
-		pkg.ZData = base64.StdEncoding.EncodeToString(b.Bytes())
+		zipData := base64.StdEncoding.EncodeToString(b.Bytes())
+		pkg.Data = json.RawMessage(`"` + zipData + `"`)
 	}
 
 	buf, err := json.Marshal(pkg)
@@ -250,17 +273,13 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 	if err := json.Unmarshal(buf, pkg); err != nil {
 		return nil, err
 	}
-	if secs := int64(parser.secs); secs > 0 {
-		ts := pkg.SendTime
-		ts0 := time.Now().Unix()
-		if ts > ts0 || ts+secs < ts0 {
-			return nil, errPackageExpire
-		}
+	if ts := pkg.ExpireTime; ts > 0 && ts < time.Now().Unix() {
+		return nil, errPackageExpire
 	}
 
 	sign, err := parser.Signature(buf)
-	if pkg.ZData != "" {
-		buf, err := base64.StdEncoding.DecodeString(pkg.ZData)
+	if n := len(pkg.Data); pkg.IsZip == true && n > 1 {
+		buf, err := base64.StdEncoding.DecodeString(string(pkg.Data[1 : n-1]))
 		if err != nil {
 			return nil, err
 		}
@@ -269,12 +288,11 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 			return nil, err
 		}
 
-		var raw bytes.Buffer
+		raw := bytes.Buffer{}
 		io.Copy(&raw, r)
 		r.Close()
 		pkg.Data = raw.Bytes()
 	}
-	pkg.ZData = ""
 	if err != nil {
 		return pkg, ErrInvalidSign
 	}
@@ -314,20 +332,13 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 	return sign, nil
 }
 
-func Encode(pkg *Package) ([]byte, error) {
-	parser := defaultHashParser
-	if pkg.IsRaw == true {
-		parser = defaultRawParser
-	}
-	return parser.Encode(pkg)
+func Encode(name string, i interface{}) ([]byte, error) {
+	pkg := &Package{Id: name, Body: i}
+	return pkg.Encode()
 }
 
 func Decode(buf []byte) (*Package, error) {
 	return defaultHashParser.Decode(buf)
-}
-
-func Encode2(name string, i interface{}) ([]byte, error) {
-	return Encode(&Package{Id: name, Body: i})
 }
 
 func marshalJSON(i interface{}) ([]byte, error) {

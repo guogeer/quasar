@@ -16,8 +16,8 @@ func (ss *Session) GetServerName() string {
 }
 
 func (ss *Session) Route(serverName, name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, IsRaw: true}
-	buf, err := Encode(pkg)
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, SignType: "none"}
+	buf, err := pkg.Encode()
 	if err != nil {
 		return
 	}
@@ -25,8 +25,8 @@ func (ss *Session) Route(serverName, name string, i interface{}) {
 }
 
 func (ss *Session) WriteJSON(name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, IsRaw: true}
-	buf, err := Encode(pkg)
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, SignType: "none"}
+	buf, err := pkg.Encode()
 	if err != nil {
 		return
 	}

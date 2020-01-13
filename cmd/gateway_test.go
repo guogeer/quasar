@@ -69,7 +69,7 @@ func TestRecvClientPackage(t *testing.T) {
 
 	for counter := 0; counter < 100*clientPackageSpeedPer2s; counter++ {
 		t1 := time.Now()
-		b, _ := Encode2("Echo", clientMsg)
+		b, _ := Encode("Echo", clientMsg)
 		ws.WriteMessage(websocket.TextMessage, b)
 		waitAndRunOnce(1, 120*time.Second)
 

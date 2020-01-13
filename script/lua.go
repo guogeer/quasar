@@ -84,7 +84,7 @@ func (res Result) Scan(args ...interface{}) error {
 		} else if lua.LVCanConvToString(ret) {
 			s := ret.String()
 			if sp, ok := arg.(*string); ok {
-				*sp = s
+				*sp, err = s, nil
 			} else {
 				// 遇到分隔符会停止
 				_, err = fmt.Sscanf(s, "%v", arg)
