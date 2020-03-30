@@ -12,6 +12,7 @@ import (
 	luahelper "layeh.com/gopher-luar"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 )
 
@@ -236,4 +237,43 @@ func LoadLocalScripts(dir string) error {
 
 func LoadLocalScriptByName(dir, name string) error {
 	return loadScripts(dir, name)
+}
+
+// map[interface{}]interface{} to json
+// map[1:1 2:2] to [1,2]
+type GenericMap map[interface{}]interface{}
+
+func (m GenericMap) MarshalJSON() ([]byte, error) {
+	if m == nil {
+		return []byte("null"), nil
+	}
+
+	dict := map[string]interface{}{}
+	for k, v := range m {
+		s := fmt.Sprintf("%v", k)
+		if child, ok := v.(map[interface{}]interface{}); ok {
+			buf, err := json.Marshal(GenericMap(child))
+			if err != nil {
+				return buf, err
+			}
+			v = json.RawMessage(buf)
+		}
+		dict[s] = v
+	}
+
+	isArray := true
+	for i := 1; isArray && i < len(m); i++ {
+		if _, ok := m[i]; !ok {
+			isArray = false
+		}
+	}
+	if isArray == false {
+		return json.Marshal(dict)
+	}
+
+	array := make([]interface{}, 0, 4)
+	for i := 1; i <= len(dict); i++ {
+		array = append(array, dict[strconv.Itoa(i)])
+	}
+	return json.Marshal(array)
 }

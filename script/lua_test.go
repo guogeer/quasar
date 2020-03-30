@@ -1,6 +1,7 @@
 package script
 
 import (
+	"encoding/json"
 	"github.com/guogeer/quasar/util"
 	"github.com/yuin/gopher-lua"
 	"testing"
@@ -91,5 +92,23 @@ func TestPreloadModule(t *testing.T) {
 	}
 	if !util.EqualJSON(data1, data2) {
 		t.Error("scan json", data1, data2)
+	}
+}
+
+func TestGenericMap(t *testing.T) {
+	genericMap := map[interface{}]interface{}{
+		"S1": 1,
+		"A1": map[interface{}]interface{}{
+			1: 1,
+			2: 2,
+		},
+	}
+	expectMap := map[string]interface{}{
+		"S1": 1,
+		"A1": []int{1, 2},
+	}
+	if !util.EqualJSON((GenericMap)(genericMap), expectMap) {
+		buf, _ := json.Marshal((GenericMap)(genericMap))
+		t.Error("encode generic map", genericMap, expectMap, string(buf))
 	}
 }
