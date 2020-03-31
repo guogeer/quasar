@@ -262,8 +262,8 @@ func (m GenericMap) MarshalJSON() ([]byte, error) {
 	}
 
 	isArray := true
-	for i := 1; isArray && i < len(m); i++ {
-		if _, ok := m[i]; !ok {
+	for i := 1; isArray && i < len(dict); i++ {
+		if _, ok := dict[strconv.Itoa(i)]; !ok {
 			isArray = false
 		}
 	}
