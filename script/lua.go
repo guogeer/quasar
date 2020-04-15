@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/guogeer/quasar/log"
-	"github.com/yuin/gopher-lua"
 	"io/ioutil"
-	luajson "layeh.com/gopher-json"
-	luahelper "layeh.com/gopher-luar"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
+
+	"github.com/guogeer/quasar/log"
+	lua "github.com/yuin/gopher-lua"
+	luajson "layeh.com/gopher-json"
+	luahelper "layeh.com/gopher-luar"
 )
 
 const fileSuffix = ".lua"
@@ -262,7 +263,7 @@ func (m GenericMap) MarshalJSON() ([]byte, error) {
 	}
 
 	isArray := true
-	for i := 1; isArray && i < len(m); i++ {
+	for i := 1; isArray && i <= len(m); i++ {
 		if _, ok := m[i]; !ok {
 			isArray = false
 		}
