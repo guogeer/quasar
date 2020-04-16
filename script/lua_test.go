@@ -2,9 +2,10 @@ package script
 
 import (
 	"encoding/json"
-	"github.com/guogeer/quasar/util"
-	"github.com/yuin/gopher-lua"
 	"testing"
+
+	"github.com/guogeer/quasar/util"
+	lua "github.com/yuin/gopher-lua"
 )
 
 func loadTestScripts() {
@@ -99,13 +100,13 @@ func TestGenericMap(t *testing.T) {
 	genericMap := map[interface{}]interface{}{
 		"S1": 1,
 		"A1": map[interface{}]interface{}{
-			1: 1,
-			2: 2,
+			"1": "abc",
+			"2": "cde",
 		},
 	}
 	expectMap := map[string]interface{}{
 		"S1": 1,
-		"A1": []int{1, 2},
+		"A1": []string{"abc", "cde"},
 	}
 	if !util.EqualJSON((GenericMap)(genericMap), expectMap) {
 		buf, _ := json.Marshal((GenericMap)(genericMap))

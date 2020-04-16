@@ -264,7 +264,8 @@ func (m GenericMap) MarshalJSON() ([]byte, error) {
 
 	isArray := true
 	for i := 1; isArray && i <= len(m); i++ {
-		if _, ok := m[i]; !ok {
+		s := fmt.Sprintf("%v", i)
+		if _, ok := dict[s]; !ok {
 			isArray = false
 		}
 	}
