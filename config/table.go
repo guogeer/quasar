@@ -153,8 +153,8 @@ func (f *tableFile) String(row, col interface{}) (string, bool) {
 
 	rowN := -1
 	rowKey := fmt.Sprintf("%v", row)
-	if n := strings.Index(rowKey, tableRowKeyPrefix); n >= 0 {
-		rowN, _ = strconv.Atoi(rowKey[n+1:])
+	if n := strings.Index(rowKey, tableRowKeyPrefix); n == 0 {
+		rowN, _ = strconv.Atoi(rowKey[len(tableRowKeyPrefix):])
 	}
 	if n, ok := f.rowName[rowKey]; ok {
 		rowN = n

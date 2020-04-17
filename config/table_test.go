@@ -1,9 +1,10 @@
 package config
 
 import (
-	"github.com/guogeer/quasar/util"
 	"reflect"
 	"testing"
+
+	"github.com/guogeer/quasar/util"
 )
 
 func TestLoad(t *testing.T) {
@@ -107,5 +108,21 @@ func TestScanner(t *testing.T) {
 	t.Log(data1, data2)
 	if !util.EqualJSON(data1, data2) {
 		t.Error("scan scanner error")
+	}
+}
+
+func TestLoadValueByTableRow(t *testing.T) {
+	LoadLocalTables(".")
+	s1, _ := String("test1", 1, "PS")
+	s2, _ := String("test1", RowId(0), "PS")
+	s3, _ := String("test1", RowId(1), "A")
+	if s1 != "S" {
+		t.Error("read test1 1:PS error", s1)
+	}
+	if s2 != "S" {
+		t.Error("read test1 row0:PS error", s2)
+	}
+	if s3 != "10" {
+		t.Error("read test1 row1:PS error", s3)
 	}
 }
