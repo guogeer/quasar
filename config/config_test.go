@@ -2,8 +2,9 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/guogeer/quasar/util"
 	"testing"
+
+	"github.com/guogeer/quasar/util"
 )
 
 func testEqual(a, b interface{}) bool {
@@ -72,5 +73,17 @@ func TestParseInts(t *testing.T) {
 		if !util.EqualJSON(res, sample.res) {
 			t.Errorf("parse strings %v fail %v", sample, res)
 		}
+	}
+}
+
+func TestLoadString(t *testing.T) {
+	LoadLocalTables(".")
+	s1, _ := String("test1", 1, "PS")
+	s2, _ := String("test1", RowId(0), "PS")
+	if s1 != "S" {
+		t.Error("read test1 1:PS error", s1)
+	}
+	if s2 != "S" {
+		t.Error("read test1 row0:PS error", s2)
 	}
 }
