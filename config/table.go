@@ -425,7 +425,7 @@ func RowId(n int) *tableRow {
 	if n >= 0 && n < len(gTableRowKeys) {
 		return gTableRowKeys[n]
 	}
-	return &tableRow{n: n}
+	return newTableRow(n)
 }
 
 // TODO 当前仅支持,分隔符
