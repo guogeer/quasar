@@ -1,7 +1,6 @@
 package util
 
 import (
-	// "fmt"
 	"reflect"
 )
 
@@ -9,6 +8,7 @@ import (
 // 结构体、切片之间递归深拷贝
 // 整数、浮点数、字符串、布尔类型直接拷贝，其他类型忽略
 // 增加tag alias
+// 2020-04-29 结构体匿名字段可拷贝
 func DeepCopy(dst, src interface{}) {
 	if dst != nil && src != nil {
 		sval := reflect.ValueOf(src)
@@ -47,7 +47,8 @@ func doCopy(dval, sval reflect.Value) {
 		for i := 0; i < sval.NumField(); i++ {
 			sfield := sval.Field(i)
 			sname := sval.Type().Field(i).Name
-			if tag := sval.Type().Field(i).Tag.Get("alias"); tag != "" {
+			stype := sval.Type().Field(i)
+			if tag := stype.Tag.Get("alias"); tag != "" {
 				sname = tag
 			}
 			dfield := dval.FieldByName(sname)
@@ -57,11 +58,13 @@ func doCopy(dval, sval reflect.Value) {
 					dfield = field
 				}
 			}
-			// fmt.Println("==", sname, dfield.Kind(), dfield.CanSet())
-			// sfield = reflect.Indirect(sfield)
-			// dfield = reflect.Indirect(dfield)
-			// fmt.Println("====", sname, dfield.Kind())
+			// fmt.Println("##", dfield.Kind(), dfield.CanSet(), dval.Kind())
+			// fmt.Println("==", sname, sfield.Kind(), sfield.CanSet(), stype)
 			doCopy(dfield, sfield)
+			// exported anonymous struct field
+			if stype.PkgPath == "" && stype.Anonymous {
+				doCopy(dval, sfield)
+			}
 		}
 	case reflect.Slice:
 		if size := sval.Len(); size > 0 {
