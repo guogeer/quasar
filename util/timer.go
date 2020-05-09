@@ -72,7 +72,8 @@ func (tm *timerSet) RunOnce() {
 	now := time.Now()
 	for i := 0; tm.h.Len() > 0; i++ {
 		top := tm.h[0]
-		if now.Before(top.t) {
+		// 处理当前的定时器任务时，新创建的任务放到下一个周期再处理
+		if top.t.After(now) == false {
 			break
 		}
 		if n := 4096; i > n {
