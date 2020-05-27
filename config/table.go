@@ -393,8 +393,11 @@ func Float(name string, row, col interface{}, def ...float64) (float64, bool) {
 	return res, n == 1
 }
 
-func Time(name string, row, col interface{}) (time.Time, bool) {
+func Time(name string, row, col interface{}, def ...time.Time) (time.Time, bool) {
 	var res time.Time
+	for _, v := range def {
+		res = v
+	}
 	n, _ := getTableGroup(name).Scan(row, col, &res)
 	return res, n == 1
 }
