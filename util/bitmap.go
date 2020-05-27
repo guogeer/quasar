@@ -48,7 +48,12 @@ func (bm Bitmap) Rand() int {
 	return -1
 }
 
-func (bm *Bitmap) ZeroNum() int {
+func (bm *Bitmap) IsZero(n int) bool {
+	x, y := n/8, uint(n%8)
+	return bm.Bits[x]&(1<<y) == 0
+}
+
+func (bm *Bitmap) NumZero() int {
 	num := 0
 	for k := 0; k < bm.Num; k++ {
 		x, y := k/8, uint(k%8)
