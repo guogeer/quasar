@@ -147,8 +147,7 @@ func (rt *Runtime) LoadString(root, path, body string) error {
 	oldScript, ok := rt.files[path]
 	rt.mtx.RUnlock()
 	if err := script.L.DoString(body); err != nil {
-		log.Info("load script", err)
-		return err
+		return fmt.Errorf("load scripts %s/%s error: %w ", root, path, err)
 	}
 
 	rt.mtx.Lock()
