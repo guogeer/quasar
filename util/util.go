@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"encoding/json"
+
 	// "fmt"
 	"reflect"
 	// "strconv"
@@ -12,6 +13,9 @@ import (
 
 func skipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
 	end := start
+	if start.IsZero() == true {
+		panic("start time is zero")
+	}
 	if diff := now.Sub(start); diff > 0 && d > 0 {
 		end = start.Add(time.Duration((diff + d - 1) / d * d))
 	}
