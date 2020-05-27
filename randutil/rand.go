@@ -2,9 +2,12 @@ package randutil
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"reflect"
 	"strconv"
+
+	"github.com/guogeer/quasar/util"
 )
 
 const sampleSize = 100 * 10000 // 100W
@@ -107,4 +110,34 @@ func Index(a interface{}) int {
 		return v
 	}
 	return -1
+}
+
+// TODO 伪随机
+func PseudoRand(percent float64, max int) *util.Bitmap {
+	var x, y int
+	var minMistake = 100.0
+	for i := 2; i <= max; i++ {
+		for j := 1; j <= i; j++ {
+			mistake := math.Abs(percent - float64(j)/float64(i)*100)
+			if minMistake > mistake {
+				x, y = j, i
+				minMistake = mistake
+			}
+		}
+	}
+	if y == 0 {
+		y = 10
+	}
+
+	var samples []int
+	for i := 0; i < x; i++ {
+		samples = append(samples, i)
+	}
+	ShuffleN(samples, x)
+
+	bm := util.NewBitmap(y)
+	for i := 0; i < x; i++ {
+		bm.Set(samples[i], 1)
+	}
+	return bm
 }
