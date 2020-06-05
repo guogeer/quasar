@@ -113,3 +113,25 @@ func TestGenericMap(t *testing.T) {
 		t.Error("encode generic map", genericMap, expectMap, string(buf))
 	}
 }
+
+type InheritA struct {
+	A1 int
+}
+
+type InheritB struct {
+	InheritA
+	B1 int
+}
+
+type InheritC struct {
+	InheritB
+	C1 int
+}
+
+func TestInherit(t *testing.T) {
+	c := &InheritC{}
+	Call("test1.lua", "set_inherit", c)
+	if c.A1 != 10 {
+		t.Error("set fail", c.A1)
+	}
+}
