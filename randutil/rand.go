@@ -130,7 +130,7 @@ func PseudoRand(percent float64, max int) *util.Bitmap {
 	}
 
 	var samples []int
-	for i := 0; i < x; i++ {
+	for i := 0; i < y; i++ {
 		samples = append(samples, i)
 	}
 	ShuffleN(samples, x)
