@@ -5,15 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/guogeer/quasar/log"
-	"github.com/yuin/gopher-lua"
 	"io/ioutil"
-	luajson "layeh.com/gopher-json"
-	luahelper "layeh.com/gopher-luar"
 	"os"
 	"path/filepath"
 	"strconv"
 	"sync"
+
+	"github.com/guogeer/quasar/log"
+	lua "github.com/yuin/gopher-lua"
+	luajson "layeh.com/gopher-json"
+	luahelper "layeh.com/gopher-luar"
 )
 
 const fileSuffix = ".lua"
@@ -146,8 +147,7 @@ func (rt *Runtime) LoadString(root, path, body string) error {
 	oldScript, ok := rt.files[path]
 	rt.mtx.RUnlock()
 	if err := script.L.DoString(body); err != nil {
-		log.Info("load script", err)
-		return err
+		return fmt.Errorf("load scripts %s/%s error: %w ", root, path, err)
 	}
 
 	rt.mtx.Lock()
@@ -262,8 +262,9 @@ func (m GenericMap) MarshalJSON() ([]byte, error) {
 	}
 
 	isArray := true
-	for i := 1; isArray && i < len(dict); i++ {
-		if _, ok := dict[strconv.Itoa(i)]; !ok {
+	for i := 1; isArray && i <= len(m); i++ {
+		s := fmt.Sprintf("%v", i)
+		if _, ok := dict[s]; !ok {
 			isArray = false
 		}
 	}

@@ -7,6 +7,8 @@ import (
 	"container/heap"
 	// "github.com/guogeer/quasar/log"
 	"time"
+
+	"github.com/guogeer/quasar/log"
 )
 
 type timerHeap []*Timer
@@ -68,10 +70,14 @@ func NewTimerSet() *timerSet {
 
 func (tm *timerSet) RunOnce() {
 	now := time.Now()
-	for i := 0; i < 64 && tm.h.Len() > 0; i++ {
+	for i := 0; tm.h.Len() > 0; i++ {
 		top := tm.h[0]
+		// 处理当前的定时器任务时，新创建的任务放到下一个周期再处理
 		if now.Before(top.t) {
 			break
+		}
+		if n := 4096; i > n {
+			log.Warnf("timer is busy, cost %d left %d", i, tm.h.Len())
 		}
 		// 分组已失效
 		if top.group != nil && top.group.isClose {
@@ -82,10 +88,7 @@ func (tm *timerSet) RunOnce() {
 		f := top.f
 		if period := top.period; period > 0 {
 			top.repeat++
-			// 纠正误差
-			if top.repeat%1000 == 0 {
-				period = SkipPeriodTime(top.startTime, top.period).Sub(now)
-			}
+			period = SkipPeriodTime(top.startTime, top.period).Sub(now)
 			tm.ResetTimer(top, period)
 		} else {
 			tm.StopTimer(top)

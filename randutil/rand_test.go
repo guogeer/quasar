@@ -1,6 +1,7 @@
 package randutil
 
 import (
+	"math"
 	"math/rand"
 	"testing"
 	"time"
@@ -72,5 +73,16 @@ func TestIndexN(t *testing.T) {
 	for _, data := range datalist {
 		res := IndexN(data, -1)
 		t.Logf("IndexN: %v %v", data, res)
+	}
+}
+
+func TestPseudoRand(t *testing.T) {
+	for i := 0; i <= 100; i++ {
+		bm := PseudoRand(float64(i), 33)
+		zeroNum := bm.ZeroNum()
+		per := float64(bm.Num-zeroNum) / float64(bm.Num) * 100
+		if math.Abs(per-float64(i)) > 100.0/33 {
+			t.Error("rand", i, per)
+		}
 	}
 }

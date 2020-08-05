@@ -1,8 +1,6 @@
 package util
 
 import (
-	"bytes"
-	"encoding/json"
 	"testing"
 )
 
@@ -40,26 +38,11 @@ type A struct {
 	M3  map[string]string
 	M4  map[string]string
 	AA1 AA
+	AA2 *AA
 	AA3 *AA
 	aa1 AA
 	AA4 []AA
 	AA5 []*AA
-	AA6 []int
-}
-
-type B struct {
-	N1  int64
-	N3  int64
-	S1  string
-	F1  float32
-	F2  float64
-	M4  map[string]string
-	AA1 *AB
-	AA2 AB
-	AA3 AA
-	aa1 *AA
-	AA4 []AA
-	AA5 []AA
 	AA6 []int
 }
 
@@ -75,19 +58,13 @@ func TestSructCopy(t *testing.T) {
 		AA5: []*AA{&aa3, &aa4},
 		AA6: []int{1, 2, 3},
 	}
-	b1 := &B{}
-	b2 := &B{}
-	DeepCopy(b1, a)
-	s1, _ := json.Marshal(b1)
-	s2, _ := json.Marshal(a)
-	json.Unmarshal(s2, b2)
-	s2, _ = json.Marshal(b2)
-	// t.Log(string(s1))
-	// t.Log(string(s2))
 	DeepCopy(nil, a)
 	DeepCopy(nil, nil)
-	if bytes.Compare(s1, s2) != 0 {
-		t.Error("deep copy error", string(s1), string(s2))
+
+	a2 := &A{}
+	DeepCopy(a2, a)
+	if !EqualJSON(a2, a) {
+		t.Error("deep copy error", a2, a)
 	}
 }
 
@@ -114,9 +91,19 @@ type Father2 struct {
 }
 
 func TestInheritSructCopy(t *testing.T) {
-	f := &Father{}
-	f2 := &Father2{N2: 22, S2: "sb2", N: 11, S: "sb", UId: 100, Id2: 200}
+	f := &Father{S2: "sb2"}
+	f2 := &Father2{N2: 22, S2: "", N: 11, S: "sb", UId: 100, Id2: 200}
 	DeepCopy(f, f2)
+	if EqualJSON(f, f2) == false {
+		t.Error("deep copy inherit", f, f2)
+	}
+
+	f2 = &Father2{}
+	f = &Father{
+		N2: 22, S2: "sb2", Id: 100, UId2: 200,
+		Child: Child{N: 100, S: "sb"},
+	}
+	DeepCopy(f2, f)
 	if EqualJSON(f, f2) == false {
 		t.Error("deep copy inherit", f, f2)
 	}

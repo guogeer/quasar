@@ -2,8 +2,9 @@ package config
 
 import (
 	"encoding/json"
-	"github.com/guogeer/quasar/util"
 	"testing"
+
+	"github.com/guogeer/quasar/util"
 )
 
 func testEqual(a, b interface{}) bool {

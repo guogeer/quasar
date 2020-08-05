@@ -14,8 +14,6 @@ import (
 	"archive/zip"
 	"encoding/json"
 	"fmt"
-	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/util"
 	"io"
 	"io/ioutil"
 	"os"
@@ -26,11 +24,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/util"
 )
 
 const (
-	tableFileSuffix = ".tbl"
-	attrTable       = "system_table_field"
+	tableFileSuffix   = ".tbl"
+	attrTable         = "system_table_field"
+	tableRowKeyPrefix = "_default_table_line_"
 )
 
 var (
@@ -41,7 +43,7 @@ var (
 
 func init() {
 	for i := range gTableRowKeys {
-		gTableRowKeys[i] = &tableRow{n: i}
+		gTableRowKeys[i] = newTableRow(i)
 	}
 }
 
@@ -55,7 +57,16 @@ type tableFile struct {
 }
 
 type tableRow struct {
-	n int
+	n   int
+	key string
+}
+
+func newTableRow(i int) *tableRow {
+	return &tableRow{n: i, key: tableRowKeyPrefix + strconv.Itoa(i)}
+}
+
+func (r *tableRow) String() string {
+	return r.key
 }
 
 func newTableFile(name string) *tableFile {
@@ -141,14 +152,14 @@ func (f *tableFile) String(row, col interface{}) (string, bool) {
 	colKey = strings.ToLower(colKey)
 
 	rowN := -1
-	if r, ok := row.(*tableRow); ok {
-		rowN = r.n
-	} else {
-		rowKey := fmt.Sprintf("%v", row)
-		if n, ok := f.rowName[rowKey]; ok {
-			rowN = n
-		}
+	rowKey := fmt.Sprintf("%v", row)
+	if n := strings.Index(rowKey, tableRowKeyPrefix); n == 0 {
+		rowN, _ = strconv.Atoi(rowKey[len(tableRowKeyPrefix):])
 	}
+	if n, ok := f.rowName[rowKey]; ok {
+		rowN = n
+	}
+
 	if rowN >= 0 && rowN < len(f.cells) {
 		s, ok := f.cells[rowN][colKey]
 		return s, ok
@@ -163,7 +174,7 @@ func (f *tableFile) Rows() []*tableRow {
 
 	rows := make([]*tableRow, 0, 32)
 	for k := range f.cells {
-		rows = append(rows, &tableRow{n: k})
+		rows = append(rows, newTableRow(k))
 	}
 	return rows
 }
@@ -382,8 +393,11 @@ func Float(name string, row, col interface{}, def ...float64) (float64, bool) {
 	return res, n == 1
 }
 
-func Time(name string, row, col interface{}) (time.Time, bool) {
+func Time(name string, row, col interface{}, def ...time.Time) (time.Time, bool) {
 	var res time.Time
+	for _, v := range def {
+		res = v
+	}
 	n, _ := getTableGroup(name).Scan(row, col, &res)
 	return res, n == 1
 }
@@ -414,7 +428,7 @@ func RowId(n int) *tableRow {
 	if n >= 0 && n < len(gTableRowKeys) {
 		return gTableRowKeys[n]
 	}
-	return &tableRow{n: n}
+	return newTableRow(n)
 }
 
 // TODO 当前仅支持,分隔符

@@ -28,3 +28,7 @@ function test_json()
 	local t = {["A"]=1,["B"]=2,["S"]="hello world"}
 	return t
 end
+
+function set_inherit(c)
+	c.A1 = 10
+end
