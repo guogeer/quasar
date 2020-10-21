@@ -145,7 +145,7 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 
 		pkg, err := Decode(message)
 		if err != nil {
-			log.Error(err)
+			log.Warn(err)
 			return
 		}
 
@@ -166,9 +166,9 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 		}
 		// log.Info("read", c.ssid)
 		ctx := &Context{Out: c, Ssid: c.ssid, isGateway: true}
-		defaultCmdSet.Handle(ctx, id, data)
+		err = defaultCmdSet.Handle(ctx, id, data)
 		if err != nil {
-			log.Errorf("handle client %s %v", remoteAddr, err)
+			log.Warnf("handle client %s %v", remoteAddr, err)
 		}
 	}
 }

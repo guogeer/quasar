@@ -196,6 +196,7 @@ func (s *CmdSet) Handle(ctx *Context, messageID string, data []byte) error {
 	if len(serverName) > 0 {
 		// 网关仅允许转发已注册的逻辑服务器
 		if ctx.isGateway == true && isService == false {
+			ctx.Out.WriteJSON("ServerClose", map[string]interface{}{"ServerName": serverName[0]})
 			return errors.New("gateway try to route invalid service")
 		}
 
