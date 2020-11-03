@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/guogeer/quasar/cmd"
+	_ "github.com/guogeer/quasar/gateway/internal"
 	"github.com/guogeer/quasar/log"
 	"github.com/guogeer/quasar/util"
 	"net/http"
@@ -15,6 +16,7 @@ var proxy = flag.String("proxy", "", "gateway server proxy addr")
 
 func main() {
 	flag.Parse()
+
 	log.Infof("start gateway, listen %d", *port)
 	addr := fmt.Sprintf("%s:%d", *proxy, *port)
 	cfg := &cmd.ServiceConfig{

@@ -5,6 +5,7 @@ import (
 	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/config"
 	"github.com/guogeer/quasar/log"
+	_ "github.com/guogeer/quasar/router/internal"
 	"github.com/guogeer/quasar/util"
 	"net"
 	"runtime"
