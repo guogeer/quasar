@@ -119,7 +119,7 @@ func (c *ServeConn) serve() {
 		mt, buf, err := c.TCPConn.ReadMessage()
 		if err != nil {
 			if err != io.EOF {
-				log.Error(err)
+				log.Debug(err)
 			}
 			return
 		}

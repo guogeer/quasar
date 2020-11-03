@@ -160,7 +160,7 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 				recvPackageCounter = -1
 			}
 			if recvPackageCounter >= clientPackageSpeedPer2s {
-				log.Errorf("client %s send too busy", remoteAddr)
+				log.Errorf("client %s send %s too busy", remoteAddr, id)
 				time.Sleep(2 * time.Second)
 			}
 		}
