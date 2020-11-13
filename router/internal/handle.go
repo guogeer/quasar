@@ -141,8 +141,9 @@ func C2S_Route(ctx *cmd.Context, data interface{}) {
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	// args := data.(*Args)
 	// 断线后移除配置信息。部分服务采用了系统随机端口，容易产生端口被占用的情况
-	server := gRouter.Remove(ctx.Out)
+	// TODO 有些服务需要长久占用端口
+	/* server := gRouter.Remove(ctx.Out)
 	if server != nil {
 		log.Infof("server %s lose connection", server.name)
-	}
+	} */
 }
