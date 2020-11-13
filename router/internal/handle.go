@@ -140,7 +140,7 @@ func C2S_Route(ctx *cmd.Context, data interface{}) {
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	// args := data.(*Args)
-	// gRouter.Remove(ctx.Out)
-	// TODO
-	// log.Info("server lose connection")
+	// 断线后移除配置信息。部分服务采用了系统随机端口，容易产生端口被占用的情况
+	server := gRouter.Remove(ctx.Out)
+	log.Infof("server %s lose connection", server.name)
 }

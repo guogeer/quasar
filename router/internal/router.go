@@ -55,19 +55,20 @@ func (r *Router) GetServer(name string) *Server {
 	return nil
 }
 
-func (r *Router) Remove(out cmd.Conn) {
+func (r *Router) Remove(out cmd.Conn) *Server {
 	for addr, server := range r.gateways {
 		if server.out == out {
 			delete(r.gateways, addr)
-			break
+			return server
 		}
 	}
 	for name, server := range r.servers {
 		if server.out == out {
 			delete(r.servers, name)
-			break
+			return server
 		}
 	}
+	return nil
 }
 
 func (r *Router) AddServer(server *Server) {
