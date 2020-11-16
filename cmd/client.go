@@ -146,7 +146,12 @@ func (cm *clientManage) connect(serverName string) {
 
 	go func() {
 		addr := defaultRouterAddr
-		for try, ms := range []int{100, 400, 1600, 3200, 5000} {
+		intervals := []int{100, 400, 1600, 3200, 5000}
+		for retry := 0; true; retry++ {
+			ms := intervals[len(intervals)-1]
+			if retry < len(intervals) {
+				ms = intervals[retry]
+			}
 			if serverName != "router" {
 				addr2, err := RequestServerAddr(serverName)
 				if err != nil {
@@ -154,21 +159,20 @@ func (cm *clientManage) connect(serverName string) {
 				}
 				addr = addr2
 			}
-			if addr == "" {
-				continue
-			}
-			rwc, err := net.Dial("tcp", addr)
-			if err == nil {
-				client.rwc = rwc
-				client.start()
-				return
+			if addr != "" {
+				rwc, err := net.Dial("tcp", addr)
+				if err == nil {
+					client.rwc = rwc
+					break
+				}
 			}
 
 			// 间隔时间
-			log.Infof("connect %v, retry %d after %dms", err, try, ms)
+			log.Infof("connect server %s addr %s, retry %d after %dms", serverName, addr, retry, ms)
 			time.Sleep(time.Duration(ms) * time.Millisecond)
 		}
-		defaultCmdSet.Handle(&Context{Out: client}, "CMD_AutoConnect", nil)
+		client.start()
+		// defaultCmdSet.Handle(&Context{Out: client}, "CMD_AutoConnect", nil)
 	}()
 }
 
