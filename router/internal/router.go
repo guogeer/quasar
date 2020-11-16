@@ -6,10 +6,16 @@ import (
 	"encoding/json"
 )
 
+const (
+	serverGateway = "gateway" // 网关服
+	serverCenter  = "center"  // 世界服
+)
+
 type Server struct {
 	out             cmd.Conn
 	weight          int
 	name, addr, typ string
+	IsRandPort      bool
 
 	data json.RawMessage
 }
@@ -71,10 +77,25 @@ func (r *Router) Remove(out cmd.Conn) *Server {
 	return nil
 }
 
+// 通过连接cmd.Conn查找服务
+func (r *Router) getServerByConn(out cmd.Conn) *Server {
+	for _, server := range r.gateways {
+		if server.out == out {
+			return server
+		}
+	}
+	for _, server := range r.servers {
+		if server.out == out {
+			return server
+		}
+	}
+	return nil
+}
+
 func (r *Router) AddServer(server *Server) {
 	name := server.name
 	addr := server.addr
-	if server.typ == "gateway" {
+	if server.typ == serverGateway {
 		r.gateways[addr] = server
 	} else {
 		r.servers[name] = server

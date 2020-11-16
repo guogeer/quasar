@@ -87,6 +87,7 @@ type ServiceConfig struct {
 	ServerAddr string      `json:",omitempty"`
 	ServerData interface{} `json:",omitempty"`
 	ServerType string      `json:",omitempty"` // center,gateway etc
+	IsRandPort bool        `json:",omitempty"`
 }
 
 type cmdArgs ServiceConfig
