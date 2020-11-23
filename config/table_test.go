@@ -138,8 +138,12 @@ func TestFilterRows(t *testing.T) {
 		nil,
 		nil,
 	}
-	for i, rows := range [][]int{rows1, rows2, rows3} {
-		if !util.EqualJSON(res[i], rows) {
+	for i, rows := range [][]*tableRow{rows1, rows2, rows3} {
+		var rowNums []int
+		for _, rowId := range rows {
+			rowNums = append(rowNums, rowId.n)
+		}
+		if !util.EqualJSON(res[i], rowNums) {
 			t.Errorf("filter rowN: %d rows:%v != res:%v", i, rows, res[i])
 		}
 	}

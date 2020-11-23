@@ -482,13 +482,13 @@ func LoadTable(name string, buf []byte) error {
 // 过滤表格行
 // cols：多个列名。例如col1,col2,col3
 // cells：过滤的值，对应列
-func FilterRows(name string, cols string, vals ...interface{}) []int {
+func FilterRows(name string, cols string, vals ...interface{}) []*tableRow {
 	colKeys := strings.Split(cols, ",")
 	if len(colKeys) != len(vals) {
 		panic("filter rows args not match")
 	}
 
-	var rows []int
+	var rows []*tableRow
 	var sVals []string
 	for _, v := range vals {
 		sVals = append(sVals, fmt.Sprintf("%v", v))
@@ -504,7 +504,7 @@ func FilterRows(name string, cols string, vals ...interface{}) []int {
 			}
 		}
 		if isMatch == true {
-			rows = append(rows, rowId.n)
+			rows = append(rows, rowId)
 		}
 	}
 	return rows
