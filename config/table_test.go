@@ -126,3 +126,21 @@ func TestLoadValueByTableRow(t *testing.T) {
 		t.Error("read test1 row1:PS error", s3)
 	}
 }
+
+func TestFilterRows(t *testing.T) {
+	LoadLocalTables(".")
+	rows1 := FilterRows("test2", "C1,C4", 11, "S1")
+	rows2 := FilterRows("test2", "C1,C4", 12, "S1")
+	rows3 := FilterRows("test2", "C1,C4", 20, "S4")
+
+	res := [][]int{
+		{0, 7},
+		nil,
+		nil,
+	}
+	for i, rows := range [][]int{rows1, rows2, rows3} {
+		if !util.EqualJSON(res[i], rows) {
+			t.Errorf("filter rowN: %d rows:%v != res:%v", i, rows, res[i])
+		}
+	}
+}

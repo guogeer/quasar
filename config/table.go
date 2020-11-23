@@ -4,11 +4,12 @@ package config
 // 表格第一行为字段解释
 // 表格第二行为字段KEY
 // 表格第一列默认索引
-// Version 2.0.0 支持隐藏属性，属性格式：".Key"，其中".Private"私有属性
-// Version 2.1.0 列索引忽略大小写
-// Version 2.2.0 表格名索引忽略大小写
+// Version 1.0.0 支持隐藏属性，属性格式：".Key"，其中".Private"私有属性
+// Version 1.1.0 列索引忽略大小写
+// Version 1.2.0 表格名索引忽略大小写
 // 2019-12-03 增加类型: INT、JSON、FLOAT、STRING，后续计划增强JSON支持
 // 例如：列1[INT]	列2[JSON]	列3[FLOAT]
+// Version 2.0.0 计划支持SQL语句
 
 import (
 	"archive/zip"
@@ -192,6 +193,15 @@ func getTableGroup(name string) *tableGroup {
 	}
 	name = strings.ToLower(name)
 	return &tableGroup{members: []string{name}}
+}
+
+func (g *tableGroup) Rows() []*tableRow {
+	for _, name := range g.members {
+		if f := getTableFile(name); f != nil {
+			return f.Rows()
+		}
+	}
+	return nil
 }
 
 func (g *tableGroup) String(row, col interface{}) (string, bool) {
@@ -456,7 +466,8 @@ func LoadTable(name string, buf []byte) error {
 				if ok && gname != "" {
 					gname = strings.ToLower(gname)
 					if _, ok := t.groups[gname]; !ok {
-						t.groups[gname] = getTableGroup(gname)
+						// 2020-11-23 重新设定分组
+						t.groups[gname] = &tableGroup{}
 					}
 					g := t.groups[gname]
 					g.members = append(g.members, path[0])
@@ -466,4 +477,35 @@ func LoadTable(name string, buf []byte) error {
 	}
 	gTableFiles.Store(name, t)
 	return nil
+}
+
+// 过滤表格行
+// cols：多个列名。例如col1,col2,col3
+// cells：过滤的值，对应列
+func FilterRows(name string, cols string, vals ...interface{}) []int {
+	colKeys := strings.Split(cols, ",")
+	if len(colKeys) != len(vals) {
+		panic("filter rows args not match")
+	}
+
+	var rows []int
+	var sVals []string
+	for _, v := range vals {
+		sVals = append(sVals, fmt.Sprintf("%v", v))
+	}
+	tg := getTableGroup(name)
+	for _, rowId := range tg.Rows() {
+		isMatch := true
+		for i := range colKeys {
+			cell, _ := tg.String(rowId, colKeys[i])
+			if cell != sVals[i] {
+				isMatch = false
+				break
+			}
+		}
+		if isMatch == true {
+			rows = append(rows, rowId.n)
+		}
+	}
+	return rows
 }
