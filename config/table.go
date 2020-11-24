@@ -260,7 +260,7 @@ func scanOne(val reflect.Value, s string) {
 }
 
 // 跳过表格不存在的元素
-func (g *tableGroup) Scan(rows, cols interface{}, args ...interface{}) (int, error) {
+func (g *tableGroup) Scan(row, cols interface{}, args ...interface{}) (int, error) {
 	s := fmt.Sprintf("%v", cols)
 	colKeys := strings.Split(s, ",")
 	if len(colKeys) != len(args) {
@@ -270,7 +270,7 @@ func (g *tableGroup) Scan(rows, cols interface{}, args ...interface{}) (int, err
 	counter := 0
 	for i, arg := range args {
 		colKey := strings.ToLower(colKeys[i])
-		if s, exist := g.String(rows, colKey); exist {
+		if s, exist := g.String(row, colKey); exist {
 			counter++
 			switch arg.(type) {
 			case *time.Duration:
@@ -467,7 +467,7 @@ func LoadTable(name string, buf []byte) error {
 					gname = strings.ToLower(gname)
 					if _, ok := t.groups[gname]; !ok {
 						// 2020-11-23 重新设定分组
-						t.groups[gname] = &tableGroup{}
+						t.groups[gname] = &tableGroup{members: []string{gname}}
 					}
 					g := t.groups[gname]
 					g.members = append(g.members, path[0])
