@@ -196,12 +196,15 @@ func getTableGroup(name string) *tableGroup {
 }
 
 func (g *tableGroup) Rows() []*tableRow {
+	var rows []*tableRow
 	for _, name := range g.members {
 		if f := getTableFile(name); f != nil {
-			return f.Rows()
+			if fileRows := f.Rows(); len(rows) < len(fileRows) {
+				rows = fileRows
+			}
 		}
 	}
-	return nil
+	return rows
 }
 
 func (g *tableGroup) String(row, col interface{}) (string, bool) {
