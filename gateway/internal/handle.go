@@ -75,6 +75,10 @@ func FUNC_Broadcast(ctx *cmd.Context, data interface{}) {
 func FUNC_ServerClose(ctx *cmd.Context, data interface{}) {
 	for _, ss := range cmd.GetSessionList() {
 		client := ctx.Out.(*cmd.Client)
+		// 2020-11-24 仅通知在当前服务的连接
+		if client.ServerName() != gSessionLocation[ss.Id] {
+			continue
+		}
 		ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": client.ServerName()})
 	}
 }
