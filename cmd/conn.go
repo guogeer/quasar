@@ -35,6 +35,13 @@ const (
 	AuthMessage  = 0xf3
 )
 
+type Conn interface {
+	Write([]byte) error
+	WriteJSON(string, interface{}) error
+	RemoteAddr() string
+	Close()
+}
+
 type TCPConn struct {
 	rwc     net.Conn
 	ssid    string

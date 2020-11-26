@@ -19,10 +19,6 @@ const (
 	clientPackageSpeedPer2s = 32 // 2 second
 )
 
-var (
-	heartBeatMessage = []byte(`{"Id":"HeartBeat","Data":{}}`)
-)
-
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  4096,
 	WriteBufferSize: 4096,

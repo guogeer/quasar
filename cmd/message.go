@@ -22,13 +22,6 @@ var (
 	errTooLargeMessage = errors.New("too large message")
 )
 
-type Conn interface {
-	Write([]byte) error
-	WriteJSON(string, interface{}) error
-	RemoteAddr() string
-	Close()
-}
-
 type Context struct {
 	Out       Conn   // 连接
 	Ssid      string // 发送方会话ID
