@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	clientPackageSpeedPer2s = 32 // 2 second
+	clientPackageSpeedPer2s = 512 // 2 second
 )
 
 var upgrader = websocket.Upgrader{
