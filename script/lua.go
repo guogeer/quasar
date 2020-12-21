@@ -22,8 +22,9 @@ const fileSuffix = ".lua"
 var (
 	ErrUnkownType  = errors.New("unknow lua type")
 	ErrInvalidFile = errors.New("script file not exist")
-	gRuntime       = &Runtime{
+	gScriptSet     = &scriptSet{
 		files:   make(map[string]*scriptFile),
+		loading: make(map[string]*scriptFile),
 		modules: make(map[string]lua.LGFunction),
 	}
 )
@@ -34,15 +35,15 @@ type scriptFile struct {
 	run  sync.RWMutex
 }
 
-func NewScriptFile(root, path string) *scriptFile {
+func newScriptFile(path string) *scriptFile {
 	f := &scriptFile{
 		path: path,
 		L:    lua.NewState(),
 	}
 	// 默认加载脚本同目录下模块
-	if root != "" {
-		code := fmt.Sprintf(`package.path="%s/?.lua;..package.path"`, root)
-		// fmt.Println(code)
+	dir := filepath.Dir(path)
+	if dir != "" {
+		code := fmt.Sprintf(`package.path="%s/?.lua;..package.path"`, dir)
 		if err := f.L.DoString(code); err != nil {
 			panic("try load lua package error")
 		}
@@ -99,8 +100,6 @@ func (res Result) Scan(args ...interface{}) error {
 	return nil
 }
 
-// 返回值通过参数传入
-// TODO 传入参数仅支持数值、字符串
 func (script *scriptFile) Call(funcName string, args ...interface{}) *Result {
 	L := script.L
 	largs := make([]lua.LValue, 0, 4)
@@ -115,7 +114,6 @@ func (script *scriptFile) Call(funcName string, args ...interface{}) *Result {
 	}, largs...); err != nil {
 		return &Result{Err: err}
 	}
-	// TODO 返回值暂时不考虑
 	top := L.GetTop()
 	rets := make([]lua.LValue, 0, 4)
 	for i := oldTop; i < top; i++ {
@@ -125,51 +123,84 @@ func (script *scriptFile) Call(funcName string, args ...interface{}) *Result {
 	return &Result{rets: rets}
 }
 
-type Runtime struct {
-	files   map[string]*scriptFile
+func (script *scriptFile) Close() {
+	script.run.Lock()
+	if script.L != nil {
+		script.L.Close()
+	}
+	script.L = nil
+	script.run.Unlock()
+}
+
+type scriptSet struct {
+	files   map[string]*scriptFile // 已加载的脚本
+	loading map[string]*scriptFile // 正在加载的脚本
 	modules map[string]lua.LGFunction
 	mtx     sync.RWMutex
 }
 
-func (rt *Runtime) PreloadModule(name string, loader lua.LGFunction) {
-	rt.mtx.Lock()
-	defer rt.mtx.Unlock()
+func (set *scriptSet) GetFileName(L *lua.LState) (string, bool) {
+	set.mtx.RLock()
+	defer set.mtx.RUnlock()
 
-	rt.modules[name] = loader
+	for name, sf := range set.files {
+		if sf.L == L {
+			return name, true
+		}
+	}
+	for name, sf := range set.loading {
+		if sf.L == L {
+			return name, true
+		}
+	}
+	return "", false
 }
 
-func (rt *Runtime) LoadString(root, path, body string) error {
-	script := NewScriptFile(root, path)
-	rt.mtx.RLock()
-	for module, loader := range rt.modules {
+func (set *scriptSet) PreloadModule(name string, loader lua.LGFunction) {
+	set.mtx.Lock()
+	defer set.mtx.Unlock()
+
+	set.modules[name] = loader
+}
+
+// path: load dir files or single file
+func (set *scriptSet) LoadString(path, body string) error {
+	script := newScriptFile(path)
+	_, fileName := filepath.Split(path)
+
+	set.mtx.RLock()
+	set.loading[fileName] = script
+	for module, loader := range set.modules {
 		script.L.PreloadModule(module, loader)
 	}
-	oldScript, ok := rt.files[path]
-	rt.mtx.RUnlock()
+	oldScript, ok := set.files[fileName]
+	set.mtx.RUnlock()
+
 	if err := script.L.DoString(body); err != nil {
-		return fmt.Errorf("load scripts %s/%s error: %w ", root, path, err)
+		set.mtx.Lock()
+		delete(set.loading, fileName)
+		set.mtx.Unlock()
+		script.Close()
+
+		return fmt.Errorf("load scripts %s error: %w ", path, err)
 	}
 
-	rt.mtx.Lock()
-	rt.files[path] = script
-	rt.mtx.Unlock()
+	set.mtx.Lock()
+	set.files[fileName] = script
+	delete(set.loading, fileName)
+	set.mtx.Unlock()
 
 	if ok == true {
-		oldScript.run.Lock()
-		if oldScript.L != nil {
-			oldScript.L.Close()
-		}
-		oldScript.L = nil
-		oldScript.run.Unlock()
+		oldScript.Close()
 	}
 
 	return nil
 }
 
-func (rt *Runtime) Call(fileName, funcName string, args ...interface{}) *Result {
-	rt.mtx.RLock()
-	script, ok := rt.files[fileName]
-	rt.mtx.RUnlock()
+func (set *scriptSet) Call(fileName, funcName string, args ...interface{}) *Result {
+	set.mtx.RLock()
+	script, ok := set.files[fileName]
+	set.mtx.RUnlock()
 	if ok == false {
 		return &Result{Err: ErrInvalidFile}
 	}
@@ -179,12 +210,16 @@ func (rt *Runtime) Call(fileName, funcName string, args ...interface{}) *Result 
 	return script.Call(funcName, args...)
 }
 
-func loadString(root, path, body string) error {
-	return gRuntime.LoadString(root, path, body)
+func loadString(path, body string) error {
+	return gScriptSet.LoadString(path, body)
+}
+
+func GetFileName(L *lua.LState) (string, bool) {
+	return gScriptSet.GetFileName(L)
 }
 
 func Call(fileName, funcName string, args ...interface{}) *Result {
-	res := gRuntime.Call(fileName, funcName, args...)
+	res := gScriptSet.Call(fileName, funcName, args...)
 	if res.Err != nil {
 		log.Errorf("call script %s:%s error: %v", fileName, funcName, res.Err)
 	}
@@ -192,18 +227,23 @@ func Call(fileName, funcName string, args ...interface{}) *Result {
 }
 
 func PreloadModule(name string, f lua.LGFunction) {
-	gRuntime.PreloadModule(name, f)
+	gScriptSet.PreloadModule(name, f)
 }
 
 // 遇到脚本引入模块路径查找失败问题
 // 简化设计，移除脚本压缩包加载支持
-func loadScripts(dir, filename string) error {
-	log.Debugf("start load %s/%s", dir, filename)
+func LoadScripts(path string) error {
+	log.Debugf("start load %s", path)
 	// 脚本目录存在
-	if fileInfo, err := os.Stat(dir); err != nil || !fileInfo.IsDir() {
+	pathInfo, err := os.Stat(path)
+	if err != nil {
 		return errors.New("scripts is not exists")
 	}
 
+	dir, fileName := path, ""
+	if !pathInfo.IsDir() {
+		dir, fileName = filepath.Split(path)
+	}
 	return filepath.Walk(dir, func(path string, f os.FileInfo, err error) error {
 		if f == nil {
 			return errors.New("walk scripts error")
@@ -215,7 +255,7 @@ func loadScripts(dir, filename string) error {
 		if filepath.Ext(name) != fileSuffix {
 			return nil
 		}
-		if filename != "" && filename != name {
+		if fileName != "" && name != fileName {
 			return nil
 		}
 		// log.Infof("load script %s %s", path, name)
@@ -224,19 +264,21 @@ func loadScripts(dir, filename string) error {
 			return err
 		}
 		log.Debugf("load script %s from %s/", name, dir)
-		if err := loadString(dir, name, string(buf)); err != nil {
+		if err := loadString(path, string(buf)); err != nil {
 			return err
 		}
 		return nil
 	})
 }
 
+// Depercated: use LoadScripts instead
 func LoadLocalScripts(dir string) error {
-	return loadScripts(dir, "")
+	return LoadScripts(dir)
 }
 
+// Depercated: use LoadScripts instead
 func LoadLocalScriptByName(dir, name string) error {
-	return loadScripts(dir, name)
+	return LoadScripts(dir + "/" + name)
 }
 
 // map[interface{}]interface{} to json

@@ -32,3 +32,10 @@ end
 function set_inherit(c)
 	c.A1 = 10
 end
+
+function handle_map(m)
+	m[10] = 20
+	for k,v in m() do
+		print(k,v)
+	end
+end

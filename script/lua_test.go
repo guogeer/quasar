@@ -135,3 +135,9 @@ func TestInherit(t *testing.T) {
 		t.Error("set fail", c.A1)
 	}
 }
+
+func TestMap(t *testing.T) {
+	m := map[int]int{10: 1, 20: 1}
+	Call("test1.lua", "handle_map", m)
+	t.Log("handle map", m)
+}
