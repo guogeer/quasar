@@ -24,9 +24,11 @@ var (
 
 type Context struct {
 	Out       Conn   // 连接
+	MsgId     string // 消息ID
 	Ssid      string // 发送方会话ID
 	Version   int    // 协议版本，当前未生效
 	isGateway bool   // 网关
+
 }
 
 type Message struct {

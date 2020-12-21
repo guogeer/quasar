@@ -180,13 +180,14 @@ func (s *CmdSet) Bind(name string, h Handler, i interface{}) {
 	s.e[name] = &cmdEntry{h: h, type_: type_}
 }
 
-func (s *CmdSet) Handle(ctx *Context, messageID string, data []byte) error {
+func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
+	ctx.MsgId = msgId
 	// 空数据使用默认JSON格式数据
 	if data == nil || len(data) == 0 {
 		data = []byte("{}")
 	}
 
-	serverName, name := routeMessage("", messageID)
+	serverName, name := routeMessage("", msgId)
 	// 网关转发的消息ID仅允许包含字母、数字
 	if ctx.isGateway == true {
 		match, err := regexp.MatchString("^[A-Za-z0-9]+$", name)
