@@ -48,10 +48,12 @@ func TestCall(t *testing.T) {
 	if !util.EqualJSON(p, p2) {
 		t.Error("not equal", p, p2)
 	}
-	var s string
-	res.Scan(&s)
-	if s != "123" {
-		t.Error("return", res)
+
+	ret := &testStruct{}
+	expectRet := &testStruct{I: 123, S: "Hello World"}
+	res.Scan(&ret.I, &ret.S)
+	if !util.EqualJSON(ret, expectRet) {
+		t.Errorf("return %v, expect %v", ret, expectRet)
 	}
 }
 
@@ -134,10 +136,4 @@ func TestInherit(t *testing.T) {
 	if c.A1 != 10 {
 		t.Error("set fail", c.A1)
 	}
-}
-
-func TestMap(t *testing.T) {
-	m := map[int]int{10: 1, 20: 1}
-	Call("test1.lua", "handle_map", m)
-	t.Log("handle map", m)
 }

@@ -117,8 +117,7 @@ func (script *scriptFile) Call(funcName string, args ...interface{}) *Result {
 	top := L.GetTop()
 	rets := make([]lua.LValue, 0, 4)
 	for i := oldTop; i < top; i++ {
-		rets = append(rets, L.Get(-1))
-		L.Pop(1)
+		rets = append(rets, L.Get(i-top))
 	}
 	return &Result{rets: rets}
 }

@@ -13,7 +13,7 @@ function testcall(p)
 	for i=1,#p.AS2 do
 		p.AS2[i] = "ss"
 	end
-	return "123"
+	return 123,"Hello World"
 end
 
 function test_sum(m,n,p)
@@ -33,9 +33,16 @@ function set_inherit(c)
 	c.A1 = 10
 end
 
-function handle_map(m)
+function handle_map(m,a)
 	m[10] = 20
 	for k,v in m() do
 		print(k,v)
 	end
+
+	local arr = a.Arr
+	arr = arr + {} + {} + {["A1"]=3}
+	for _,v in arr() do
+		print(v.A1)
+	end
+	a.Arr = arr
 end
