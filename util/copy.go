@@ -1,6 +1,7 @@
 package util
 
 import (
+	// "fmt"
 	"reflect"
 )
 
@@ -75,6 +76,13 @@ func doCopy(dval, sval reflect.Value) {
 				doCopy(v1, v2)
 			}
 			dval.Set(newval)
+		}
+	case reflect.Array:
+		if size := sval.Len(); size > 0 {
+			for i := 0; i < size; i++ {
+				v1, v2 := dval.Index(i), sval.Index(i)
+				doCopy(v1, v2)
+			}
 		}
 	}
 }

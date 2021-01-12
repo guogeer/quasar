@@ -5,33 +5,36 @@ import (
 )
 
 type AA struct {
-	N1 int64
-	N2 int32
-	S1 string
-	F1 float32
-	B1 bool
-	B2 bool
-	M1 map[string]string
-	M2 map[string]string
-	A1 []int
+	N1  int64
+	N2  int32
+	N21 *int
+	S1  string
+	F1  float32
+	B1  bool
+	B2  bool
+	M1  map[string]string
+	M2  map[string]string
+	A1  []int
 }
 
 type AB struct {
-	N1 int32
-	N2 int64
-	S1 string
-	F1 float64
-	B1 bool
-	M1 map[string]string
-	M2 map[string]string
-	n1 int32
-	N3 int
-	A1 []int
+	N1  int32
+	N2  int64
+	N21 *int
+	S1  string
+	F1  float64
+	B1  bool
+	M1  map[string]string
+	M2  map[string]string
+	n1  int32
+	N3  int
+	A1  []int
 }
 
 type A struct {
 	N1  int64
 	N2  int32
+	N21 *int
 	S1  string
 	F1  float32
 	B1  bool
@@ -41,28 +44,31 @@ type A struct {
 	AA2 *AA
 	AA3 *AA
 	aa1 AA
-	AA4 []AA
+	AA4 [2]AA
 	AA5 []*AA
 	AA6 []int
 }
 
 func TestSructCopy(t *testing.T) {
-	aa3 := AA{N1: 31, N2: 32, S1: "AAS3", B1: true}
+	aa3 := AA{N1: 31, N2: 32, N21: new(int), S1: "AAS3", B1: true}
+	*aa3.N21 = 210
 	aa4 := AA{N1: 41, N2: 42, S1: "AAS4", B1: false}
 	a := &A{
-		N1: 1, N2: 2,
+		N1: 1, N2: 2, N21: new(int),
 		S1:  "S1",
 		AA1: AA{N1: 11, N2: 12, S1: "AAS1", B1: true},
 		AA3: &AA{N1: 21, N2: 22, S1: "AAS2", B1: false},
-		AA4: []AA{aa3, aa4},
+		AA4: [2]AA{aa3, aa4},
 		AA5: []*AA{&aa3, &aa4},
 		AA6: []int{1, 2, 3},
 	}
+	*a.N21 = 123321
 	DeepCopy(nil, a)
 	DeepCopy(nil, nil)
 
 	a2 := &A{}
 	DeepCopy(a2, a)
+	// t.Log("deep copy test", *a2.AA4[0].N21)
 	if !EqualJSON(a2, a) {
 		t.Error("deep copy error", a2, a)
 	}
