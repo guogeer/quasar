@@ -2,12 +2,9 @@ package randutil
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"reflect"
 	"strconv"
-
-	"github.com/guogeer/quasar/util"
 )
 
 const sampleSize = 100 * 10000 // 100W
@@ -50,12 +47,18 @@ func ToPercent(n int) float64 {
 	return float64(n) / float64(sampleSize/100)
 }
 
+// 随机打乱数组/切片
 func Shuffle(a interface{}) {
 	lst := reflect.ValueOf(a)
 	ShuffleN(a, lst.Len())
 }
 
+// 随机打乱数组/切片前n个元素
 func ShuffleN(a interface{}, n int) {
+	if a == nil {
+		return
+	}
+
 	lst := reflect.ValueOf(a)
 	size := lst.Len()
 	for i := 0; i+1 < size && i < n; i++ {
@@ -110,34 +113,4 @@ func Index(a interface{}) int {
 		return v
 	}
 	return -1
-}
-
-// TODO 伪随机
-func PseudoRand(percent float64, max int) *util.Bitmap {
-	var x, y int
-	var minMistake = 100.0
-	for i := 2; i <= max; i++ {
-		for j := 1; j <= i; j++ {
-			mistake := math.Abs(percent - float64(j)/float64(i)*100)
-			if minMistake > mistake {
-				x, y = j, i
-				minMistake = mistake
-			}
-		}
-	}
-	if y == 0 {
-		y = 10
-	}
-
-	var samples []int
-	for i := 0; i < y; i++ {
-		samples = append(samples, i)
-	}
-	ShuffleN(samples, x)
-
-	bm := util.NewBitmap(y)
-	for i := 0; i < x; i++ {
-		bm.Set(samples[i], 1)
-	}
-	return bm
 }
