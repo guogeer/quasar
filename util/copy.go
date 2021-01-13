@@ -5,6 +5,10 @@ import (
 	"reflect"
 )
 
+type deepCopyer interface {
+	DeepCopy(src interface{}) bool
+}
+
 // 深拷贝
 // 结构体、切片之间递归深拷贝
 // 整数、浮点数、字符串、布尔类型直接拷贝，其他类型忽略
@@ -20,9 +24,15 @@ func DeepCopy(dst, src interface{}) {
 }
 
 func doCopy(dval, sval reflect.Value) {
-	if dval.Kind() == reflect.Ptr && dval.CanSet() &&
-		dval.IsZero() && !sval.IsZero() {
+	if dval.Kind() == reflect.Ptr && dval.CanSet() && dval.IsZero() && !sval.IsZero() {
 		dval.Set(reflect.New(dval.Type().Elem()))
+	}
+
+	if dval.IsValid() && dval.CanInterface() {
+		// fmt.Println(dval.Interface())
+		if cp, ok := dval.Interface().(deepCopyer); ok && cp.DeepCopy(sval.Interface()) {
+			return
+		}
 	}
 
 	sval = reflect.Indirect(sval)
@@ -33,6 +43,7 @@ func doCopy(dval, sval reflect.Value) {
 	if !dval.CanSet() {
 		return
 	}
+
 	// fmt.Println(sval.IsValid(), dval.CanSet())
 	switch ConvertKind(sval.Kind()) {
 	case reflect.Int64:
@@ -62,27 +73,21 @@ func doCopy(dval, sval reflect.Value) {
 			}
 			// fmt.Println("##", dfield.Kind(), dfield.CanSet(), dval.Kind())
 			// fmt.Println("==", sname, sfield.Kind(), sfield.CanSet(), stype)
-			doCopy(dfield, sfield)
 			// exported anonymous struct field
 			if stype.PkgPath == "" && stype.Anonymous {
 				doCopy(dval, sfield)
+			} else {
+				doCopy(dfield, sfield)
 			}
 		}
-	case reflect.Slice:
-		if size := sval.Len(); size > 0 {
+	case reflect.Slice, reflect.Array:
+		if size := sval.Len(); size > 0 && sval.Kind() == reflect.Slice {
 			newval := reflect.MakeSlice(dval.Type(), size, size)
-			for i := 0; i < size; i++ {
-				v1, v2 := newval.Index(i), sval.Index(i)
-				doCopy(v1, v2)
-			}
 			dval.Set(newval)
 		}
-	case reflect.Array:
-		if size := sval.Len(); size > 0 {
-			for i := 0; i < size; i++ {
-				v1, v2 := dval.Index(i), sval.Index(i)
-				doCopy(v1, v2)
-			}
+		for i := 0; i < sval.Len() && i < dval.Len(); i++ {
+			v1, v2 := dval.Index(i), sval.Index(i)
+			doCopy(v1, v2)
 		}
 	}
 }
