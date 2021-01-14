@@ -57,6 +57,14 @@ func doCopy(dval, sval reflect.Value) {
 	case reflect.String:
 		dval.SetString(sval.String())
 	case reflect.Struct:
+		aliasFields := map[string]int{}
+		for i := 0; i < dval.NumField(); i++ {
+			alias := dval.Type().Field(i).Tag.Get("alias")
+			if alias != "" {
+				aliasFields[alias] = i
+			}
+		}
+
 		for i := 0; i < sval.NumField(); i++ {
 			sfield := sval.Field(i)
 			sname := sval.Type().Field(i).Name
@@ -65,11 +73,8 @@ func doCopy(dval, sval reflect.Value) {
 				sname = tag
 			}
 			dfield := dval.FieldByName(sname)
-			for k := 0; k < dval.NumField(); k++ {
-				field := dval.Field(k)
-				if dval.Type().Field(k).Tag.Get("alias") == sname {
-					dfield = field
-				}
+			if aliasIndex, ok := aliasFields[sname]; ok {
+				dfield = dval.Field(aliasIndex)
 			}
 			// fmt.Println("##", dfield.Kind(), dfield.CanSet(), dval.Kind())
 			// fmt.Println("==", sname, sfield.Kind(), sfield.CanSet(), stype)
