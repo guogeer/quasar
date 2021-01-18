@@ -46,3 +46,8 @@ function handle_map(m,a)
 	end
 	a.Arr = arr
 end
+
+function test_registry_overflow(a,n)
+	local a2 = a:Add(n)
+	return 1,2,3,4,5,a2
+end

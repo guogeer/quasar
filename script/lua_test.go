@@ -137,3 +137,19 @@ func TestInherit(t *testing.T) {
 		t.Error("set fail", c.A1)
 	}
 }
+
+type testRegistery struct {
+	N int
+}
+
+func (t *testRegistery) Add(n int) *testRegistery {
+	t.N = t.N + n
+	return t
+}
+
+func TestRegistryOverflow(t *testing.T) {
+	c := &testRegistery{}
+	for i := 0; i < 10_0000; i++ {
+		Call("test1.lua", "test_registry_overflow", c, i)
+	}
+}

@@ -119,6 +119,7 @@ func (script *scriptFile) Call(funcName string, args ...interface{}) *Result {
 	for i := oldTop; i < top; i++ {
 		rets = append(rets, L.Get(i-top))
 	}
+	L.Pop(len(rets))
 	return &Result{rets: rets}
 }
 
