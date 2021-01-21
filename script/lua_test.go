@@ -52,7 +52,7 @@ func TestCall(t *testing.T) {
 
 	ret := &testStruct{}
 	expectRet := &testStruct{I: 123, S: "Hello World", B: true}
-	res.Scan(&ret.I, &ret.S)
+	res.Scan(&ret.I, &ret.S, &ret.B)
 	if !util.EqualJSON(ret, expectRet) {
 		t.Errorf("return %v, expect %v", ret, expectRet)
 	}
