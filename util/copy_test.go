@@ -106,26 +106,37 @@ type Child struct {
 	S string
 }
 
+type GrandPa struct {
+	GrandAliasId int `alias:"TestGrandAliasId""`
+}
+
 type Father struct {
-	Id   int `alias:"UId" json:"UId"`
-	UId2 int
-	N2   int
-	S2   string
+	GrandPa
+	Id      int `alias:"UId" json:"UId"`
+	AliasId int `alias:"TestAliasId""`
+	UId2    int
+	N2      int
+	S2      string
 	Child
 }
 
 type Father2 struct {
-	UId int
-	Id2 int `alias:"UId2" json:"UId2"`
-	N2  int
-	S2  string
-	N   int
-	S   string
+	GrandPa
+	UId     int
+	AliasId int `alias:"TestAliasId""`
+	Id2     int `alias:"UId2" json:"UId2"`
+	N2      int
+	S2      string
+	N       int
+	S       string
 }
 
 func TestInheritSructCopy(t *testing.T) {
 	f := &Father{S2: "sb2"}
-	f2 := &Father2{N2: 22, S2: "", N: 11, S: "sb", UId: 100, Id2: 200}
+	f2 := &Father2{
+		N2: 22, S2: "", N: 11, S: "sb", UId: 100, Id2: 200, AliasId: 300,
+		GrandPa: GrandPa{GrandAliasId: 400},
+	}
 	DeepCopy(f, f2)
 	if EqualJSON(f, f2) == false {
 		t.Error("deep copy inherit", f, f2)

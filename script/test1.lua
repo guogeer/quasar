@@ -13,7 +13,7 @@ function testcall(p)
 	for i=1,#p.AS2 do
 		p.AS2[i] = "ss"
 	end
-	return 123,"Hello World"
+	return 123,"Hello World",true
 end
 
 function test_sum(m,n,p)

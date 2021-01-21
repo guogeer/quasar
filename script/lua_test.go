@@ -22,6 +22,7 @@ type testStruct struct {
 	S   string
 	AI2 []int
 	AS2 []string
+	B   bool
 }
 
 func TestCall(t *testing.T) {
@@ -50,7 +51,7 @@ func TestCall(t *testing.T) {
 	}
 
 	ret := &testStruct{}
-	expectRet := &testStruct{I: 123, S: "Hello World"}
+	expectRet := &testStruct{I: 123, S: "Hello World", B: true}
 	res.Scan(&ret.I, &ret.S)
 	if !util.EqualJSON(ret, expectRet) {
 		t.Errorf("return %v, expect %v", ret, expectRet)

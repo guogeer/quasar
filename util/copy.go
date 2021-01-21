@@ -79,10 +79,9 @@ func doCopy(dval, sval reflect.Value) {
 			// fmt.Println("##", dfield.Kind(), dfield.CanSet(), dval.Kind())
 			// fmt.Println("==", sname, sfield.Kind(), sfield.CanSet(), stype)
 			// exported anonymous struct field
+			doCopy(dfield, sfield)
 			if stype.PkgPath == "" && stype.Anonymous {
 				doCopy(dval, sfield)
-			} else {
-				doCopy(dfield, sfield)
 			}
 		}
 	case reflect.Slice, reflect.Array:
