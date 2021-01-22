@@ -78,10 +78,11 @@ func (res Result) Scan(args ...interface{}) error {
 	if maxn > len(args) {
 		maxn = len(args)
 	}
+
+	var err error
 	for i := 0; i < maxn; i++ {
 		arg := args[i]
 		ret := res.rets[i]
-		err := ErrUnkownType
 		if b, ok := arg.(*bool); ok && ret.Type() == lua.LTBool {
 			*b = lua.LVAsBool(ret)
 		} else if s, ok := arg.(*string); ok && ret.Type() == lua.LTString {
@@ -90,6 +91,8 @@ func (res Result) Scan(args ...interface{}) error {
 			err = scanner.Scan(ret)
 		} else if lua.LVCanConvToString(ret) {
 			_, err = fmt.Sscanf(ret.String(), "%v", arg) // 遇到分隔符会停止
+		} else {
+			err = ErrUnkownType
 		}
 		if err != nil {
 			return err
