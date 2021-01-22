@@ -84,14 +84,12 @@ func (res Result) Scan(args ...interface{}) error {
 		err := ErrUnkownType
 		if b, ok := arg.(*bool); ok && ret.Type() == lua.LTBool {
 			*b = lua.LVAsBool(ret)
+		} else if s, ok := arg.(*string); ok && ret.Type() == lua.LTString {
+			*s = ret.String()
 		} else if scanner, ok := arg.(Scanner); ok {
 			err = scanner.Scan(ret)
 		} else if lua.LVCanConvToString(ret) {
-			// 遇到分隔符会停止
-			_, err = fmt.Sscanf(ret.String(), "%v", arg)
-			if s, ok := arg.(*string); ok {
-				*s = ret.String()
-			}
+			_, err = fmt.Sscanf(ret.String(), "%v", arg) // 遇到分隔符会停止
 		}
 		if err != nil {
 			return err
