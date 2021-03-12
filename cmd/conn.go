@@ -142,6 +142,8 @@ type CmdSet struct {
 	services map[string]bool // 内部服务
 	e        map[string]*cmdEntry
 	mu       sync.RWMutex
+
+	hook Handler // 调用顺序：hook->bind
 }
 
 var defaultCmdSet = &CmdSet{
@@ -180,6 +182,15 @@ func (s *CmdSet) Bind(name string, h Handler, i interface{}) {
 	s.e[name] = &cmdEntry{h: h, type_: type_}
 }
 
+func (s *CmdSet) Hook(h Handler) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.hook != nil {
+		log.Warnf("cmd hook is existed")
+	}
+	s.hook = h
+}
+
 func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 	ctx.MsgId = msgId
 	// 空数据使用默认JSON格式数据
@@ -198,6 +209,7 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 
 	s.mu.RLock()
 	e := s.e[name]
+	hook := s.hook
 	isService := s.services[serverName]
 	s.mu.RUnlock()
 	// router
@@ -224,7 +236,7 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 		return err
 	}
 
-	msg := &Message{id: name, ctx: ctx, h: e.h, args: args}
+	msg := &Message{id: name, ctx: ctx, h: e.h, args: args, hook: hook}
 	defaultMessageQueue.Enqueue(msg)
 	return nil
 }

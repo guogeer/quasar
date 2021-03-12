@@ -52,6 +52,10 @@ func RegisterServiceInGateway(name string) {
 	defaultCmdSet.RegisterService(name)
 }
 
+func Hook(h Handler) {
+	defaultCmdSet.Hook(h)
+}
+
 func Bind(h Handler, args interface{}) {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	n := strings.LastIndexByte(name, '.')

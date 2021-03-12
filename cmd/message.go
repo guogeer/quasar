@@ -34,6 +34,7 @@ type Context struct {
 type Message struct {
 	id   string
 	h    Handler
+	hook Handler
 	ctx  *Context
 	args interface{}
 }
@@ -117,6 +118,9 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 			t1 = time.Now()
 		}
 		msg := front.(*Message)
+		if msg.hook != nil {
+			msg.hook(msg.ctx, msg.args)
+		}
 		msg.h(msg.ctx, msg.args)
 
 		if enableDebug == true {
