@@ -53,21 +53,18 @@ func Shuffle(a interface{}) {
 	ShuffleN(a, lst.Len())
 }
 
-// 随机打乱数组/切片前n个元素
+// 随机打乱切片slice前n个元素
 func ShuffleN(a interface{}, n int) {
 	if a == nil {
 		return
 	}
 
-	lst := reflect.ValueOf(a)
-	size := lst.Len()
+	swap := reflect.Swapper(a)
+	size := reflect.ValueOf(a).Len()
 	for i := 0; i+1 < size && i < n; i++ {
 		r := rand.Intn(size-i) + i
-		temp := lst.Index(r)
-		temp = reflect.New(temp.Type()).Elem()
-		temp.Set(lst.Index(i))
-		lst.Index(i).Set(lst.Index(r))
-		lst.Index(r).Set(temp)
+		// 使用reflect.Swapper进行切片元素交换，效率更高
+		swap(i, r)
 	}
 }
 

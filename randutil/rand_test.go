@@ -54,7 +54,14 @@ func TestShuffeN(t *testing.T) {
 	}
 	for _, data := range datalist {
 		Shuffle(data)
-		t.Log(data)
+
+		nums := map[int]bool{}
+		for _, n := range data {
+			if nums[n] == true {
+				t.Errorf("shuffle data %v error", data)
+			}
+			nums[n] = true
+		}
 	}
 }
 
@@ -70,7 +77,14 @@ func TestIndexN(t *testing.T) {
 		{8000, 1, 1, 0, 0, 0},
 	}
 	for _, data := range datalist {
-		res := IndexN(data, -1)
-		t.Logf("IndexN: %v %v", data, res)
+		indexs := IndexN(data, -1)
+
+		nums := map[int]bool{}
+		for _, n := range indexs {
+			if nums[n] == true || n < 0 || n >= len(data) {
+				t.Errorf("index data %v result %d error", data, n)
+			}
+			nums[n] = true
+		}
 	}
 }
