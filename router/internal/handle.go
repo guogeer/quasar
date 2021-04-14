@@ -36,7 +36,7 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 	if port != "" {
 		addr = host + ":" + port
 	}
-	log.Infof("register server:%s addr:%s", args.ServerName, addr)
+	log.Infof("register server:%s %v addr:%s", args.ServerName, args.ServerList, addr)
 	ctx.Out.WriteJSON("C2S_RegisterOk", struct{}{})
 
 	newServer := &Server{
@@ -46,6 +46,7 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 		data:       args.ServerData,
 		typ:        args.ServerType,
 		IsRandPort: args.IsRandPort,
+		serverList: args.ServerList,
 	}
 	gRouter.AddServer(newServer)
 	// center server
@@ -70,13 +71,15 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 	if newServer.typ == serverGateway {
 		for _, server := range gRouter.servers {
 			ctx.Out.WriteJSON("FUNC_RegisterServiceInGateway", map[string]interface{}{
-				"Name": server.name,
+				"Name":       server.name,
+				"ServerList": server.serverList,
 			})
 		}
 	} else if newServer.addr != "" {
 		for _, gw := range gRouter.gateways {
 			gw.out.WriteJSON("FUNC_RegisterServiceInGateway", map[string]interface{}{
-				"Name": newServer.name,
+				"Name":       newServer.name,
+				"ServerList": newServer.serverList,
 			})
 		}
 	}
@@ -85,7 +88,7 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 func C2S_GetServerAddr(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
 	name := args.ServerName
-	addr := gRouter.GetServerAddr(name)
+	addr := gRouter.MatchBestServer(name)
 	log.Infof("get server:%s addr:%s", name, addr)
 	response := map[string]string{"ServerName": name, "ServerAddr": addr}
 	ctx.Out.WriteJSON("S2C_GetServerAddr", response)
@@ -140,7 +143,7 @@ func C2S_Route(ctx *cmd.Context, data interface{}) {
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	// args := data.(*Args)
 	// 断线后移除配置信息。部分服务采用了系统随机端口，容易产生端口被占用的情况
-	server := gRouter.getServerByConn(ctx.Out)
+	server := gRouter.findConnServer(ctx.Out)
 	if server != nil && server.IsRandPort {
 		gRouter.Remove(ctx.Out)
 	}

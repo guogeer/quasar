@@ -11,12 +11,13 @@ type Session struct {
 }
 
 func (ss *Session) GetServerName() string {
+	// TODO 可能引发崩溃
 	client := ss.Out.(*Client)
 	return client.name
 }
 
 func (ss *Session) Route(serverName, name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, SignType: "none"}
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, SignType: "none", ToServer: serverName}
 	buf, err := pkg.Encode()
 	if err != nil {
 		return

@@ -13,7 +13,8 @@ type Args struct {
 	UId  int
 	Data json.RawMessage
 
-	Name string
+	Name       string
+	ServerList []string
 }
 
 func init() {
@@ -89,5 +90,5 @@ func HeartBeat(ctx *cmd.Context, data interface{}) {
 
 func FUNC_RegisterServiceInGateway(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
-	cmd.RegisterServiceInGateway(args.Name)
+	cmd.RegisterServiceInGateway(args.ServerList...)
 }

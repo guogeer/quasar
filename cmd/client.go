@@ -195,14 +195,6 @@ func (cm *clientManage) RegisterService(args *ServiceConfig) {
 	cm.mu.Unlock()
 }
 
-func funcTest(ctx *Context, iArgs interface{}) {
-	// empty
-}
-
-func funcRegisterOk(ctx *Context, iArgs interface{}) {
-	// TODO
-}
-
 // Client自动重连
 func funcAutoConnect(ctx *Context, iArgs interface{}) {
 	client := ctx.Out.(*Client)

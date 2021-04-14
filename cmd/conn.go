@@ -157,10 +157,12 @@ func (s *CmdSet) RemoveService(name string) {
 	s.services[name] = false
 }
 
-func (s *CmdSet) RegisterService(name string) {
+func (s *CmdSet) RegisterService(servers ...string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.services[name] = true
+	for _, name := range servers {
+		s.services[name] = true
+	}
 }
 
 // 恢复已有的服务

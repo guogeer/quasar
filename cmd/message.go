@@ -28,7 +28,7 @@ type Context struct {
 	Ssid      string // 发送方会话ID
 	Version   int    // 协议版本，当前未生效
 	isGateway bool   // 网关
-
+	ToServer  string
 }
 
 type Message struct {
@@ -186,6 +186,7 @@ type Package struct {
 	Ssid       string          `json:",omitempty"`    // 会话ID
 	Version    int             `json:"Ver,omitempty"` // 版本
 	ExpireTime int64           `json:",omitempty"`    // 发送的时间戳
+	ToServer   string          `json:",omitempty"`
 
 	Body interface{} `json:"-"` // 传入的参数
 	// IsRaw    bool        `json:"-"`

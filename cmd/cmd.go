@@ -36,9 +36,6 @@ func init() {
 		defaultRouterAddr = addr
 	}
 
-	BindWithName("C2S_RegisterOk", funcRegisterOk, (*cmdArgs)(nil))
-	// 某些情况下需要发送一个包去探路，这个包可能会发送失败
-	BindWithName("FUNC_Test", funcTest, (*cmdArgs)(nil))
 	// 断线后自动重连
 	BindWithName("CMD_AutoConnect", funcAutoConnect, (*cmdArgs)(nil))
 	BindWithName("CMD_Close", funcClose, (*cmdArgs)(nil))
@@ -48,8 +45,8 @@ func BindWithName(name string, h Handler, args interface{}) {
 	defaultCmdSet.Bind(name, h, args)
 }
 
-func RegisterServiceInGateway(name string) {
-	defaultCmdSet.RegisterService(name)
+func RegisterServiceInGateway(servers ...string) {
+	defaultCmdSet.RegisterService(servers...)
 }
 
 func Hook(h Handler) {
@@ -92,6 +89,7 @@ type ServiceConfig struct {
 	ServerData interface{} `json:",omitempty"`
 	ServerType string      `json:",omitempty"` // center,gateway etc
 	IsRandPort bool        `json:",omitempty"`
+	ServerList []string    `json:",omitempty"`
 }
 
 type cmdArgs ServiceConfig

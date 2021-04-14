@@ -16,6 +16,7 @@ type Server struct {
 	weight          int
 	name, addr, typ string
 	IsRandPort      bool
+	serverList      []string
 
 	data json.RawMessage
 }
@@ -46,12 +47,18 @@ func (r *Router) GetBestGateway() string {
 	return addr
 }
 
-func (r *Router) GetServerAddr(name string) string {
-	var addr string
+func (r *Router) MatchBestServer(name string) string {
 	if server, ok := r.servers[name]; ok {
-		addr = server.addr
+		return server.addr
 	}
-	return addr
+	for _, server := range r.servers {
+		for _, serverName := range server.serverList {
+			if serverName == name {
+				return server.addr
+			}
+		}
+	}
+	return ""
 }
 
 func (r *Router) GetServer(name string) *Server {
@@ -77,8 +84,8 @@ func (r *Router) Remove(out cmd.Conn) *Server {
 	return nil
 }
 
-// 通过连接cmd.Conn查找服务
-func (r *Router) getServerByConn(out cmd.Conn) *Server {
+// 查找链接的服务
+func (r *Router) findConnServer(out cmd.Conn) *Server {
 	for _, server := range r.gateways {
 		if server.out == out {
 			return server
