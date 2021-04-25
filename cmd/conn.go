@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"reflect"
-	"regexp"
 	"sync"
 	"time"
 )
@@ -19,7 +18,6 @@ import (
 var errInvalidMessageID = errors.New("invalid message ID")
 
 const (
-	writeWait       = 10 * time.Second
 	pongWait        = 60 * time.Second
 	pingPeriod      = (pongWait * 9) / 10
 	maxMessageSize  = 96 << 10 // 96K
@@ -201,27 +199,13 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 	}
 
 	serverName, name := routeMessage("", msgId)
-	// 网关转发的消息ID仅允许包含字母、数字
-	if ctx.isGateway == true {
-		match, err := regexp.MatchString("^[A-Za-z0-9]+$", name)
-		if err == nil && !match {
-			return errors.New("invalid message id")
-		}
-	}
 
 	s.mu.RLock()
 	e := s.e[name]
 	hook := s.hook
-	isService := s.services[serverName]
 	s.mu.RUnlock()
 	// router
 	if len(serverName) > 0 {
-		// 网关仅允许转发已注册的逻辑服务器
-		if ctx.isGateway == true && isService == false {
-			ctx.Out.WriteJSON("ServerClose", map[string]interface{}{"ServerName": serverName})
-			return errors.New("gateway try to route invalid service")
-		}
-
 		if ss := GetSession(ctx.Ssid); ss != nil {
 			ss.Route(serverName, name, data)
 		}

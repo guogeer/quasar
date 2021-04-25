@@ -17,7 +17,7 @@ func (ss *Session) GetServerName() string {
 }
 
 func (ss *Session) Route(serverName, name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, SignType: "none", ToServer: serverName}
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ToServer: serverName, SignType: "raw"}
 	buf, err := pkg.Encode()
 	if err != nil {
 		return
@@ -26,7 +26,7 @@ func (ss *Session) Route(serverName, name string, i interface{}) {
 }
 
 func (ss *Session) WriteJSON(name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, SignType: "none"}
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, SignType: "raw"}
 	buf, err := pkg.Encode()
 	if err != nil {
 		return
@@ -87,11 +87,11 @@ func (sm *SessionManage) Count() int {
 	return len(sm.sessions)
 }
 
-func addSession(s *Session) {
+func AddSession(s *Session) {
 	defaultSessionManage.Add(s)
 }
 
-func removeSession(id string) {
+func RemoveSession(id string) {
 	defaultSessionManage.Del(id)
 }
 

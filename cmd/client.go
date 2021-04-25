@@ -30,8 +30,6 @@ func (c *Client) ServerName() string {
 }
 
 func (c *Client) start() {
-	defaultCmdSet.RecoverService(c.name) // 恢复服务
-
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
 		ticker := time.NewTicker(pingPeriod)
@@ -81,10 +79,7 @@ func (c *Client) start() {
 			log.Debugf("read %v", err)
 			return
 		}
-		switch mt {
-		case PingMessage, PongMessage:
-		case RawMessage:
-			// log.Info("read", string(buf[:n]))
+		if mt == RawMessage {
 			pkg, err := defaultRawParser.Decode(buf)
 			if err != nil {
 				return
@@ -179,7 +174,7 @@ func (cm *clientManage) connect(serverName string) {
 func (cm *clientManage) Route3(serverName, messageId string, i interface{}) {
 	serverName, messageId = routeMessage(serverName, messageId)
 
-	pkg := Package{Id: messageId, Body: i, SignType: "none"}
+	pkg := &Package{Id: messageId, Body: i}
 	msg, err := pkg.Encode()
 	if err != nil {
 		return

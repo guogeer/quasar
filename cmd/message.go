@@ -23,12 +23,11 @@ var (
 )
 
 type Context struct {
-	Out       Conn   // 连接
-	MsgId     string // 消息ID
-	Ssid      string // 发送方会话ID
-	Version   int    // 协议版本，当前未生效
-	isGateway bool   // 网关
-	ToServer  string
+	Out      Conn   // 连接
+	MsgId    string // 消息ID
+	Ssid     string // 发送方会话ID
+	Version  int    // 协议版本，当前未生效
+	ToServer string
 }
 
 type Message struct {
@@ -191,27 +190,27 @@ type Package struct {
 	Body interface{} `json:"-"` // 传入的参数
 	// IsRaw    bool        `json:"-"`
 	IsZip    bool   `json:"-"`
-	SignType string `json:"-"` // md5,none
+	SignType string `json:"-"` // md5,raw
 }
 
-func getParser(typ string) *hashParser {
+func (pkg *Package) parser(typ string) *hashParser {
 	parser := defaultHashParser
 	switch typ {
-	case "none":
-		parser = defaultRawParser
 	case "md5":
 		parser = defaultAuthParser
+	case "raw":
+		parser = defaultRawParser
 	}
 	return parser
 }
 
 func (pkg *Package) Encode() ([]byte, error) {
-	parser := getParser(pkg.SignType)
+	parser := pkg.parser(pkg.SignType)
 	return parser.Encode(pkg)
 }
 
 func (pkg *Package) Decode(buf []byte) error {
-	parser := getParser(pkg.SignType)
+	parser := pkg.parser(pkg.SignType)
 	if _, err := parser.Decode(buf); err != nil {
 		return err
 	}

@@ -52,7 +52,7 @@ func (srv *Server) Serve(l net.Listener) error {
 			},
 		}
 		// log.Info("create guid", ssid)
-		addSession(&Session{Id: ssid, Out: c})
+		AddSession(&Session{Id: ssid, Out: c})
 		go c.serve()
 	}
 }
@@ -88,7 +88,7 @@ func (c *ServeConn) serve() {
 			defaultCmdSet.Handle(ctx, "FUNC_Close", nil)
 
 			// 删除会话
-			removeSession(c.ssid)
+			RemoveSession(c.ssid)
 		}()
 
 		for {

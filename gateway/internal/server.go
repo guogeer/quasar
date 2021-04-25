@@ -1,6 +1,6 @@
 // 2019-07-17 支持大协议数据压缩
 
-package cmd
+package gateway
 
 // 网关
 
@@ -8,15 +8,24 @@ import (
 	"context"
 	"errors"
 	"github.com/gorilla/websocket"
+	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/log"
 	"github.com/guogeer/quasar/util"
 	"math/rand"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 )
 
 const (
 	clientPackageSpeedPer2s = 512 // 2 second
+
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 96 << 10 // 96K
+	sendQueueSize  = 16 << 10
 )
 
 var upgrader = websocket.Upgrader{
@@ -31,6 +40,10 @@ type WsConn struct {
 	send chan []byte
 	// args       interface{}
 	isClose bool
+}
+
+func init() {
+	http.HandleFunc("/ws", serveWs)
 }
 
 func (c *WsConn) RemoteAddr() string {
@@ -48,8 +61,8 @@ func (c *WsConn) Close() {
 
 func (c *WsConn) WriteJSON(name string, i interface{}) error {
 	// 消息格式
-	pkg := &Package{Id: name, Body: i, IsZip: true}
-	buf, err := defaultRawParser.Encode(pkg)
+	pkg := &cmd.Package{Id: name, Body: i, IsZip: true}
+	buf, err := pkg.Encode()
 	if err != nil {
 		return err
 	}
@@ -73,7 +86,7 @@ func (c *WsConn) writeMessage(mt int, payload []byte) error {
 	return c.ws.WriteMessage(mt, payload)
 }
 
-func ServeWs(w http.ResponseWriter, r *http.Request) {
+func serveWs(w http.ResponseWriter, r *http.Request) {
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Errorf("%v", err)
@@ -85,7 +98,7 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 		ws:   ws,
 		send: make(chan []byte, 1<<10),
 	}
-	addSession(&Session{Id: id, Out: c})
+	cmd.AddSession(&cmd.Session{Id: id, Out: c})
 
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -95,10 +108,10 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 			c.ws.Close()
 			ticker.Stop() // 关闭定时器
 
-			ctx := &Context{Ssid: c.ssid, Out: c}
-			defaultCmdSet.Handle(ctx, "CMD_Close", nil)
-			defaultCmdSet.Handle(ctx, "FUNC_Close", nil)
-			removeSession(c.ssid)
+			ctx := &cmd.Context{Ssid: c.ssid, Out: c}
+			cmd.Handle(ctx, "CMD_Close", nil)
+			cmd.Handle(ctx, "FUNC_Close", nil)
+			cmd.RemoveSession(c.ssid)
 		}()
 
 		for {
@@ -139,13 +152,14 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		pkg, err := Decode(message)
+		pkg, err := cmd.Decode(message)
 		if err != nil {
 			log.Warn(err)
 			return
 		}
 
 		id, data := pkg.Id, pkg.Data
+		// 网络限流
 		if recvPackageCounter == -1 && rand.Intn(7) == 0 {
 			recvPackageCounter = 0
 			deadline = time.Now().Add(2 * time.Second)
@@ -160,10 +174,25 @@ func ServeWs(w http.ResponseWriter, r *http.Request) {
 				time.Sleep(2 * time.Second)
 			}
 		}
-		// log.Info("read", c.ssid)
-		ctx := &Context{Out: c, Ssid: c.ssid, isGateway: true}
-		err = defaultCmdSet.Handle(ctx, id, data)
-		if err != nil {
+		// 网关转发的消息ID仅允许包含字母、数字
+		var serverName string
+		if servers := strings.SplitN(id, ".", 2); len(servers) > 1 {
+			serverName, id = servers[0], servers[1]
+		}
+		match, err := regexp.MatchString("^[A-Za-z0-9]+$", id)
+		if !match {
+			log.Warnf("invalid message id %s", id)
+			continue
+		}
+		// TODO 未限制不存在的服务发送请求
+		if serverName != "" {
+			c.WriteJSON("ServerClose", map[string]interface{}{"ServerName": serverName})
+			time.Sleep(2 * time.Second)
+			continue
+		}
+
+		ctx := &cmd.Context{Out: c, Ssid: c.ssid}
+		if err := cmd.Handle(ctx, id, data); err != nil {
 			log.Warnf("handle client %s %v", remoteAddr, err)
 		}
 	}

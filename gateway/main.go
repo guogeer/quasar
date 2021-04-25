@@ -27,7 +27,6 @@ func main() {
 	cmd.RegisterService(cfg)
 
 	addr = fmt.Sprintf(":%d", *port)
-	http.HandleFunc("/ws", cmd.ServeWs)
 	go func() {
 		if err := http.ListenAndServe(addr, nil); err != nil {
 			log.Fatal(err)

@@ -63,16 +63,8 @@ func Bind(h Handler, args interface{}) {
 	BindWithName(name, h, args)
 }
 
-func Handle(ctx *Context, name string, args interface{}) {
-	b, err := defaultRawParser.Encode(&Package{Id: name, Body: args})
-	if err != nil {
-		return
-	}
-	pkg, err := defaultRawParser.Decode(b)
-	if err != nil {
-		return
-	}
-	defaultCmdSet.Handle(ctx, name, pkg.Data)
+func Handle(ctx *Context, name string, data []byte) error {
+	return defaultCmdSet.Handle(ctx, name, data)
 }
 
 func Route(serverName, messageId string, data interface{}) {
