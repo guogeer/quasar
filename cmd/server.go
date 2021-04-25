@@ -5,15 +5,12 @@ package cmd
 
 import (
 	"context"
-	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/util"
 	"io"
 	"net"
 	"time"
-)
 
-const (
-	ServerRouter = "router"
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/util"
 )
 
 type Server struct {

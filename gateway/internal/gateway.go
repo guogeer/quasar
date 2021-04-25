@@ -22,7 +22,7 @@ type serverStatus struct {
 func concurrent() {
 	counter := cmd.GetSessionManage().Count()
 	data := serverStatus{Weight: counter}
-	cmd.Route(cmd.ServerRouter, "C2S_Concurrent", data)
+	cmd.Route("router", "C2S_Concurrent", data)
 }
 
 func init() {
