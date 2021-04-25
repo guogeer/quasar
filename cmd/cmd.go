@@ -3,11 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"errors"
-	"github.com/guogeer/quasar/config"
 	"net"
 	"reflect"
 	"runtime"
 	"strings"
+
+	"github.com/guogeer/quasar/config"
 )
 
 var (
@@ -43,10 +44,6 @@ func init() {
 
 func BindWithName(name string, h Handler, args interface{}) {
 	defaultCmdSet.Bind(name, h, args)
-}
-
-func RegisterServiceInGateway(servers ...string) {
-	defaultCmdSet.RegisterService(servers...)
 }
 
 func Hook(h Handler) {

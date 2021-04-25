@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/guogeer/quasar/log"
 	"sync"
+
+	"github.com/guogeer/quasar/log"
 )
 
 type Session struct {

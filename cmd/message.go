@@ -8,12 +8,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/buger/jsonparser"
-	"github.com/guogeer/quasar/log"
 	"io"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/buger/jsonparser"
+	"github.com/guogeer/quasar/log"
 )
 
 var (
@@ -179,18 +180,17 @@ func Enqueue(ctx *Context, h Handler, args interface{}) {
 }
 
 type Package struct {
-	Id         string          `json:",omitempty"`    // 消息ID
-	Data       json.RawMessage `json:",omitempty"`    // 数据,object类型
-	Sign       string          `json:",omitempty"`    // 签名
-	Ssid       string          `json:",omitempty"`    // 会话ID
-	Version    int             `json:"Ver,omitempty"` // 版本
-	ExpireTime int64           `json:",omitempty"`    // 发送的时间戳
-	ToServer   string          `json:",omitempty"`
+	Id       string          `json:",omitempty"`    // 消息ID
+	Data     json.RawMessage `json:",omitempty"`    // 数据,object类型
+	Sign     string          `json:",omitempty"`    // 签名
+	Ssid     string          `json:",omitempty"`    // 会话ID
+	Version  int             `json:"Ver,omitempty"` // 版本
+	ExpireTs int64           `json:",omitempty"`    // 发送的时间戳
+	ToServer string          `json:",omitempty"`
 
-	Body interface{} `json:"-"` // 传入的参数
-	// IsRaw    bool        `json:"-"`
-	IsZip    bool   `json:"-"`
-	SignType string `json:"-"` // md5,raw
+	Body     interface{} `json:"-"` // 传入的参数
+	IsZip    bool        `json:"-"`
+	SignType string      `json:"-"` // md5,raw
 }
 
 func (pkg *Package) parser(typ string) *hashParser {
@@ -272,7 +272,7 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 	if err := json.Unmarshal(buf, pkg); err != nil {
 		return nil, err
 	}
-	if ts := pkg.ExpireTime; ts > 0 && ts < time.Now().Unix() {
+	if ts := pkg.ExpireTs; ts > 0 && ts < time.Now().Unix() {
 		return nil, errPackageExpire
 	}
 

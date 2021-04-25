@@ -1,14 +1,17 @@
 package gateway
 
 import (
+	"sync"
+	"time"
+
 	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/config"
 	"github.com/guogeer/quasar/util"
-	"time"
 )
 
 var (
 	gSessionLocation = map[string]string{}
+	gServices        sync.Map
 )
 
 type serverStatus struct {

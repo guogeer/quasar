@@ -4,18 +4,17 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"github.com/guogeer/quasar/log"
 	"io"
 	"net"
 	"reflect"
 	"sync"
 	"time"
+
+	"github.com/guogeer/quasar/log"
 )
 
 // 协议格式，前4个字节
 // BYTE0：消息类型，BYTE1-3：消息长度
-
-var errInvalidMessageID = errors.New("invalid message ID")
 
 const (
 	pongWait        = 60 * time.Second
@@ -48,7 +47,7 @@ type TCPConn struct {
 }
 
 func (c *TCPConn) Close() {
-	if c.isClose == true {
+	if c.isClose {
 		return
 	}
 	c.isClose = true
@@ -110,7 +109,7 @@ func (c *TCPConn) WriteJSON(name string, i interface{}) error {
 }
 
 func (c *TCPConn) Write(data []byte) error {
-	if c.isClose == true {
+	if c.isClose {
 		return errors.New("connection is closed")
 	}
 	select {
@@ -137,39 +136,14 @@ type cmdEntry struct {
 }
 
 type CmdSet struct {
-	services map[string]bool // 内部服务
-	e        map[string]*cmdEntry
-	mu       sync.RWMutex
+	e  map[string]*cmdEntry
+	mu sync.RWMutex
 
 	hook Handler // 调用顺序：hook->bind
 }
 
 var defaultCmdSet = &CmdSet{
-	services: make(map[string]bool),
-	e:        make(map[string]*cmdEntry),
-}
-
-func (s *CmdSet) RemoveService(name string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.services[name] = false
-}
-
-func (s *CmdSet) RegisterService(servers ...string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	for _, name := range servers {
-		s.services[name] = true
-	}
-}
-
-// 恢复已有的服务
-func (s *CmdSet) RecoverService(name string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, ok := s.services[name]; ok {
-		s.services[name] = true
-	}
+	e: make(map[string]*cmdEntry),
 }
 
 func (s *CmdSet) Bind(name string, h Handler, i interface{}) {
@@ -186,7 +160,7 @@ func (s *CmdSet) Hook(h Handler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.hook != nil {
-		log.Warnf("cmd hook is existed")
+		log.Warn("cmd hook is existed")
 	}
 	s.hook = h
 }
@@ -194,17 +168,16 @@ func (s *CmdSet) Hook(h Handler) {
 func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 	ctx.MsgId = msgId
 	// 空数据使用默认JSON格式数据
-	if data == nil || len(data) == 0 {
+	if len(data) == 0 {
 		data = []byte("{}")
 	}
 
 	serverName, name := routeMessage("", msgId)
-
 	s.mu.RLock()
 	e := s.e[name]
 	hook := s.hook
 	s.mu.RUnlock()
-	// router
+	// 转发消息
 	if len(serverName) > 0 {
 		if ss := GetSession(ctx.Ssid); ss != nil {
 			ss.Route(serverName, name, data)
@@ -213,7 +186,7 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 	}
 
 	if e == nil {
-		return errInvalidMessageID
+		return errors.New("invalid message id")
 	}
 
 	// unmarshal argument

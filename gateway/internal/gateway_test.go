@@ -1,16 +1,18 @@
-package cmd
+package gateway
 
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/websocket"
-	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/util"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/guogeer/quasar/cmd"
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/util"
 )
 
 type testArgs struct {
@@ -29,13 +31,13 @@ func TestMain(m *testing.M) {
 		key := fmt.Sprintf("line_%d", i)
 		body[key] = fmt.Sprintf("%010d", rand.Intn(1234567890))
 	}
-	defaultRawParser.compressPackage = 8 * 1024
+	// defaultRawParser.compressPackage = 8 * 1024
 	bigPackage, _ = json.Marshal(body)
 
 	m.Run()
 }
 
-func testEcho(ctx *Context, iArgs interface{}) {
+func testEcho(ctx *cmd.Context, iArgs interface{}) {
 	if !util.EqualJSON(iArgs, clientMsg) {
 		panic("server handle invalid message")
 	}
@@ -44,8 +46,8 @@ func testEcho(ctx *Context, iArgs interface{}) {
 
 func BenchmarkCompressZip(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		pkg := &Package{Id: "Test", Body: bigPackage, IsZip: true}
-		b2, _ := defaultRawParser.Encode(pkg)
+		pkg := &cmd.Package{Id: "Test", Body: bigPackage, IsZip: true, SignType: "raw"}
+		b2, _ := pkg.Encode()
 		if i == 0 {
 			b.Logf("compress result: %d -> %d %d", len(bigPackage), len(b2), b.N)
 		}
@@ -53,8 +55,8 @@ func BenchmarkCompressZip(b *testing.B) {
 }
 
 func TestRecvClientPackage(t *testing.T) {
-	BindWithName("Echo", testEcho, (*testArgs)(nil))
-	http.HandleFunc("/ws", ServeWs)
+	cmd.BindWithName("Echo", testEcho, (*testArgs)(nil))
+	http.HandleFunc("/ws", serveWs)
 	srv := httptest.NewServer(nil)
 	defer srv.Close()
 
@@ -69,15 +71,15 @@ func TestRecvClientPackage(t *testing.T) {
 
 	for counter := 0; counter < 100*clientPackageSpeedPer2s; counter++ {
 		t1 := time.Now()
-		b, _ := Encode("Echo", clientMsg)
+		b, _ := cmd.Encode("Echo", clientMsg)
 		ws.WriteMessage(websocket.TextMessage, b)
-		waitAndRunOnce(1, 120*time.Second)
+		cmd.RunOnce()
 
 		_, buf, err := ws.ReadMessage()
 		if err != nil {
 			t.Error(err)
 		}
-		pkg, err := Decode(buf)
+		pkg, err := cmd.Decode(buf)
 		if !util.EqualJSON(json.RawMessage(pkg.Data), serverMsg) {
 			panic("client recv invald message")
 		}

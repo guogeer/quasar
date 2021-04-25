@@ -6,16 +6,16 @@ package gateway
 
 import (
 	"context"
-	"errors"
-	"github.com/gorilla/websocket"
-	"github.com/guogeer/quasar/cmd"
-	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/util"
 	"math/rand"
 	"net/http"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/gorilla/websocket"
+	"github.com/guogeer/quasar/cmd"
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/util"
 )
 
 const (
@@ -51,7 +51,7 @@ func (c *WsConn) RemoteAddr() string {
 }
 
 func (c *WsConn) Close() {
-	if c.isClose == true {
+	if c.isClose {
 		return
 	}
 
@@ -74,11 +74,8 @@ func (c *WsConn) Write(data []byte) error {
 		return nil
 	}
 
-	select {
-	case c.send <- data:
-		return nil
-	}
-	return errors.New("write too busy")
+	c.send <- data
+	return nil
 }
 
 func (c *WsConn) writeMessage(mt int, payload []byte) error {
@@ -92,13 +89,13 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("%v", err)
 		return
 	}
-	id := util.GUID()
+	ssid := util.GUID()
 	c := &WsConn{
-		ssid: id,
+		ssid: ssid,
 		ws:   ws,
 		send: make(chan []byte, 1<<10),
 	}
-	cmd.AddSession(&cmd.Session{Id: id, Out: c})
+	cmd.AddSession(&cmd.Session{Id: ssid, Out: c})
 
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
@@ -117,7 +114,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		for {
 			select {
 			case buf, ok := <-c.send:
-				if ok == false {
+				if !ok {
 					return
 				}
 				if err := c.writeMessage(websocket.TextMessage, buf); err != nil {
@@ -137,12 +134,12 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	c.ws.SetReadLimit(4 << 10)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
 	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-
 	defer cancel()
 
-	var deadline time.Time
-	var recvPackageCounter = -1
-	var remoteAddr = c.ws.RemoteAddr().String()
+	deadline := time.Now()
+	recvPackageCounter := -1
+	remoteAddr := c.ws.RemoteAddr().String()
+	matchMsg, _ := regexp.Compile("^[A-Za-z0-9]+$")
 	for {
 		_, message, err := c.ws.ReadMessage()
 		if err != nil {
@@ -158,7 +155,6 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		id, data := pkg.Id, pkg.Data
 		// 网络限流
 		if recvPackageCounter == -1 && rand.Intn(7) == 0 {
 			recvPackageCounter = 0
@@ -170,29 +166,28 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 				recvPackageCounter = -1
 			}
 			if recvPackageCounter >= clientPackageSpeedPer2s {
-				log.Errorf("client %s send %s too busy", remoteAddr, id)
+				log.Errorf("client %s send %s too busy", remoteAddr, pkg.Id)
 				time.Sleep(2 * time.Second)
 			}
 		}
 		// 网关转发的消息ID仅允许包含字母、数字
 		var serverName string
-		if servers := strings.SplitN(id, ".", 2); len(servers) > 1 {
-			serverName, id = servers[0], servers[1]
-		}
-		match, err := regexp.MatchString("^[A-Za-z0-9]+$", id)
-		if !match {
-			log.Warnf("invalid message id %s", id)
-			continue
-		}
-		// TODO 未限制不存在的服务发送请求
-		if serverName != "" {
-			c.WriteJSON("ServerClose", map[string]interface{}{"ServerName": serverName})
-			time.Sleep(2 * time.Second)
-			continue
+		if servers := strings.SplitN(pkg.Id, ".", 2); len(servers) > 1 {
+			serverName = servers[0]
+			if !matchMsg.MatchString(servers[1]) {
+				log.Warnf("invalid message id %s", pkg.Id)
+				continue
+			}
+			// 无效的服务
+			if v, ok := gServices.Load(serverName); !(ok && v == true) {
+				c.WriteJSON("ServerClose", map[string]interface{}{"ServerName": serverName})
+				time.Sleep(2 * time.Second)
+				continue
+			}
 		}
 
 		ctx := &cmd.Context{Out: c, Ssid: c.ssid}
-		if err := cmd.Handle(ctx, id, data); err != nil {
+		if err := cmd.Handle(ctx, pkg.Id, pkg.Data); err != nil {
 			log.Warnf("handle client %s %v", remoteAddr, err)
 		}
 	}

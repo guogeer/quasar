@@ -2,9 +2,10 @@ package gateway
 
 import (
 	"encoding/json"
+	"net"
+
 	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/log"
-	"net"
 )
 
 type Args struct {
@@ -22,11 +23,10 @@ func init() {
 	cmd.Bind(FUNC_Broadcast, (*Args)(nil))
 	cmd.Bind(FUNC_ServerClose, (*Args)(nil))
 	cmd.Bind(FUNC_HelloGateway, (*Args)(nil))
+	cmd.Bind(FUNC_Close, (*Args)(nil))
+	cmd.Bind(FUNC_RegisterServiceInGateway, (*Args)(nil))
 
 	cmd.Bind(HeartBeat, (*Args)(nil))
-	cmd.Bind(FUNC_Close, (*Args)(nil))
-
-	cmd.Bind(FUNC_RegisterServiceInGateway, (*Args)(nil))
 }
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
@@ -74,14 +74,15 @@ func FUNC_Broadcast(ctx *cmd.Context, data interface{}) {
 }
 
 func FUNC_ServerClose(ctx *cmd.Context, data interface{}) {
+	client := ctx.Out.(*cmd.Client)
 	for _, ss := range cmd.GetSessionList() {
-		client := ctx.Out.(*cmd.Client)
 		// 2020-11-24 仅通知在当前服务的连接
 		if client.ServerName() != gSessionLocation[ss.Id] {
 			continue
 		}
 		ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": client.ServerName()})
 	}
+	gServices.Store(client.ServerName(), false)
 }
 
 func HeartBeat(ctx *cmd.Context, data interface{}) {
@@ -90,5 +91,7 @@ func HeartBeat(ctx *cmd.Context, data interface{}) {
 
 func FUNC_RegisterServiceInGateway(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
-	cmd.RegisterServiceInGateway(args.ServerList...)
+	for _, name := range args.ServerList {
+		gServices.Store(name, true)
+	}
 }

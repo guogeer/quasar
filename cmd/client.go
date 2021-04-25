@@ -2,17 +2,18 @@ package cmd
 
 import (
 	"context"
-	"github.com/guogeer/quasar/log"
 	"net"
 	"sync"
 	"time"
+
+	"github.com/guogeer/quasar/log"
 )
 
 type Client struct {
-	name string
 	*TCPConn
 
-	reg interface{}
+	name string
+	reg  interface{} // 连接成功后发送的第一个请求
 }
 
 func newClient(name string) *Client {
@@ -44,8 +45,8 @@ func (c *Client) start() {
 
 		// 第一个包发送校验数据
 		pkg := &Package{
-			SignType:   "md5",
-			ExpireTime: time.Now().Add(5 * time.Second).Unix(),
+			SignType: "md5",
+			ExpireTs: time.Now().Add(5 * time.Second).Unix(),
 		}
 		firstMsg, _ := pkg.Encode()
 		if _, err := c.writeMsg(AuthMessage, firstMsg); err != nil {
@@ -54,7 +55,7 @@ func (c *Client) start() {
 		for {
 			select {
 			case buf, ok := <-c.send:
-				if ok == false {
+				if !ok {
 					return
 				}
 				if _, err := c.writeMsg(RawMessage, buf); err != nil {
@@ -105,30 +106,30 @@ var defaultClientManage = &clientManage{
 
 func (cm *clientManage) Route(serverName string, data []byte) {
 	if serverName == "" {
-		return
+		panic("route empty server name")
 	}
 
 	cm.mu.RLock()
 	client, ok := cm.clients[serverName]
 	cm.mu.RUnlock()
 
-	if ok == false {
+	if !ok {
 		cm.mu.Lock()
-		_, ok2 := cm.clients[serverName]
-		if ok2 == false {
+		_, rok := cm.clients[serverName]
+		if !rok {
 			client = newClient(serverName)
 			cm.clients[serverName] = client
 		}
 		client = cm.clients[serverName]
 		cm.mu.Unlock()
 		// 防止重复连接
-		if ok2 == false {
+		if !rok {
 			cm.connect(serverName)
 		}
 	}
 
 	if err := client.Write(data); err != nil {
-		log.Errorf("route %s data %d error: %v", serverName, len(data), err)
+		log.Errorf("server %s write %s error: %v", serverName, data, err)
 	}
 }
 
@@ -140,20 +141,17 @@ func (cm *clientManage) connect(serverName string) {
 	cm.mu.RUnlock()
 
 	go func() {
-		addr := defaultRouterAddr
 		intervals := []int{100, 400, 1600, 3200, 5000}
 		for retry := 0; true; retry++ {
 			ms := intervals[len(intervals)-1]
 			if retry < len(intervals) {
 				ms = intervals[retry]
 			}
-			if serverName != "router" {
-				addr2, err := RequestServerAddr(serverName)
-				if err != nil {
-					log.Errorf("connect %s %v", serverName, err)
-				}
-				addr = addr2
+			addr, err := RequestServerAddr(serverName)
+			if err != nil {
+				log.Errorf("connect %s %v", serverName, err)
 			}
+
 			if addr != "" {
 				rwc, err := net.Dial("tcp", addr)
 				if err == nil {
@@ -167,7 +165,6 @@ func (cm *clientManage) connect(serverName string) {
 			time.Sleep(time.Duration(ms) * time.Millisecond)
 		}
 		client.start()
-		// defaultCmdSet.Handle(&Context{Out: client}, "CMD_AutoConnect", nil)
 	}()
 }
 
@@ -182,23 +179,22 @@ func (cm *clientManage) Route3(serverName, messageId string, i interface{}) {
 	cm.Route(serverName, msg)
 }
 
-func (cm *clientManage) RegisterService(args *ServiceConfig) {
-	cm.Route3(ServerRouter, "C2S_Register", args)
+func (cm *clientManage) RegisterService(reg *ServiceConfig) {
+	cm.Route3("router", "C2S_Register", reg)
 	cm.mu.Lock()
 	client := cm.clients["router"]
-	client.reg = args
+	client.reg = reg
 	cm.mu.Unlock()
 }
 
 // Client自动重连
-func funcAutoConnect(ctx *Context, iArgs interface{}) {
+func funcAutoConnect(ctx *Context, data interface{}) {
 	client := ctx.Out.(*Client)
 	// ctx.Out.Close()
 
 	cm := defaultClientManage
 	reg, name := client.reg, client.name
-	defaultCmdSet.RemoveService(name)
-	if reg != nil && name == ServerRouter {
+	if reg != nil && name == "router" {
 		cm.Route3(name, "C2S_Register", reg)
 	}
 	cm.connect(name)
