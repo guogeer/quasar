@@ -9,6 +9,8 @@ import (
 type Session struct {
 	Id  string
 	Out Conn
+
+	clientAddr string // 客户端的地址
 }
 
 func (ss *Session) GetServerName() string {
@@ -18,7 +20,7 @@ func (ss *Session) GetServerName() string {
 }
 
 func (ss *Session) Route(serverName, name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ToServer: serverName, SignType: "raw"}
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ToServer: serverName, SignType: "raw", ClientAddr: ss.clientAddr}
 	buf, err := pkg.Encode()
 	if err != nil {
 		return

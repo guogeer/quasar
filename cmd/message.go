@@ -24,11 +24,12 @@ var (
 )
 
 type Context struct {
-	Out      Conn   // 连接
-	MsgId    string // 消息ID
-	Ssid     string // 发送方会话ID
-	Version  int    // 协议版本，当前未生效
-	ToServer string
+	Out        Conn   // 连接
+	MsgId      string // 消息ID
+	Ssid       string // 发送方会话ID
+	Version    int    // 协议版本，当前未生效
+	ToServer   string // TODO 转发的服务目的地
+	ClientAddr string // 客户端地址
 }
 
 type Message struct {
@@ -180,13 +181,14 @@ func Enqueue(ctx *Context, h Handler, args interface{}) {
 }
 
 type Package struct {
-	Id       string          `json:",omitempty"`    // 消息ID
-	Data     json.RawMessage `json:",omitempty"`    // 数据,object类型
-	Sign     string          `json:",omitempty"`    // 签名
-	Ssid     string          `json:",omitempty"`    // 会话ID
-	Version  int             `json:"Ver,omitempty"` // 版本
-	ExpireTs int64           `json:",omitempty"`    // 发送的时间戳
-	ToServer string          `json:",omitempty"`
+	Id         string          `json:",omitempty"`    // 消息ID
+	Data       json.RawMessage `json:",omitempty"`    // 数据,object类型
+	Sign       string          `json:",omitempty"`    // 签名
+	Ssid       string          `json:",omitempty"`    // 会话ID
+	Version    int             `json:"Ver,omitempty"` // 版本
+	ExpireTs   int64           `json:",omitempty"`    // 发送的时间戳
+	ToServer   string          `json:",omitempty"`    // 转发的服务目的地
+	ClientAddr string          `json:",omitempty"`    // 客户端地址
 
 	Body     interface{} `json:"-"` // 传入的参数
 	IsZip    bool        `json:"-"`

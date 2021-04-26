@@ -186,7 +186,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		ctx := &cmd.Context{Out: c, Ssid: c.ssid}
+		ctx := &cmd.Context{Out: c, Ssid: c.ssid, ClientAddr: c.RemoteAddr()}
 		if err := cmd.Handle(ctx, pkg.Id, pkg.Data); err != nil {
 			log.Warnf("handle client %s %v", remoteAddr, err)
 		}

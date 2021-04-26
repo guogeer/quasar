@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	gSessionLocation = map[string]string{}
-	gServices        sync.Map
+	gSessionLocations sync.Map
+	gServices         sync.Map
 )
 
 type serverStatus struct {

@@ -31,11 +31,13 @@ func init() {
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	log.Debugf("session close %s", ctx.Ssid)
-	if serverName, ok := gSessionLocation[ctx.Ssid]; ok {
+	if v, ok := gSessionLocations.Load(ctx.Ssid); ok {
+		serverName := v.(string)
 		ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
 		ss.Route(serverName, "Close", struct{}{})
-		delete(gSessionLocation, ctx.Ssid)
+
 	}
+	gSessionLocations.Delete(ctx.Ssid)
 }
 
 func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
@@ -47,7 +49,7 @@ func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
 	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
 		addr := ss.Out.RemoteAddr()
 		log.Debug("hello gateway", addr)
-		gSessionLocation[ctx.Ssid] = args.ServerName
+		gSessionLocations.Store(ctx.Ssid, args.ServerName)
 		if host, _, err := net.SplitHostPort(addr); err == nil {
 			ip = host
 		}
@@ -77,10 +79,9 @@ func FUNC_ServerClose(ctx *cmd.Context, data interface{}) {
 	client := ctx.Out.(*cmd.Client)
 	for _, ss := range cmd.GetSessionList() {
 		// 2020-11-24 仅通知在当前服务的连接
-		if client.ServerName() != gSessionLocation[ss.Id] {
-			continue
+		if v, ok := gSessionLocations.Load(ss.Id); ok && v == client.ServerName() {
+			ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": client.ServerName()})
 		}
-		ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": client.ServerName()})
 	}
 	gServices.Store(client.ServerName(), false)
 }
