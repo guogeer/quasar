@@ -9,8 +9,6 @@ import (
 type Session struct {
 	Id  string
 	Out Conn
-
-	clientAddr string // 客户端的地址
 }
 
 func (ss *Session) GetServerName() string {
@@ -19,8 +17,17 @@ func (ss *Session) GetServerName() string {
 	return client.name
 }
 
+func (ss *Session) routeContext(ctx *Context, name string, i interface{}) {
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ToServer: ctx.ToServer, SignType: "raw", ClientAddr: ctx.ClientAddr}
+	buf, err := pkg.Encode()
+	if err != nil {
+		return
+	}
+	defaultClientManage.Route(ctx.MatchServer, buf)
+}
+
 func (ss *Session) Route(serverName, name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ToServer: serverName, SignType: "raw", ClientAddr: ss.clientAddr}
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ToServer: serverName, SignType: "raw"}
 	buf, err := pkg.Encode()
 	if err != nil {
 		return

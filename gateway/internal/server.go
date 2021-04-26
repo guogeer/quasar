@@ -136,7 +136,9 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 	defer cancel()
 
-	deadline := time.Now()
+	var deadline time.Time
+	var oldServer, oldMatchServer string
+
 	recvPackageCounter := -1
 	remoteAddr := c.ws.RemoteAddr().String()
 	matchMsg, _ := regexp.Compile("^[A-Za-z0-9]+$")
@@ -171,22 +173,45 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		// 网关转发的消息ID仅允许包含字母、数字
-		var serverName string
+		var serverName, matchServer string
 		if servers := strings.SplitN(pkg.Id, ".", 2); len(servers) > 1 {
 			serverName = servers[0]
 			if !matchMsg.MatchString(servers[1]) {
 				log.Warnf("invalid message id %s", pkg.Id)
 				continue
 			}
+			matchServer = oldMatchServer
+			if serverName != oldServer {
+				matchServer = matchBestServer(c.ssid, serverName)
+				if matchServer != serverName {
+					oldMatchServer = matchServer
+				}
+			}
+			// 服务有效
+			var isAlive bool
+			if matchServer != "" {
+				serverStateMu.RLock()
+				if _, ok := serverStates[matchServer]; ok {
+					isAlive = true
+				}
+				serverStateMu.RUnlock()
+			}
+
 			// 无效的服务
-			if v, ok := gServices.Load(serverName); !(ok && v == true) {
+			if !isAlive {
 				c.WriteJSON("ServerClose", map[string]interface{}{"ServerName": serverName})
 				time.Sleep(2 * time.Second)
 				continue
 			}
 		}
 
-		ctx := &cmd.Context{Out: c, Ssid: c.ssid, ClientAddr: c.RemoteAddr()}
+		ctx := &cmd.Context{
+			Out:         c,
+			Ssid:        c.ssid,
+			ClientAddr:  c.RemoteAddr(),
+			MatchServer: matchServer,
+			ToServer:    serverName,
+		}
 		if err := cmd.Handle(ctx, pkg.Id, pkg.Data); err != nil {
 			log.Warnf("handle client %s %v", remoteAddr, err)
 		}

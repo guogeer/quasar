@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+	"net"
+	"runtime"
+	"strconv"
+
 	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/config"
 	"github.com/guogeer/quasar/log"
 	_ "github.com/guogeer/quasar/router/internal"
 	"github.com/guogeer/quasar/util"
-	"net"
-	"runtime"
-	"strconv"
 )
 
 func main() {

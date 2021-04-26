@@ -180,7 +180,7 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 	// 转发消息
 	if len(serverName) > 0 {
 		if ss := GetSession(ctx.Ssid); ss != nil {
-			ss.Route(serverName, name, data)
+			ss.routeContext(ctx, name, data)
 		}
 		return nil
 	}

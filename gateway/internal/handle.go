@@ -16,6 +16,7 @@ type Args struct {
 
 	Name       string
 	ServerList []string
+	Servers    []*serverState
 }
 
 func init() {
@@ -25,19 +26,20 @@ func init() {
 	cmd.Bind(FUNC_HelloGateway, (*Args)(nil))
 	cmd.Bind(FUNC_Close, (*Args)(nil))
 	cmd.Bind(FUNC_RegisterServiceInGateway, (*Args)(nil))
+	cmd.Bind(FUNC_SyncServerState, (*Args)(nil))
 
 	cmd.Bind(HeartBeat, (*Args)(nil))
 }
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	log.Debugf("session close %s", ctx.Ssid)
-	if v, ok := gSessionLocations.Load(ctx.Ssid); ok {
+	if v, ok := sessionLocations.Load(ctx.Ssid); ok {
 		serverName := v.(string)
 		ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
 		ss.Route(serverName, "Close", struct{}{})
 
 	}
-	gSessionLocations.Delete(ctx.Ssid)
+	sessionLocations.Delete(ctx.Ssid)
 }
 
 func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
@@ -49,7 +51,7 @@ func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
 	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
 		addr := ss.Out.RemoteAddr()
 		log.Debug("hello gateway", addr)
-		gSessionLocations.Store(ctx.Ssid, args.ServerName)
+		sessionLocations.Store(ctx.Ssid, args.ServerName)
 		if host, _, err := net.SplitHostPort(addr); err == nil {
 			ip = host
 		}
@@ -79,20 +81,32 @@ func FUNC_ServerClose(ctx *cmd.Context, data interface{}) {
 	client := ctx.Out.(*cmd.Client)
 	for _, ss := range cmd.GetSessionList() {
 		// 2020-11-24 仅通知在当前服务的连接
-		if v, ok := gSessionLocations.Load(ss.Id); ok && v == client.ServerName() {
+		if v, ok := sessionLocations.Load(ss.Id); ok && v == client.ServerName() {
 			ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": client.ServerName()})
 		}
 	}
-	gServices.Store(client.ServerName(), false)
+	regServices.Store(client.ServerName(), false)
 }
 
 func HeartBeat(ctx *cmd.Context, data interface{}) {
 	ctx.Out.WriteJSON("HeartBeat", struct{}{})
 }
 
+// Deprecated: use FUNC_SyncServerState
 func FUNC_RegisterServiceInGateway(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
 	for _, name := range args.ServerList {
-		gServices.Store(name, true)
+		regServices.Store(name, true)
+	}
+}
+
+// 同步服务负载
+func FUNC_SyncServerState(ctx *cmd.Context, data interface{}) {
+	args := data.(*Args)
+
+	serverStateMu.Lock()
+	defer serverStateMu.Unlock()
+	for _, state := range args.Servers {
+		serverStates[state.ServerName] = state
 	}
 }

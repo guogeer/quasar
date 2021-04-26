@@ -24,12 +24,13 @@ var (
 )
 
 type Context struct {
-	Out        Conn   // 连接
-	MsgId      string // 消息ID
-	Ssid       string // 发送方会话ID
-	Version    int    // 协议版本，当前未生效
-	ToServer   string // TODO 转发的服务目的地
-	ClientAddr string // 客户端地址
+	Out         Conn   // 连接
+	MsgId       string // 消息ID
+	Ssid        string // 发送方会话ID
+	Version     int    // 协议版本，当前未生效
+	ToServer    string // TODO 转发的服务目的地
+	ClientAddr  string // 客户端地址
+	MatchServer string // 多个服务合并后的唯一serverName
 }
 
 type Message struct {

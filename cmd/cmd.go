@@ -77,8 +77,10 @@ type ServiceConfig struct {
 	ServerAddr string      `json:",omitempty"`
 	ServerData interface{} `json:",omitempty"`
 	ServerType string      `json:",omitempty"` // center,gateway etc
-	IsRandPort bool        `json:",omitempty"`
+	IsRandPort bool        `json:",omitempty"` // Deprecated: 服务合并后指定端口，不再需要随机端口
 	ServerList []string    `json:",omitempty"`
+	MinWeight  int         `json:",omitempty"` // 最小的负载
+	MaxWeight  int         `json:",omitempty"` // 最大的负载
 }
 
 type cmdArgs ServiceConfig

@@ -2,9 +2,10 @@ package router
 
 import (
 	"encoding/json"
+	"net"
+
 	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/log"
-	"net"
 )
 
 type Args struct {
@@ -67,6 +68,7 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 		}
 	}
 
+	// Deprecated: use FUNC_SyncServerState
 	// 向网关注册服务
 	if newServer.typ == serverGateway {
 		for _, server := range gRouter.servers {
@@ -104,18 +106,29 @@ func C2S_Broadcast(ctx *cmd.Context, data interface{}) {
 // 更新网关负载
 func C2S_Concurrent(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
+
+	var isGw bool
 	for _, gw := range gRouter.gateways {
 		if gw.out == ctx.Out {
-			// log.Debug("test ", gw.addr, gw.weight)
+			isGw = true
 			gw.weight = args.Weight
 		}
 	}
 
-	addr := gRouter.GetBestGateway()
-	// log.Debug("concurrent", addr, args.Weight)
-	if s := gRouter.GetServer("login"); s != nil {
-		response := map[string]interface{}{"Address": addr}
-		s.out.WriteJSON("S2C_GetBestGateway", response)
+	for _, srv := range gRouter.servers {
+		if srv.out == ctx.Out {
+			srv.weight = args.Weight
+		}
+	}
+
+	if isGw {
+		// TODO 减少同步频率
+		addr := gRouter.GetBestGateway()
+		// log.Debug("concurrent", addr, args.Weight)
+		if s := gRouter.GetServer("login"); s != nil {
+			response := map[string]interface{}{"Address": addr}
+			s.out.WriteJSON("S2C_GetBestGateway", response)
+		}
 	}
 }
 
@@ -150,4 +163,5 @@ func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	if server != nil {
 		log.Infof("server %s lose connection", server.name)
 	}
+	gRouter.syncServerState()
 }

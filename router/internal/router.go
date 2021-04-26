@@ -1,9 +1,11 @@
 package router
 
 import (
-	"github.com/guogeer/quasar/cmd"
-	// "github.com/guogeer/quasar/log"
 	"encoding/json"
+	"time"
+
+	"github.com/guogeer/quasar/cmd"
+	"github.com/guogeer/quasar/util"
 )
 
 const (
@@ -11,12 +13,19 @@ const (
 	serverCenter  = "center"  // 世界服
 )
 
+func init() {
+	util.NewPeriodTimer(gRouter.syncServerState, time.Now(), 10*time.Second)
+}
+
 type Server struct {
 	out             cmd.Conn
-	weight          int
 	name, addr, typ string
 	IsRandPort      bool
 	serverList      []string
+
+	minWeight int // 最小负载
+	maxWeight int // 最大负载
+	weight    int // 当前负载
 
 	data json.RawMessage
 }
@@ -33,10 +42,8 @@ var gRouter = &Router{
 }
 
 func (r *Router) GetBestGateway() string {
-	var (
-		addr   string
-		weight int
-	)
+	var addr string
+	var weight int
 	for host, gw := range r.gateways {
 		if len(addr) == 0 || gw.weight < weight {
 			addr = host
@@ -106,5 +113,33 @@ func (r *Router) AddServer(server *Server) {
 		r.gateways[addr] = server
 	} else {
 		r.servers[name] = server
+		r.syncServerState()
+	}
+}
+
+type serverState struct {
+	MinWeight  int
+	MaxWeight  int
+	Weight     int
+	ServerName string
+	ServerList []string
+}
+
+// 向gw同步server服务负载
+func (r *Router) syncServerState() {
+	var servers []serverState
+	for _, server := range r.servers {
+		servers = append(servers, serverState{
+			MinWeight:  server.minWeight,
+			MaxWeight:  server.maxWeight,
+			Weight:     server.weight,
+			ServerName: server.name,
+			ServerList: server.serverList,
+		})
+	}
+	for _, gw := range r.gateways {
+		gw.out.WriteJSON("FUNC_SyncServerState", map[string]interface{}{
+			"Servers": servers,
+		})
 	}
 }

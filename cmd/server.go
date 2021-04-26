@@ -135,7 +135,12 @@ func (c *ServeConn) serve() {
 				return
 			}
 
-			ctx := &Context{Out: c, Ssid: pkg.Ssid, ToServer: pkg.ToServer, ClientAddr: pkg.ClientAddr}
+			ctx := &Context{
+				Out:        c,
+				Ssid:       pkg.Ssid,
+				ToServer:   pkg.ToServer,
+				ClientAddr: pkg.ClientAddr,
+			}
 			err = defaultCmdSet.Handle(ctx, pkg.Id, pkg.Data)
 			if err != nil {
 				log.Debugf("handle msg[%s] error: %v", buf, err)
