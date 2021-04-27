@@ -2,7 +2,7 @@ package gateway
 
 import (
 	"encoding/json"
-	"net"
+	// "net"
 
 	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/log"
@@ -43,21 +43,24 @@ func FUNC_Close(ctx *cmd.Context, data interface{}) {
 }
 
 func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
-	log.Debugf("session locate %s", ctx.Ssid)
 	args := data.(*Args)
-	uid := args.UId
+	// uid := args.UId
+	log.Debugf("session locate ssid:%s server name:%s", ctx.Ssid, args.ServerName)
 
-	ip := "UNKNOW"
+	// ip := "UNKNOW"
 	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
-		addr := ss.Out.RemoteAddr()
-		log.Debug("hello gateway", addr)
-		sessionLocations.Store(ctx.Ssid, args.ServerName)
-		if host, _, err := net.SplitHostPort(addr); err == nil {
-			ip = host
+		// addr := ss.Out.RemoteAddr()
+		if args.ServerName == "" {
+			sessionLocations.Delete(ctx.Ssid)
+		} else {
+			sessionLocations.Store(ctx.Ssid, args.ServerName)
 		}
+		/* if host, _, err := net.SplitHostPort(addr); err == nil {
+			ip = host
+		} */
 	}
-	ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
-	ss.WriteJSON("FUNC_HelloGateway", map[string]interface{}{"UId": uid, "IP": ip})
+	// ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
+	// ss.WriteJSON("FUNC_HelloGateway", map[string]interface{}{"UId": uid, "IP": ip})
 }
 
 func FUNC_Route(ctx *cmd.Context, data interface{}) {

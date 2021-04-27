@@ -199,3 +199,6 @@ func funcAutoConnect(ctx *Context, data interface{}) {
 	}
 	cm.connect(name)
 }
+
+func funcRegister(ctx *Context, data interface{}) {
+}

@@ -38,6 +38,7 @@ func init() {
 	}
 
 	// 断线后自动重连
+	BindWithName("C2S_RegisterOk", funcRegister, (*cmdArgs)(nil))
 	BindWithName("CMD_AutoConnect", funcAutoConnect, (*cmdArgs)(nil))
 	BindWithName("CMD_Close", funcClose, (*cmdArgs)(nil))
 }
@@ -168,6 +169,10 @@ func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 
 // 向路由请求服务器地址
 func RequestServerAddr(name string) (string, error) {
+	if name == "router" {
+		return defaultRouterAddr, nil
+	}
+
 	req := cmdArgs{ServerName: name}
 	buf, err := Request("router", "C2S_GetServerAddr", req)
 	if err != nil {

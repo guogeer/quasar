@@ -124,7 +124,7 @@ func C2S_Concurrent(ctx *cmd.Context, data interface{}) {
 	if isGw {
 		// TODO 减少同步频率
 		addr := gRouter.GetBestGateway()
-		// log.Debug("concurrent", addr, args.Weight)
+		log.Debug("concurrent", isGw, args.Weight, addr)
 		if s := gRouter.GetServer("login"); s != nil {
 			response := map[string]interface{}{"Address": addr}
 			s.out.WriteJSON("S2C_GetBestGateway", response)
