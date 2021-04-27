@@ -2,7 +2,7 @@ package gateway
 
 import (
 	"encoding/json"
-	// "net"
+	"net"
 
 	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/log"
@@ -24,6 +24,7 @@ func init() {
 	cmd.Bind(FUNC_Broadcast, (*Args)(nil))
 	cmd.Bind(FUNC_ServerClose, (*Args)(nil))
 	cmd.Bind(FUNC_HelloGateway, (*Args)(nil))
+	cmd.Bind(FUNC_SwitchServer, (*Args)(nil))
 	cmd.Bind(FUNC_Close, (*Args)(nil))
 	cmd.Bind(FUNC_RegisterServiceInGateway, (*Args)(nil))
 	cmd.Bind(FUNC_SyncServerState, (*Args)(nil))
@@ -42,25 +43,35 @@ func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	sessionLocations.Delete(ctx.Ssid)
 }
 
+// Deprecated: FUNC_SwitchServer替换；增加了Context.ClientAddr
 func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
-	// uid := args.UId
+	uid := args.UId
 	log.Debugf("session locate ssid:%s server name:%s", ctx.Ssid, args.ServerName)
 
-	// ip := "UNKNOW"
+	ip := "UNKNOW"
 	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
-		// addr := ss.Out.RemoteAddr()
+		addr := ss.Out.RemoteAddr()
+		sessionLocations.Store(ctx.Ssid, args.ServerName)
+		if host, _, err := net.SplitHostPort(addr); err == nil {
+			ip = host
+		}
+	}
+	ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
+	ss.WriteJSON("FUNC_HelloGateway", map[string]interface{}{"UId": uid, "IP": ip})
+}
+
+func FUNC_SwitchServer(ctx *cmd.Context, data interface{}) {
+	args := data.(*Args)
+	log.Debugf("session ssid:%s switch server name:%s", ctx.Ssid, args.ServerName)
+
+	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
 		if args.ServerName == "" {
 			sessionLocations.Delete(ctx.Ssid)
 		} else {
 			sessionLocations.Store(ctx.Ssid, args.ServerName)
 		}
-		/* if host, _, err := net.SplitHostPort(addr); err == nil {
-			ip = host
-		} */
 	}
-	// ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
-	// ss.WriteJSON("FUNC_HelloGateway", map[string]interface{}{"UId": uid, "IP": ip})
 }
 
 func FUNC_Route(ctx *cmd.Context, data interface{}) {
