@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"runtime"
@@ -13,12 +14,18 @@ import (
 	"github.com/guogeer/quasar/util"
 )
 
+var port = flag.Int("port", 9003, "router server port")
+
 func main() {
+	flag.Parse()
+
 	addr := config.Config().Server("router").Addr
 	_, portStr, _ := net.SplitHostPort(addr)
-	port, _ := strconv.Atoi(portStr)
-	log.Infof("start router server, listen %d", port)
-	go func() { cmd.ListenAndServe(fmt.Sprintf(":%d", port)) }()
+	if portStr != "" {
+		*port, _ = strconv.Atoi(portStr)
+	}
+	log.Infof("start router server, listen %d", *port)
+	go func() { cmd.ListenAndServe(fmt.Sprintf(":%d", *port)) }()
 
 	defer func() {
 		if err := recover(); err != nil {

@@ -10,7 +10,7 @@ import (
 
 var (
 	sessionLocations sync.Map
-	regServices      sync.Map
+	regServices      sync.Map // Deprecated
 
 	serverStates  = map[string]*serverState{}
 	serverStateMu sync.RWMutex
@@ -41,7 +41,7 @@ func concurrent() {
 // 匹配规则：
 // 1、ServerName == name时直接选中
 // 2、优先匹配最小ServerName且人数小于MinOnline
-// 3、匹配Weight最小
+// 3、匹配Weight最小
 //
 func matchBestServer(ssid, name string) string {
 	serverStateMu.RLock()
@@ -52,17 +52,17 @@ func matchBestServer(ssid, name string) string {
 		return state.ServerName
 	}
 
-	if v, ok := sessionLocations.Load(ssid); ok && v != "" {
-		return v.(string)
-	}
-
 	matchServers := map[string]bool{}
 	for _, server := range serverStates {
 		for _, child := range server.ServerList {
-			if server.ServerName == child {
+			if name == child {
 				matchServers[server.ServerName] = true
 			}
 		}
+	}
+
+	if v, ok := sessionLocations.Load(ssid); ok && matchServers[v.(string)] {
+		return v.(string)
 	}
 
 	var matchName string
@@ -77,7 +77,8 @@ func matchBestServer(ssid, name string) string {
 	}
 	for server := range matchServers {
 		state := serverStates[server]
-		if state.Weight < state.MaxOnline && (matchName == "" || state.Weight < serverStates[matchName].Weight) {
+		if (state.MaxOnline == 0 || state.Weight < state.MaxOnline) &&
+			(matchName == "" || state.Weight < serverStates[matchName].Weight) {
 			matchName = server
 		}
 	}

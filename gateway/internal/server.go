@@ -181,12 +181,14 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			matchServer = oldMatchServer
+			// 请求的新服务
 			if serverName != oldServer {
 				matchServer = matchBestServer(c.ssid, serverName)
-				if matchServer != serverName {
-					oldMatchServer = matchServer
+				if matchServer != serverName && matchServer != "" {
+					oldServer, oldMatchServer = serverName, matchServer
 				}
 			}
+			// log.Debugf("serverName:%s matchServer:%s oldServer:%s oldMatchServer:%s", serverName, matchServer, oldServer, oldMatchServer)
 			// 服务有效
 			var isAlive bool
 			if matchServer != "" {
