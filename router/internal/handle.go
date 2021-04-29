@@ -157,11 +157,10 @@ func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	// args := data.(*Args)
 	// 断线后移除配置信息。部分服务采用了系统随机端口，容易产生端口被占用的情况
 	server := gRouter.findConnServer(ctx.Out)
-	if server != nil && server.IsRandPort {
-		gRouter.Remove(ctx.Out)
-	}
 	if server != nil {
 		log.Infof("server %s lose connection", server.name)
 	}
+
+	gRouter.Remove(ctx.Out)
 	gRouter.syncServerState()
 }
