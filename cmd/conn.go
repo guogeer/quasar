@@ -131,8 +131,9 @@ func (c *TCPConn) writeMsg(mt int, msg []byte) (int, error) {
 type Handler func(*Context, interface{})
 
 type cmdEntry struct {
-	h     Handler
-	type_ reflect.Type
+	h           Handler
+	type_       reflect.Type
+	isPushQueue bool // 请求入消息队列处理
 }
 
 type CmdSet struct {
@@ -146,14 +147,14 @@ var defaultCmdSet = &CmdSet{
 	e: make(map[string]*cmdEntry),
 }
 
-func (s *CmdSet) Bind(name string, h Handler, i interface{}) {
+func (s *CmdSet) Bind(name string, h Handler, i interface{}, isPushQueue bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.e[name]; ok {
 		log.Warnf("%s exist", name)
 	}
 	type_ := reflect.TypeOf(i)
-	s.e[name] = &cmdEntry{h: h, type_: type_}
+	s.e[name] = &cmdEntry{h: h, type_: type_, isPushQueue: isPushQueue}
 }
 
 func (s *CmdSet) Hook(h Handler) {
@@ -195,8 +196,15 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 		return err
 	}
 
-	msg := &Message{id: name, ctx: ctx, h: e.h, args: args, hook: hook}
-	defaultMessageQueue.Enqueue(msg)
+	// 消息入队处理
+	if e.isPushQueue {
+		msg := &Message{id: name, ctx: ctx, h: e.h, args: args, hook: hook}
+		defaultMessageQueue.Enqueue(msg)
+	} else {
+		// 消息直接处理。入网关转发数据时
+		e.h(ctx, args)
+	}
+
 	return nil
 }
 

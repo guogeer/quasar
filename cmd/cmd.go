@@ -43,11 +43,16 @@ func init() {
 }
 
 func BindWithName(name string, h Handler, args interface{}) {
-	defaultCmdSet.Bind(name, h, args)
+	defaultCmdSet.Bind(name, h, args, false)
 }
 
 func Hook(h Handler) {
 	defaultCmdSet.Hook(h)
+}
+
+// 消息不入队列直接处理
+func BindWithoutQueue(name string, h Handler, args interface{}) {
+	defaultCmdSet.Bind(name, h, args, true)
 }
 
 func Bind(h Handler, args interface{}) {

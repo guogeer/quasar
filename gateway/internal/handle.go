@@ -20,7 +20,8 @@ type Args struct {
 }
 
 func init() {
-	cmd.Bind(FUNC_Route, (*Args)(nil))
+	cmd.BindWithoutQueue("FUNC_Route", FUNC_Route, (*Args)(nil))
+
 	cmd.Bind(FUNC_Broadcast, (*Args)(nil))
 	cmd.Bind(FUNC_ServerClose, (*Args)(nil))
 	cmd.Bind(FUNC_HelloGateway, (*Args)(nil))
@@ -60,6 +61,7 @@ func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
 	ss.WriteJSON("FUNC_HelloGateway", map[string]interface{}{"UId": uid, "IP": ip})
 }
 
+// 直接转发消息到客户端
 func FUNC_Route(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
 	// log.Info("route", ctx.Ssid)
