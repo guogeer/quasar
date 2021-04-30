@@ -28,7 +28,7 @@ type Context struct {
 	MsgId       string // 消息ID
 	Ssid        string // 发送方会话ID
 	Version     int    // 协议版本，当前未生效
-	ToServer    string // TODO 转发的服务目的地
+	ServerName  string // 请求的协议头
 	ClientAddr  string // 客户端地址
 	MatchServer string // 多个服务合并后的唯一serverName
 }
@@ -188,7 +188,7 @@ type Package struct {
 	Ssid       string          `json:",omitempty"`    // 会话ID
 	Version    int             `json:"Ver,omitempty"` // 版本
 	ExpireTs   int64           `json:",omitempty"`    // 发送的时间戳
-	ToServer   string          `json:",omitempty"`    // 转发的服务目的地
+	ServerName string          `json:",omitempty"`    // 请求的协议头
 	ClientAddr string          `json:",omitempty"`    // 客户端地址
 
 	Body     interface{} `json:"-"` // 传入的参数

@@ -9,7 +9,9 @@ import (
 )
 
 type Args struct {
-	Id, ServerName string
+	Id          string
+	ServerName  string
+	MatchServer string
 
 	UId  int
 	Data json.RawMessage
@@ -36,9 +38,9 @@ func init() {
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	log.Debugf("session close %s", ctx.Ssid)
 	if v, ok := sessionLocations.Load(ctx.Ssid); ok {
-		serverName := v.(string)
+		loc := v.(*sessionLocation)
 		ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
-		ss.Route(serverName, "Close", struct{}{})
+		ss.Route(loc.ServerName, "Close", struct{}{})
 
 	}
 	sessionLocations.Delete(ctx.Ssid)
@@ -53,7 +55,8 @@ func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
 	ip := "UNKNOW"
 	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
 		addr := ss.Out.RemoteAddr()
-		sessionLocations.Store(ctx.Ssid, args.ServerName)
+		loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.ServerName}
+		sessionLocations.Store(ctx.Ssid, loc)
 		if host, _, err := net.SplitHostPort(addr); err == nil {
 			ip = host
 		}
@@ -70,7 +73,8 @@ func FUNC_SwitchServer(ctx *cmd.Context, data interface{}) {
 		if args.ServerName == "" {
 			sessionLocations.Delete(ctx.Ssid)
 		} else {
-			sessionLocations.Store(ctx.Ssid, args.ServerName)
+			loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.MatchServer}
+			sessionLocations.Store(ctx.Ssid, loc)
 		}
 	}
 }
@@ -97,8 +101,11 @@ func FUNC_ServerClose(ctx *cmd.Context, data interface{}) {
 	client := ctx.Out.(*cmd.Client)
 	for _, ss := range cmd.GetSessionList() {
 		// 2020-11-24 仅通知在当前服务的连接
-		if v, ok := sessionLocations.Load(ss.Id); ok && v == client.ServerName() {
-			ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": client.ServerName()})
+		if v, ok := sessionLocations.Load(ss.Id); ok {
+			loc := v.(*sessionLocation)
+			if loc.MatchServer == client.ServerName() {
+				ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": loc.ServerName})
+			}
 		}
 	}
 	regServices.Store(client.ServerName(), false)
@@ -122,6 +129,7 @@ func FUNC_SyncServerState(ctx *cmd.Context, data interface{}) {
 
 	serverStateMu.Lock()
 	defer serverStateMu.Unlock()
+	serverStates = map[string]*serverState{}
 	for _, state := range args.Servers {
 		serverStates[state.ServerName] = state
 	}

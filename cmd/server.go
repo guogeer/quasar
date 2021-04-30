@@ -138,7 +138,7 @@ func (c *ServeConn) serve() {
 			ctx := &Context{
 				Out:        c,
 				Ssid:       pkg.Ssid,
-				ToServer:   pkg.ToServer,
+				ServerName: pkg.ServerName,
 				ClientAddr: pkg.ClientAddr,
 			}
 			err = defaultCmdSet.Handle(ctx, pkg.Id, pkg.Data)

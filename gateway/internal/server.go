@@ -201,7 +201,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 			// 无效的服务
 			if !isAlive {
-				c.WriteJSON("ServerClose", map[string]interface{}{"ServerName": serverName})
+				c.WriteJSON("ServerClose", map[string]interface{}{"ServerName": servers[0]})
 				time.Sleep(2 * time.Second)
 				continue
 			}
@@ -212,7 +212,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			Ssid:        c.ssid,
 			ClientAddr:  c.RemoteAddr(),
 			MatchServer: matchServer,
-			ToServer:    serverName,
+			ServerName:  serverName,
 		}
 		if err := cmd.Handle(ctx, pkg.Id, pkg.Data); err != nil {
 			log.Warnf("handle client %s %v", remoteAddr, err)

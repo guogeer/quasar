@@ -18,7 +18,14 @@ func (ss *Session) GetServerName() string {
 }
 
 func (ss *Session) routeContext(ctx *Context, name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ToServer: ctx.ToServer, SignType: "raw", ClientAddr: ctx.ClientAddr}
+	pkg := &Package{
+		Id:         name,
+		Body:       i,
+		Ssid:       ss.Id,
+		ServerName: ctx.ServerName,
+		SignType:   "raw",
+		ClientAddr: ctx.ClientAddr,
+	}
 	buf, err := pkg.Encode()
 	if err != nil {
 		return
@@ -27,7 +34,7 @@ func (ss *Session) routeContext(ctx *Context, name string, i interface{}) {
 }
 
 func (ss *Session) Route(serverName, name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ToServer: serverName, SignType: "raw"}
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ServerName: serverName, SignType: "raw"}
 	buf, err := pkg.Encode()
 	if err != nil {
 		return
