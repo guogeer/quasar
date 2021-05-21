@@ -11,54 +11,53 @@ import (
 const (
 	serverGateway = "gateway" // 网关服
 	serverCenter  = "center"  // 世界服
+	serverEntry   = "entry"   // 入口，需同步gw地址
 )
 
 func init() {
-	util.NewPeriodTimer(gRouter.syncServerState, time.Now(), 10*time.Second)
+	util.NewPeriodTimer(syncServerState, time.Now(), 10*time.Second)
 }
 
 type Server struct {
-	out             cmd.Conn
-	name, addr, typ string
-	IsRandPort      bool
-	serverList      []string
+	out cmd.Conn
 
-	minWeight int // 最小负载
-	maxWeight int // 最大负载
+	name       string
+	typ        string
+	addr       string   // 地址
+	serverList []string // 子服务
+	IsRandPort bool
+
+	minWeight int // 最大负载
+	maxWeight int // 最小负载
 	weight    int // 当前负载
 
 	data json.RawMessage
 }
 
-type Router struct {
-	servers  map[string]*Server
-	gateways map[string]*Server
-}
+var (
+	servers  = map[string]*Server{}
+	gateways = map[string]*Server{}
+)
 
-var gRouter = &Router{
-	servers:  make(map[string]*Server),
-	gateways: make(map[string]*Server),
-	// SubGameList: make(map[string]cmd.Writer),
-}
-
-func (r *Router) GetBestGateway() string {
+// 查找最新的gw地址
+func getBestGateway() string {
 	var addr string
 	var weight int
-	for host, gw := range r.gateways {
+	for host, gw := range gateways {
 		if len(addr) == 0 || gw.weight < weight {
 			addr = host
 			weight = gw.weight
-			// log.Debug("best", addr, gw.weight, weight)
 		}
 	}
 	return addr
 }
 
-func (r *Router) MatchBestServer(name string) string {
-	if server, ok := r.servers[name]; ok {
+// 匹配服务
+func matchBestServer(name string) string {
+	if server, ok := servers[name]; ok {
 		return server.addr
 	}
-	for _, server := range r.servers {
+	for _, server := range servers {
 		for _, serverName := range server.serverList {
 			if serverName == name {
 				return server.addr
@@ -68,23 +67,23 @@ func (r *Router) MatchBestServer(name string) string {
 	return ""
 }
 
-func (r *Router) GetServer(name string) *Server {
-	if server, ok := r.servers[name]; ok {
+func getServer(name string) *Server {
+	if server, ok := servers[name]; ok {
 		return server
 	}
 	return nil
 }
 
-func (r *Router) Remove(out cmd.Conn) *Server {
-	for addr, server := range r.gateways {
+func removeServer(out cmd.Conn) *Server {
+	for addr, server := range gateways {
 		if server.out == out {
-			delete(r.gateways, addr)
+			delete(gateways, addr)
 			return server
 		}
 	}
-	for name, server := range r.servers {
+	for name, server := range servers {
 		if server.out == out {
-			delete(r.servers, name)
+			delete(servers, name)
 			return server
 		}
 	}
@@ -92,13 +91,13 @@ func (r *Router) Remove(out cmd.Conn) *Server {
 }
 
 // 查找链接的服务
-func (r *Router) findConnServer(out cmd.Conn) *Server {
-	for _, server := range r.gateways {
+func findServerByConn(out cmd.Conn) *Server {
+	for _, server := range gateways {
 		if server.out == out {
 			return server
 		}
 	}
-	for _, server := range r.servers {
+	for _, server := range servers {
 		if server.out == out {
 			return server
 		}
@@ -106,14 +105,18 @@ func (r *Router) findConnServer(out cmd.Conn) *Server {
 	return nil
 }
 
-func (r *Router) AddServer(server *Server) {
+func addServer(server *Server) {
 	name := server.name
 	addr := server.addr
 	if server.typ == serverGateway {
-		r.gateways[addr] = server
+		gateways[addr] = server
 	} else {
-		r.servers[name] = server
-		r.syncServerState()
+		servers[name] = server
+		syncServerState()
+	}
+	// 立即同步网关地址
+	if server.typ == serverEntry {
+		syncBestGateway()
 	}
 }
 
@@ -126,10 +129,10 @@ type serverState struct {
 }
 
 // 向gw同步server服务负载
-func (r *Router) syncServerState() {
-	var servers []serverState
-	for _, server := range r.servers {
-		servers = append(servers, serverState{
+func syncServerState() {
+	var states []serverState
+	for _, server := range servers {
+		states = append(states, serverState{
 			MinWeight:  server.minWeight,
 			MaxWeight:  server.maxWeight,
 			Weight:     server.weight,
@@ -137,9 +140,29 @@ func (r *Router) syncServerState() {
 			ServerList: server.serverList,
 		})
 	}
-	for _, gw := range r.gateways {
+	for _, gw := range gateways {
 		gw.out.WriteJSON("FUNC_SyncServerState", map[string]interface{}{
 			"Servers": servers,
 		})
+	}
+}
+
+// 同步gw地址
+func syncBestGateway() {
+	for _, srv := range servers {
+		var isUpdateGateway bool
+		if srv.typ == serverEntry {
+			isUpdateGateway = true
+		}
+		// Deprecated: remove at v1.7.x
+		if srv.name == "login" {
+			isUpdateGateway = true
+		}
+
+		if isUpdateGateway {
+			addr := getBestGateway()
+			response := map[string]interface{}{"Address": addr}
+			srv.out.WriteJSON("S2C_GetBestGateway", response)
+		}
 	}
 }
