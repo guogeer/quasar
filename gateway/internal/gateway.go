@@ -17,9 +17,8 @@ var (
 )
 
 type serverState struct {
-	MinOnline  int
-	MaxOnline  int
-	CurOnline  int
+	MinWeight  int
+	MaxWeight  int
 	Weight     int
 	ServerName string
 	ServerList []string
@@ -76,7 +75,7 @@ func matchBestServer(ssid, name string) string {
 	var matchName string
 	for server := range matchServers {
 		state := serverStates[server]
-		if state.Weight < state.MinOnline && matchName < state.ServerName {
+		if state.Weight < state.MinWeight && matchName < state.ServerName {
 			matchName = server
 		}
 	}
@@ -85,7 +84,7 @@ func matchBestServer(ssid, name string) string {
 	}
 	for server := range matchServers {
 		state := serverStates[server]
-		if (state.MaxOnline == 0 || state.Weight < state.MaxOnline) &&
+		if (state.MaxWeight == 0 || state.Weight < state.MaxWeight) &&
 			(matchName == "" || state.Weight < serverStates[matchName].Weight) {
 			matchName = server
 		}

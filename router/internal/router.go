@@ -142,7 +142,7 @@ func syncServerState() {
 	}
 	for _, gw := range gateways {
 		gw.out.WriteJSON("FUNC_SyncServerState", map[string]interface{}{
-			"Servers": servers,
+			"Servers": states,
 		})
 	}
 }
