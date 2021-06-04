@@ -1,13 +1,12 @@
 package gateway
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math/rand"
-	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/guogeer/quasar/cmd"
@@ -22,7 +21,6 @@ type testArgs struct {
 
 var bigPackage []byte
 var clientMsg = &testArgs{N: 100, S: "SEND"}
-var serverMsg = &testArgs{N: 200, S: "RECV"}
 
 func TestMain(m *testing.M) {
 	log.SetLevel("FATAL")
@@ -34,14 +32,12 @@ func TestMain(m *testing.M) {
 	// defaultRawParser.compressPackage = 8 * 1024
 	bigPackage, _ = json.Marshal(body)
 
+	cmd.BindWithName("Echo", testEcho, (*testArgs)(nil))
 	m.Run()
 }
 
-func testEcho(ctx *cmd.Context, iArgs interface{}) {
-	if !util.EqualJSON(iArgs, clientMsg) {
-		panic("server handle invalid message")
-	}
-	ctx.Out.WriteJSON("Echo", serverMsg)
+func testEcho(ctx *cmd.Context, data interface{}) {
+	ctx.Out.WriteJSON("Echo", data)
 }
 
 func BenchmarkCompressZip(b *testing.B) {
@@ -55,8 +51,6 @@ func BenchmarkCompressZip(b *testing.B) {
 }
 
 func TestRecvClientPackage(t *testing.T) {
-	cmd.BindWithName("Echo", testEcho, (*testArgs)(nil))
-	http.HandleFunc("/ws", serveWs)
 	srv := httptest.NewServer(nil)
 	defer srv.Close()
 
@@ -69,25 +63,39 @@ func TestRecvClientPackage(t *testing.T) {
 	}
 	defer ws.Close()
 
-	for counter := 0; counter < 100*clientPackageSpeedPer2s; counter++ {
-		t1 := time.Now()
-		b, _ := cmd.Encode("Echo", clientMsg)
-		ws.WriteMessage(websocket.TextMessage, b)
+	const maxSendMsgNum = 99
+	go func() {
+		for counter := 0; counter < maxSendMsgNum; counter++ {
+			b, _ := cmd.Encode("Echo", &testArgs{N: counter, S: "hello world"})
+			ws.WriteMessage(websocket.TextMessage, b)
+		}
+	}()
+
+	doneCtx, cancel := context.WithCancel(context.Background())
+	go func() {
+		for i := 0; i < maxSendMsgNum; i++ {
+			_, buf, err := ws.ReadMessage()
+			if err != nil {
+				t.Error(err)
+			}
+			pkg, _ := cmd.Decode(buf)
+			if pkg.Id != "Echo" {
+				t.Error("recv invalid client message id")
+			}
+			if !util.EqualJSON(json.RawMessage(pkg.Data), &testArgs{N: i, S: "hello world"}) {
+				panic("recv invalid client message data")
+			}
+		}
+		cancel()
+	}()
+	// 服务器接收处理
+	for i := 0; true; i++ {
 		cmd.RunOnce()
 
-		_, buf, err := ws.ReadMessage()
-		if err != nil {
-			t.Error(err)
-		}
-		pkg, err := cmd.Decode(buf)
-		if !util.EqualJSON(json.RawMessage(pkg.Data), serverMsg) {
-			panic("client recv invald message")
-		}
-		t2 := time.Now()
-		if t1.Add(time.Second).Before(t2) {
-			t.Log("Success")
+		select {
+		case <-doneCtx.Done():
 			return
+		default:
 		}
 	}
-	t.Error("limit client request fail")
 }
