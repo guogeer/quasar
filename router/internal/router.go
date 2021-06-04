@@ -25,7 +25,6 @@ type Server struct {
 	typ        string
 	addr       string   // 地址
 	serverList []string // 子服务
-	IsRandPort bool     // Deprecated
 
 	minWeight int // 最大负载
 	maxWeight int // 最小负载
