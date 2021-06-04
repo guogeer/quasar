@@ -46,7 +46,6 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 		addr:       addr,
 		data:       args.ServerData,
 		typ:        args.ServerType,
-		IsRandPort: args.IsRandPort,
 		serverList: args.ServerList,
 	}
 	addServer(newServer)
