@@ -20,7 +20,6 @@ type testArgs struct {
 }
 
 var bigPackage []byte
-var clientMsg = &testArgs{N: 100, S: "SEND"}
 
 func TestMain(m *testing.M) {
 	log.SetLevel("FATAL")
