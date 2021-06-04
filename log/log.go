@@ -10,9 +10,9 @@ package log
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -30,8 +30,7 @@ const (
 const maxFileNumPerDay = 1024
 
 var (
-	enableDebug = true
-	logLevels   = []string{
+	logLevels = []string{
 		LvTest,
 		LvDebug,
 		LvInfo,
@@ -46,41 +45,27 @@ var (
 	}
 )
 
-func init() {
-	f, _ := os.Open(os.DevNull)
-	fileLog.logger = log.New(f, "", log.Lshortfile|log.LstdFlags)
-	if enableDebug {
-		log.SetOutput(os.Stdout)
-		log.SetFlags(log.Lshortfile | log.LstdFlags)
-	}
-	// fileLog.Create("log/{proc_name}/run.log")
-}
-
 type FileLog struct {
-	path        string
-	level       string
-	maxSaveDays int
-	maxFileSize int64
+	mu         sync.Mutex
+	path       string // 日志路径
+	newPath    string
+	f          *os.File // 日志输出的文件
+	createTime time.Time
+	size       int64 // 当前打印的文件大小
 
-	t       time.Time
-	f       *os.File
-	logger  *log.Logger
-	mu      sync.Mutex
-	newPath string
-
-	lines int
-	size  int64
+	level       string // 打印的日志最低等级
+	maxSaveDays int    // 文件最大保存天数
+	maxFileSize int64  // 文件最大限制
 }
 
 // 将oldPath移动至newPath并创建新oldPath
-func (l *FileLog) moveFile(oldPath, newPath string) {
+func (l *FileLog) moveFileLocked(oldPath, newPath string) {
 	if l.newPath == newPath {
 		return
 	}
 	if l.f != nil {
 		l.f.Close()
 	}
-	l.f = nil
 	os.Rename(oldPath, newPath)
 
 	dir := filepath.Dir(newPath)
@@ -91,62 +76,68 @@ func (l *FileLog) moveFile(oldPath, newPath string) {
 	if err != nil {
 		panic("create log file error")
 	}
+	stat, _ := f.Stat()
 	l.f = f
-	l.size = 0
-	l.lines = 0
+	l.size = stat.Size()
 	l.newPath = newPath
-	l.logger.SetOutput(f)
+	l.createTime = time.Now()
 }
 
 // 清理过期文件
-func (l *FileLog) cleanFiles(path string) {
+func (l *FileLog) cleanFilesLocked(path string) {
 	if l.maxSaveDays == 0 || path == "" {
 		return
 	}
 	for try := 0; try < maxFileNumPerDay; try++ {
-		path2 := fmt.Sprintf("%s.%d", path, try)
+		morePath := fmt.Sprintf("%s.%d", path, try) // run.log.2021-06-04.1
 		if try == 0 {
-			path2 = path
+			morePath = path
 		}
-		if _, err := os.Stat(path2); os.IsNotExist(err) {
+		if _, err := os.Stat(morePath); os.IsNotExist(err) {
 			break
 		}
-		os.Remove(path2)
+		os.Remove(morePath)
 	}
 }
 
 func (l *FileLog) Output(level, s string) {
+	// 比较等级
 	l.mu.Lock()
-	defer l.mu.Unlock()
-	for _, level2 := range logLevels {
-		if level2 == l.level {
+	for i := range logLevels {
+		if logLevels[i] == l.level {
 			break
 		}
-		if level2 == level {
+		if logLevels[i] == l.level {
+			l.mu.Unlock()
 			return
 		}
 	}
+
+	_, codePath, codeLine, ok := runtime.Caller(2)
+	if !ok {
+		codePath = "???"
+	}
+	codeFile := filepath.Base(codePath)
 
 	now := time.Now()
 	datePath := fmt.Sprintf("%s.%02d-%02d", l.path, now.Month(), now.Day())
 
 	newPath := l.path
-	if l.path != "" && l.t.YearDay() != now.YearDay() {
+	if l.path != "" && l.createTime.YearDay() != now.YearDay() {
 		newPath = datePath
-		l.t = now
+		l.createTime = now
 
 		t := now.Add(-time.Duration(l.maxSaveDays+1) * 24 * time.Hour)
 		path2 := fmt.Sprintf("%s.%02d-%02d", l.path, t.Month(), t.Day())
-		l.cleanFiles(path2)
+		l.cleanFilesLocked(path2)
 	}
 
-	if l.lines&(l.lines-1) == 0 {
-		if info, err := os.Stat(datePath); err == nil {
-			l.size = info.Size()
-		}
-	}
-	l.lines += 1
-	if l.size > l.maxFileSize {
+	// 2021/06/03 23:01:39 message.go:165: [DEBUG] log message
+	outStr := fmt.Sprintf("%04d/%02d/%02d %02d:%02d:%02d %s:%d: [%s] %s\n",
+		now.Year(), now.Month(), now.Day(), now.Hour(), now.Minute(), now.Second(),
+		codeFile, codeLine, level, s,
+	)
+	if l.size+int64(len(outStr)) > l.maxFileSize {
 		for try := 1; try < maxFileNumPerDay; try++ {
 			newPath = fmt.Sprintf("%s.%d", datePath, try)
 			if _, err := os.Stat(newPath); os.IsNotExist(err) {
@@ -154,16 +145,15 @@ func (l *FileLog) Output(level, s string) {
 			}
 		}
 	}
-
 	if l.path != "" && newPath != l.path {
-		l.moveFile(datePath, newPath)
+		l.moveFileLocked(datePath, newPath)
 	}
-
-	s = fmt.Sprintf("[%s] %s", level, s)
-	l.logger.Output(3, s)
-	if enableDebug {
-		log.Output(3, s)
+	if l.f != nil {
+		l.size += int64(len(outStr))
+		l.f.WriteString(outStr)
 	}
+	os.Stdout.WriteString(outStr)
+	l.mu.Unlock()
 }
 
 func (l *FileLog) Create(path string) {
