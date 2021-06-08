@@ -31,6 +31,11 @@ type Context struct {
 	ServerName  string // 请求的协议头
 	ClientAddr  string // 客户端地址
 	MatchServer string // 多个服务合并后的唯一serverName
+	isFail      bool   // 失败处理后，不需要继续处理
+}
+
+func (ctx *Context) Fail() {
+	ctx.isFail = true
 }
 
 type Message struct {
@@ -123,7 +128,9 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 		if msg.hook != nil {
 			msg.hook(msg.ctx, msg.args)
 		}
-		msg.h(msg.ctx, msg.args)
+		if !msg.ctx.isFail {
+			msg.h(msg.ctx, msg.args)
+		}
 
 		if enableDebug == true {
 			t2 = time.Now()

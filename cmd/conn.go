@@ -202,7 +202,12 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 		defaultMessageQueue.Enqueue(msg)
 	} else {
 		// 消息直接处理。入网关转发数据时
-		e.h(ctx, args)
+		if hook != nil {
+			hook(ctx, args)
+		}
+		if !ctx.isFail {
+			e.h(ctx, args)
+		}
 	}
 
 	return nil
