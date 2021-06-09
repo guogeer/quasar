@@ -143,10 +143,15 @@ func (cm *clientManage) connect(serverName string) {
 	go func() {
 		intervals := []int{100, 400, 1600, 3200, 5000}
 		for retry := 0; true; retry++ {
+			// 间隔时间
 			ms := intervals[len(intervals)-1]
 			if retry < len(intervals) {
 				ms = intervals[retry]
 			}
+			log.Infof("connect server %s, retry %d after %dms", serverName, retry, ms)
+			// 断线后等待一定时候后再重连
+			time.Sleep(time.Duration(ms) * time.Millisecond)
+
 			addr, err := RequestServerAddr(serverName)
 			if err != nil {
 				log.Errorf("connect %s %v", serverName, err)
@@ -159,10 +164,6 @@ func (cm *clientManage) connect(serverName string) {
 					break
 				}
 			}
-
-			// 间隔时间
-			log.Infof("connect server %s addr %s, retry %d after %dms", serverName, addr, retry, ms)
-			time.Sleep(time.Duration(ms) * time.Millisecond)
 		}
 		client.start()
 	}()
