@@ -18,7 +18,7 @@ func TestLoadConfig(t *testing.T) {
 		Sign:       "420e57b017066b44e05ea1577f6e2e12",
 		ProductKey: "helloworld!",
 		ServerList: []server{
-			server{Name: "router", Addr: "127.0.0.1:9003"},
+			{Name: "router", Addr: "127.0.0.1:9003"},
 		},
 	}
 	env2 := &Env{}

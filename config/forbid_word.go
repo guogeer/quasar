@@ -53,10 +53,10 @@ func ForbidWords(msg string) string {
 		for k := i; k < size; k++ {
 			w := buf[k]
 			q, ok := p.childs[w]
-			if ok == false {
+			if !ok {
 				break
 			}
-			if q.tail == true {
+			if q.tail {
 				end = k
 			}
 			p = q

@@ -91,7 +91,7 @@ func (c *ServeConn) serve() {
 		for {
 			select {
 			case buf, ok := <-c.send:
-				if ok == false {
+				if !ok {
 					return
 				}
 				// 忽略过大消息

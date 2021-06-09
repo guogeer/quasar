@@ -81,10 +81,7 @@ func (sm *SessionManage) Del(id string) {
 func (sm *SessionManage) Get(id string) *Session {
 	sm.mu.RLock()
 	defer sm.mu.RUnlock()
-	s, ok := sm.sessions[id]
-	if !ok {
-		// log.Debugf("session [%s] not exist", id)
-	}
+	s := sm.sessions[id]
 	return s
 }
 

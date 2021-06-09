@@ -105,11 +105,11 @@ func Forward(servers interface{}, messageId string, i interface{}) {
 	}
 
 	var serverList []string
-	switch servers.(type) {
+	switch v := servers.(type) {
 	case string:
-		serverList = []string{servers.(string)}
+		serverList = []string{v}
 	case []string:
-		serverList = servers.([]string)
+		serverList = v
 	}
 	if len(serverList) == 0 {
 		return

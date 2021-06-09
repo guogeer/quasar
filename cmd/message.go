@@ -61,7 +61,7 @@ func (h *SafeQueue) Enqueue(i interface{}) {
 func (h *SafeQueue) Dequeue(delay time.Duration) interface{} {
 	if delay > 0 {
 		select {
-		case msg, _ := <-h.q:
+		case msg := <-h.q:
 			return msg
 		case <-time.After(delay):
 			return nil
@@ -69,17 +69,16 @@ func (h *SafeQueue) Dequeue(delay time.Duration) interface{} {
 	}
 	if delay == 0 {
 		select {
-		case msg, _ := <-h.q:
+		case msg := <-h.q:
 			return msg
 		default:
 			return nil
 		}
 	}
 	if delay < 0 {
-		select {
-		case msg, _ := <-h.q:
-			return msg
-		}
+		msg := <-h.q
+		return msg
+
 	}
 	return nil
 }
@@ -132,14 +131,14 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 			msg.h(msg.ctx, msg.args)
 		}
 
-		if enableDebug == true {
+		if enableDebug {
 			t2 = time.Now()
 			stat := stats[msg.id]
 			stat.merge(&messageStat{d: t2.Sub(t1), call: 1})
 			stats[msg.id] = stat
 		}
 	}
-	if enableDebug == true {
+	if enableDebug {
 		if lastPrintTime.IsZero() {
 			lastPrintTime = time.Now()
 		}
@@ -160,7 +159,7 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 			cps = append(cps, stat)
 		}
 
-		d := time.Now().Sub(lastPrintTime)
+		d := time.Since(lastPrintTime)
 		if d >= 10*time.Minute {
 			log.Debug("=========== message stats start  ============")
 			sort.SliceStable(tpc, func(i, j int) bool {
@@ -243,7 +242,6 @@ var defaultAuthParser = &hashParser{
 
 // 哈希
 type hashParser struct {
-	secs            int
 	ref             []int
 	key             string
 	tempSign        string
@@ -287,7 +285,7 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 	}
 
 	sign, err := parser.Signature(buf)
-	if n := len(pkg.Data); pkg.IsZip == true && n > 1 {
+	if n := len(pkg.Data); pkg.IsZip && n > 1 {
 		buf, err := base64.StdEncoding.DecodeString(string(pkg.Data[1 : n-1]))
 		if err != nil {
 			return nil, err
@@ -351,11 +349,11 @@ func Decode(buf []byte) (*Package, error) {
 }
 
 func marshalJSON(i interface{}) ([]byte, error) {
-	switch i.(type) {
+	switch v := i.(type) {
 	case []byte:
-		return i.([]byte), nil
+		return v, nil
 	case string:
-		return []byte(i.(string)), nil
+		return []byte(v), nil
 	}
 	return json.Marshal(i)
 }

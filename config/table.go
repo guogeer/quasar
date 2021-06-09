@@ -93,7 +93,7 @@ func (f *tableFile) Load(buf []byte) error {
 		}
 		body = body[len(line)+1:]
 		// 忽略空字符串
-		if b, _ := regexp.MatchString(`\S`, line); !b {
+		if b := regexp.MustCompile(`\S`).MatchString(line); !b {
 			// log.Warnf("config %s:%d empty", f.name, rowID)
 			continue
 		}
@@ -130,7 +130,7 @@ func (f *tableFile) Load(buf []byte) error {
 						attrk = strings.ToLower(attrk)
 						s := string(attrv)
 						// 格式"message"移除前缀后缀
-						if ok, _ := regexp.MatchString(`^".*"$`, s); ok {
+						if regexp.MustCompile(`^".*"$`).MatchString(s) {
 							s = s[1 : len(s)-1]
 						}
 						cells[attrk] = s
@@ -275,11 +275,11 @@ func (g *tableGroup) Scan(row, cols interface{}, args ...interface{}) (int, erro
 		colKey := strings.ToLower(colKeys[i])
 		if s, exist := g.String(row, colKey); exist {
 			counter++
-			switch arg.(type) {
+			switch v := arg.(type) {
 			case *time.Duration:
-				arg = (*durationArg)(arg.(*time.Duration))
+				arg = (*durationArg)(v)
 			case *time.Time:
-				arg = (*timeArg)(arg.(*time.Time))
+				arg = (*timeArg)(v)
 			}
 			// 自动解析JSON
 			if typ, ok := g.Type(colKey); ok && typ == "JSON" {
@@ -506,7 +506,7 @@ func FilterRows(name string, cols string, vals ...interface{}) []*tableRow {
 				break
 			}
 		}
-		if isMatch == true {
+		if isMatch {
 			rows = append(rows, rowId)
 		}
 	}
