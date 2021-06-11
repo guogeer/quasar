@@ -112,7 +112,8 @@ func (c *ServeConn) serve() {
 	// 新连接5s内未收到有效数据判定无效
 	c.rwc.SetReadDeadline(time.Now().Add(5 * time.Second))
 
-	for seq := 0; true; seq++ {
+	var isAuth bool
+	for {
 		mt, buf, err := c.TCPConn.ReadMessage()
 		if err != nil {
 			if err != io.EOF {
@@ -120,15 +121,16 @@ func (c *ServeConn) serve() {
 			}
 			return
 		}
-		if seq == 0 {
+		if !isAuth {
 			if _, err = defaultAuthParser.Decode(buf); err != nil {
 				return
 			}
 		}
-		if seq == 0 || mt == PingMessage || mt == PongMessage {
+		if mt == PingMessage {
 			c.rwc.SetReadDeadline(time.Now().Add(pongWait))
 		}
 
+		isAuth = true
 		if mt == RawMessage {
 			pkg, err := defaultRawParser.Decode(buf)
 			if err != nil {
