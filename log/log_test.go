@@ -28,6 +28,8 @@ func BenchmarkStat(b *testing.B) {
 
 func TestDebug(t *testing.T) {
 	fileLog.maxFileSize = 99
+	fileLog.disableStdout = true
+	defer func() { fileLog.disableStdout = false }()
 
 	os.RemoveAll("log")
 	for i := 0; i < 16; i++ {
@@ -35,6 +37,7 @@ func TestDebug(t *testing.T) {
 			fileLog.Create("log/{proc_name}/run.log")
 		}
 		Debugf("%d", i)
+		Debug(i)
 	}
 
 	re := regexp.MustCompile(`\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} log_test.go:\d+: \[DEBUG\] \d+\n\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2} log_test.go:\d+: \[DEBUG\] \d+\n`)
@@ -47,7 +50,6 @@ func TestDebug(t *testing.T) {
 			return nil
 		}
 		buf, _ := os.ReadFile(path)
-		t.Log("xxx", info.Size(), string(buf))
 		if info.Size() > fileLog.maxFileSize {
 			return errors.New("log file size more than limit")
 		}
@@ -57,8 +59,9 @@ func TestDebug(t *testing.T) {
 		}
 		return nil
 	})
-
+	fileLog.f.Close()
 	os.RemoveAll("log")
+
 	if err != nil {
 		t.Errorf("walk log files error: %v\n", err)
 	}

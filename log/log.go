@@ -27,7 +27,9 @@ const (
 	LvFatal = "FATAL"
 )
 
-const maxFileNumPerDay = 1024
+const (
+	maxFileNumPerDay = 1024
+)
 
 var (
 	logLevels = []string{
@@ -53,9 +55,10 @@ type FileLog struct {
 	createTime time.Time
 	size       int64 // 当前打印的文件大小
 
-	level       string // 打印的日志最低等级
-	maxSaveDays int    // 文件最大保存天数
-	maxFileSize int64  // 文件最大限制
+	level         string // 打印的日志最低等级
+	maxSaveDays   int    // 文件最大保存天数
+	maxFileSize   int64  // 文件最大限制
+	disableStdout bool   // 屏蔽标准输出
 }
 
 // 将oldPath移动至newPath并创建新oldPath
@@ -152,7 +155,9 @@ func (l *FileLog) Output(level, s string) {
 		l.size += int64(len(outStr))
 		l.f.WriteString(outStr)
 	}
-	os.Stdout.WriteString(outStr)
+	if !fileLog.disableStdout {
+		os.Stdout.WriteString(outStr)
+	}
 	l.mu.Unlock()
 }
 
@@ -161,13 +166,12 @@ func (l *FileLog) Create(path string) {
 		return
 	}
 	procName := filepath.Base(string(os.Args[0]))
+	// windows系统移除".exe"后缀
+	procName = procName[:len(procName)-len(filepath.Ext(procName))]
 	path = strings.Replace(path, "{proc_name}", procName, -1)
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if l.path == path {
-		return
-	}
 	l.path = path
 }
 
@@ -190,7 +194,7 @@ func Testf(format string, v ...interface{}) {
 }
 
 func Test(v ...interface{}) {
-	fileLog.Output(LvTest, fmt.Sprintln(v...))
+	fileLog.Output(LvTest, fmt.Sprint(v...))
 }
 
 func Debugf(format string, v ...interface{}) {
@@ -198,7 +202,7 @@ func Debugf(format string, v ...interface{}) {
 }
 
 func Debug(v ...interface{}) {
-	fileLog.Output(LvDebug, fmt.Sprintln(v...))
+	fileLog.Output(LvDebug, fmt.Sprint(v...))
 }
 
 func Infof(format string, v ...interface{}) {
@@ -206,7 +210,7 @@ func Infof(format string, v ...interface{}) {
 }
 
 func Info(v ...interface{}) {
-	fileLog.Output(LvInfo, fmt.Sprintln(v...))
+	fileLog.Output(LvInfo, fmt.Sprint(v...))
 }
 
 func Warnf(format string, v ...interface{}) {
@@ -214,7 +218,7 @@ func Warnf(format string, v ...interface{}) {
 }
 
 func Warn(v ...interface{}) {
-	fileLog.Output(LvWarn, fmt.Sprintln(v...))
+	fileLog.Output(LvWarn, fmt.Sprint(v...))
 }
 
 func Errorf(format string, v ...interface{}) {
@@ -222,7 +226,7 @@ func Errorf(format string, v ...interface{}) {
 }
 
 func Error(v ...interface{}) {
-	fileLog.Output(LvError, fmt.Sprintln(v...))
+	fileLog.Output(LvError, fmt.Sprint(v...))
 }
 
 func Fatalf(format string, v ...interface{}) {
@@ -231,7 +235,7 @@ func Fatalf(format string, v ...interface{}) {
 }
 
 func Fatal(v ...interface{}) {
-	fileLog.Output(LvFatal, fmt.Sprintln(v...))
+	fileLog.Output(LvFatal, fmt.Sprint(v...))
 	os.Exit(0)
 }
 
