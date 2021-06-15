@@ -107,7 +107,7 @@ func (l *FileLog) Output(level, s string) {
 		if logLevels[i] == l.level {
 			break
 		}
-		if logLevels[i] == l.level {
+		if logLevels[i] == level {
 			l.mu.Unlock()
 			return
 		}
