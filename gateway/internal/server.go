@@ -6,10 +6,12 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"math/rand"
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -35,11 +37,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type WsConn struct {
-	ws   *websocket.Conn
-	ssid string
-	send chan []byte
-	// args       interface{}
+	ws      *websocket.Conn
+	ssid    string
+	send    chan []byte
 	isClose bool
+	mu      sync.RWMutex
 }
 
 func init() {
@@ -51,12 +53,12 @@ func (c *WsConn) RemoteAddr() string {
 }
 
 func (c *WsConn) Close() {
-	if c.isClose {
-		return
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.isClose {
+		c.isClose = true
+		close(c.send)
 	}
-
-	c.isClose = true
-	close(c.send)
 }
 
 func (c *WsConn) WriteJSON(name string, i interface{}) error {
@@ -70,8 +72,10 @@ func (c *WsConn) WriteJSON(name string, i interface{}) error {
 }
 
 func (c *WsConn) Write(data []byte) error {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	if c.isClose {
-		return nil
+		return errors.New("write to closed chan")
 	}
 
 	c.send <- data

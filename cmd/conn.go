@@ -44,14 +44,16 @@ type TCPConn struct {
 	ssid    string
 	send    chan []byte
 	isClose bool
+	mu      sync.RWMutex
 }
 
 func (c *TCPConn) Close() {
-	if c.isClose {
-		return
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if !c.isClose {
+		c.isClose = true
+		close(c.send)
 	}
-	c.isClose = true
-	close(c.send)
 }
 
 func (c *TCPConn) RemoteAddr() string {
@@ -109,6 +111,8 @@ func (c *TCPConn) WriteJSON(name string, i interface{}) error {
 }
 
 func (c *TCPConn) Write(data []byte) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	if c.isClose {
 		return errors.New("connection is closed")
 	}

@@ -164,7 +164,9 @@ func (l *FileLog) Create(path string) {
 	}
 	procName := filepath.Base(string(os.Args[0]))
 	// windows系统移除".exe"后缀
-	procName = procName[:len(procName)-len(filepath.Ext(procName))]
+	if ext := filepath.Ext(procName); ext == ".exe" {
+		procName = procName[:len(procName)-len(ext)]
+	}
 	path = strings.Replace(path, "{proc_name}", procName, -1)
 
 	l.mu.Lock()
