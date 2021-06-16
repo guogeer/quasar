@@ -74,6 +74,7 @@ type ServeConn struct {
 }
 
 func (c *ServeConn) serve() {
+	pong := make(chan bool, 1)
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer func() {
@@ -101,14 +102,20 @@ func (c *ServeConn) serve() {
 						return
 					}
 				}
+			case <-pong:
+				if _, err := c.writeMsg(PongMessage, []byte{}); err != nil {
+					return
+				}
 			case <-doneCtx.Done():
 				return
 			}
 		}
 	}()
 
-	// 读关闭通知
-	defer cancel()
+	defer func() {
+		cancel() // 读关闭通知
+		close(pong)
+	}()
 	// 新连接5s内未收到有效数据判定无效
 	c.rwc.SetReadDeadline(time.Now().Add(5 * time.Second))
 
@@ -127,6 +134,9 @@ func (c *ServeConn) serve() {
 			}
 		}
 		if mt == PingMessage {
+			pong <- true
+		}
+		if !isAuth || mt == PingMessage {
 			c.rwc.SetReadDeadline(time.Now().Add(pongWait))
 		}
 
