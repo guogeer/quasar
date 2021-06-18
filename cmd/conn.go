@@ -76,7 +76,7 @@ func (c *TCPConn) ReadMessage() (mt uint8, buf []byte, err error) {
 		return
 	case AuthMessage, RawMessage:
 		if n > 0 && n < maxMessageSize {
-			buf = make([]byte, n)
+			buf = newBuf(n)
 			if _, err = io.ReadFull(c.rwc, buf); err == nil {
 				return
 			}
@@ -90,7 +90,7 @@ func (c *TCPConn) NewMessageBytes(mt int, data []byte) ([]byte, error) {
 	if len(data) > maxMessageSize {
 		return nil, errTooLargeMessage
 	}
-	buf := make([]byte, len(data)+messageHeadSize)
+	buf := newBuf(len(data) + messageHeadSize)
 
 	// 协议头
 	buf[0] = byte(mt)
@@ -126,6 +126,7 @@ func (c *TCPConn) Write(data []byte) error {
 
 func (c *TCPConn) writeMsg(mt int, msg []byte) (int, error) {
 	buf, err := c.NewMessageBytes(mt, msg)
+	saveBuf(msg)
 	if err != nil {
 		return 0, err
 	}
@@ -219,4 +220,35 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 
 func funcClose(ctx *Context, i interface{}) {
 	ctx.Out.Close()
+}
+
+var (
+	bufPool256, bufPool1024 sync.Pool
+)
+
+// 缓存
+func newBuf(n int) []byte {
+	var p interface{}
+	if n <= 256 {
+		p = bufPool256.Get()
+	} else if n <= 1024 {
+		p = bufPool1024.Get()
+	}
+
+	var buf []byte
+	if p != nil {
+		buf = *(p.(*[]byte))
+	}
+	if buf == nil {
+		buf = make([]byte, n)
+	}
+	return buf[:n]
+}
+
+func saveBuf(buf []byte) {
+	if cap(buf) == 256 {
+		bufPool256.Put(&buf)
+	} else if cap(buf) == 1024 {
+		bufPool1024.Put(&buf)
+	}
 }

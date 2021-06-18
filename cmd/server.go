@@ -101,6 +101,7 @@ func (c *ServeConn) serve() {
 						return
 					}
 				}
+				saveBuf(buf)
 			case <-doneCtx.Done():
 				return
 			}
@@ -148,5 +149,6 @@ func (c *ServeConn) serve() {
 				log.Debugf("handle msg[%s] error: %v", buf, err)
 			}
 		}
+		saveBuf(buf)
 	}
 }
