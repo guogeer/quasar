@@ -180,7 +180,7 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 }
 
 func RunOnce() {
-	waitAndRunOnce(64, 40*time.Millisecond)
+	waitAndRunOnce(256, 40*time.Millisecond)
 }
 
 func Enqueue(ctx *Context, h Handler, args interface{}) {
