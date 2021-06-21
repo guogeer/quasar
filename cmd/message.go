@@ -180,7 +180,7 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 }
 
 func RunOnce() {
-	waitAndRunOnce(64, 40*time.Millisecond)
+	waitAndRunOnce(256, 40*time.Millisecond)
 }
 
 func Enqueue(ctx *Context, h Handler, args interface{}) {
@@ -338,6 +338,7 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 		}
 		sign = string(sign2)
 	}
+	saveBuf(buf)
 	copy(data[n-signLen:n], sign)
 	return sign, nil
 }
