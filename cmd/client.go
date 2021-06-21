@@ -148,7 +148,6 @@ func (cm *clientManage) connect(serverName string) {
 			if retry < len(intervals) {
 				ms = intervals[retry]
 			}
-			log.Infof("connect server %s, retry %d after %dms", serverName, retry, ms)
 			// 断线后等待一定时候后再重连
 			time.Sleep(time.Duration(ms) * time.Millisecond)
 
@@ -164,6 +163,7 @@ func (cm *clientManage) connect(serverName string) {
 					break
 				}
 			}
+			log.Infof("connect server %s, retry %d after %dms", serverName, retry, ms)
 		}
 		client.start()
 	}()

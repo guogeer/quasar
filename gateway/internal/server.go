@@ -7,7 +7,6 @@ package gateway
 import (
 	"context"
 	"errors"
-	"math/rand"
 	"net/http"
 	"regexp"
 	"strings"
@@ -21,7 +20,7 @@ import (
 )
 
 const (
-	clientPackageSpeedPer2s = 512 // 2 second
+	clientPackageSpeedPer2s = 96 // 2 second
 
 	writeWait      = 10 * time.Second
 	pongWait       = 60 * time.Second
@@ -137,13 +136,16 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 	c.ws.SetReadLimit(4 << 10)
 	c.ws.SetReadDeadline(time.Now().Add(pongWait))
-	c.ws.SetPongHandler(func(string) error { c.ws.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	c.ws.SetPongHandler(func(string) error {
+		c.ws.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
 	defer cancel()
 
 	var deadline time.Time
+	var recvPackageCounter int
 	var oldServer, oldMatchServer string
 
-	recvPackageCounter := -1
 	remoteAddr := c.ws.RemoteAddr().String()
 	matchMsg, _ := regexp.Compile("^[A-Za-z0-9]+$")
 	for {
@@ -162,20 +164,17 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// 网络限流
-		if recvPackageCounter == -1 && rand.Intn(7) == 0 {
+		recvPackageCounter++
+		if recvPackageCounter >= clientPackageSpeedPer2s {
 			recvPackageCounter = 0
+			if time.Now().Before(deadline) {
+				log.Errorf("client %s send %s too busy", remoteAddr, pkg.Id)
+				time.Sleep(5 * time.Second)
+				return // 消息发送过快，直接关闭链接
+			}
 			deadline = time.Now().Add(2 * time.Second)
 		}
-		if recvPackageCounter >= 0 {
-			recvPackageCounter++
-			if time.Now().After(deadline) {
-				recvPackageCounter = -1
-			}
-			if recvPackageCounter >= clientPackageSpeedPer2s {
-				log.Errorf("client %s send %s too busy", remoteAddr, pkg.Id)
-				time.Sleep(2 * time.Second)
-			}
-		}
+
 		// 网关转发的消息ID仅允许包含字母、数字
 		var serverName, matchServer string
 		if servers := strings.SplitN(pkg.Id, ".", 2); len(servers) > 1 {
