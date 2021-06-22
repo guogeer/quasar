@@ -62,7 +62,7 @@ func TestRecvClientPackage(t *testing.T) {
 	}
 	defer ws.Close()
 
-	const maxSendMsgNum = 99
+	const maxSendMsgNum = 199
 	go func() {
 		for counter := 0; counter < maxSendMsgNum; counter++ {
 			b, _ := cmd.Encode("Echo", &testArgs{N: counter, S: "hello world"})
@@ -77,7 +77,11 @@ func TestRecvClientPackage(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			pkg, _ := cmd.Decode(buf)
+			pkg, err := cmd.Decode(buf)
+			if err != nil {
+				t.Error(err)
+				continue
+			}
 			if pkg.Id != "Echo" {
 				t.Error("recv invalid client message id")
 			}
