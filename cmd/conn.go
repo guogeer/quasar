@@ -19,7 +19,7 @@ import (
 const (
 	pongWait        = 60 * time.Second
 	pingPeriod      = (pongWait * 9) / 10
-	maxMessageSize  = 96 << 10 // 96K
+	maxMessageSize  = 1 << 20 // 1M
 	sendQueueSize   = 32 << 10
 	messageHeadSize = 4
 )

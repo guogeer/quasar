@@ -62,7 +62,7 @@ func TestRecvClientPackage(t *testing.T) {
 	}
 	defer ws.Close()
 
-	const maxSendMsgNum = 199
+	const maxSendMsgNum = 40
 	go func() {
 		for counter := 0; counter < maxSendMsgNum; counter++ {
 			b, _ := cmd.Encode("Echo", &testArgs{N: counter, S: "hello world"})
