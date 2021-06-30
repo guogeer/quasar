@@ -23,6 +23,7 @@ type Args struct {
 
 func init() {
 	cmd.BindWithoutQueue("FUNC_Route", FUNC_Route, (*Args)(nil))
+	cmd.BindWithoutQueue("HeartBeat", HeartBeat, (*Args)(nil))
 
 	cmd.Bind(FUNC_Broadcast, (*Args)(nil))
 	cmd.Bind(FUNC_ServerClose, (*Args)(nil))
@@ -31,8 +32,6 @@ func init() {
 	cmd.Bind(FUNC_Close, (*Args)(nil))
 	cmd.Bind(FUNC_RegisterServiceInGateway, (*Args)(nil))
 	cmd.Bind(FUNC_SyncServerState, (*Args)(nil))
-
-	cmd.Bind(HeartBeat, (*Args)(nil))
 }
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
@@ -68,14 +67,9 @@ func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
 func FUNC_SwitchServer(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
 	log.Debugf("session ssid:%s switch server name:%s", ctx.Ssid, args.ServerName)
-
-	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
-		if args.ServerName == "" {
-			sessionLocations.Delete(ctx.Ssid)
-		} else {
-			loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.MatchServer}
-			sessionLocations.Store(ctx.Ssid, loc)
-		}
+	if cmd.GetSession(ctx.Ssid) != nil {
+		loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.MatchServer}
+		sessionLocations.Store(ctx.Ssid, loc)
 	}
 }
 
