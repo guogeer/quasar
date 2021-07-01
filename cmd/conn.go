@@ -131,10 +131,9 @@ func (c *TCPConn) writeMsg(mt int, msg []byte) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	err := c.rwc.Write(buf)
-
+	n, err := c.rwc.Write(buf)
 	saveBuf(msg)
-	return err
+	return n, err
 }
 
 type Handler func(*Context, interface{})

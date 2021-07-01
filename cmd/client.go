@@ -94,7 +94,6 @@ func (c *Client) start() {
 				if _, err := c.writeMsg(RawMessage, buf); err != nil {
 					return
 				}
-				saveBuf(buf)
 			case <-ticker.C: // heart beat
 				if _, err := c.writeMsg(PingMessage, nil); err != nil {
 					return

@@ -97,7 +97,6 @@ func (c *ServeConn) serve() {
 						return
 					}
 				}
-				saveBuf(buf)
 			case <-pong:
 				if _, err := c.writeMsg(PongMessage, []byte{}); err != nil {
 					return
