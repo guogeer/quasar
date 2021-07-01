@@ -69,7 +69,7 @@ func (c *Client) start() {
 		ticker := time.NewTicker(pingPeriod)
 		defer func() {
 			ticker.Stop() // 关闭定时器
-			c.Close()     // 关闭连接
+			c.rwc.Close() // 关闭连接
 
 			// 关闭后，自动重连，并消息通知
 			c.autoConnect()
