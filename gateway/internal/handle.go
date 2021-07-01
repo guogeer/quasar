@@ -27,11 +27,12 @@ func init() {
 
 	cmd.Bind(FUNC_Broadcast, (*Args)(nil))
 	cmd.Bind(FUNC_ServerClose, (*Args)(nil))
-	cmd.Bind(FUNC_HelloGateway, (*Args)(nil))
 	cmd.Bind(FUNC_SwitchServer, (*Args)(nil))
 	cmd.Bind(FUNC_Close, (*Args)(nil))
-	cmd.Bind(FUNC_RegisterServiceInGateway, (*Args)(nil))
 	cmd.Bind(FUNC_SyncServerState, (*Args)(nil))
+
+	cmd.Bind(FUNC_RegisterServiceInGateway, (*Args)(nil)) // Deprecated
+	cmd.Bind(FUNC_HelloGateway, (*Args)(nil))             // Deprecated
 }
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
@@ -67,9 +68,12 @@ func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
 func FUNC_SwitchServer(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
 	log.Debugf("session ssid:%s switch server name:%s", ctx.Ssid, args.ServerName)
-	if cmd.GetSession(ctx.Ssid) != nil {
-		loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.MatchServer}
-		sessionLocations.Store(ctx.Ssid, loc)
+	loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.MatchServer}
+	sessionLocations.Store(ctx.Ssid, loc)
+
+	// 新连接未关联业务服时断线，会丢失Close消息
+	if cmd.GetSession(ctx.Ssid) == nil {
+		FUNC_Close(ctx, args)
 	}
 }
 

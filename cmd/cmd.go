@@ -36,11 +36,6 @@ func init() {
 	if addr := config.Config().Server("router").Addr; addr != "" {
 		defaultRouterAddr = addr
 	}
-
-	// 断线后自动重连
-	BindWithName("C2S_RegisterOk", funcRegister, (*cmdArgs)(nil))
-	BindWithName("CMD_AutoConnect", funcAutoConnect, (*cmdArgs)(nil))
-	BindWithName("CMD_Close", funcClose, (*cmdArgs)(nil))
 }
 
 func BindWithName(name string, h Handler, args interface{}) {

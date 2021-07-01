@@ -12,8 +12,8 @@ import (
 type Client struct {
 	*TCPConn
 
-	name string
-	reg  interface{} // 连接成功后发送的第一个请求
+	name   string
+	params interface{} // 连接成功后发送的第一个请求
 }
 
 func newClient(name string) *Client {
@@ -30,16 +30,49 @@ func (c *Client) ServerName() string {
 	return c.name
 }
 
+func (client *Client) connect() {
+	serverName := client.name
+	go func() {
+		intervals := []int{100, 400, 1600, 3200, 5000}
+		for retry := 0; true; retry++ {
+			// 间隔时间
+			ms := intervals[len(intervals)-1]
+			if retry < len(intervals) {
+				ms = intervals[retry]
+			}
+			// 断线后等待一定时候后再重连
+			time.Sleep(time.Duration(ms) * time.Millisecond)
+
+			// 第一步向路由查询地址
+			addr, err := RequestServerAddr(serverName)
+			if err != nil {
+				log.Errorf("connect %s %v", serverName, err)
+			}
+
+			// 第二步建立连接
+			if addr != "" {
+				rwc, err := net.Dial("tcp", addr)
+				if err == nil {
+					client.rwc = rwc
+					break
+				}
+			}
+			log.Infof("connect server %s, retry %d after %dms", serverName, retry, ms)
+		}
+		client.start()
+	}()
+}
+
 func (c *Client) start() {
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
 		ticker := time.NewTicker(pingPeriod)
 		defer func() {
 			ticker.Stop() // 关闭定时器
-			c.rwc.Close() // 关闭连接
+			c.Close()     // 关闭连接
 
 			// 关闭后，自动重连，并消息通知
-			defaultCmdSet.Handle(&Context{Out: c}, "CMD_AutoConnect", nil)
+			c.autoConnect()
 			defaultCmdSet.Handle(&Context{Out: c}, "FUNC_ServerClose", nil)
 		}()
 
@@ -119,56 +152,19 @@ func (cm *clientManage) Route(serverName string, data []byte) {
 		cm.mu.Lock()
 		_, rok := cm.clients[serverName]
 		if !rok {
-			client = newClient(serverName)
-			cm.clients[serverName] = client
+			cm.clients[serverName] = newClient(serverName)
 		}
 		client = cm.clients[serverName]
 		cm.mu.Unlock()
 		// 防止重复连接
 		if !rok {
-			cm.connect(serverName)
+			client.connect()
 		}
 	}
 
 	if err := client.Write(data); err != nil {
 		log.Errorf("server %s write %s error: %v", serverName, data, err)
 	}
-}
-
-// 第一步向路由查询地址
-// 第二步建立连接
-func (cm *clientManage) connect(serverName string) {
-	cm.mu.RLock()
-	client := cm.clients[serverName]
-	cm.mu.RUnlock()
-
-	go func() {
-		intervals := []int{100, 400, 1600, 3200, 5000}
-		for retry := 0; true; retry++ {
-			// 间隔时间
-			ms := intervals[len(intervals)-1]
-			if retry < len(intervals) {
-				ms = intervals[retry]
-			}
-			// 断线后等待一定时候后再重连
-			time.Sleep(time.Duration(ms) * time.Millisecond)
-
-			addr, err := RequestServerAddr(serverName)
-			if err != nil {
-				log.Errorf("connect %s %v", serverName, err)
-			}
-
-			if addr != "" {
-				rwc, err := net.Dial("tcp", addr)
-				if err == nil {
-					client.rwc = rwc
-					break
-				}
-			}
-			log.Infof("connect server %s, retry %d after %dms", serverName, retry, ms)
-		}
-		client.start()
-	}()
 }
 
 func (cm *clientManage) Route3(serverName, messageId string, i interface{}) {
@@ -182,26 +178,19 @@ func (cm *clientManage) Route3(serverName, messageId string, i interface{}) {
 	cm.Route(serverName, msg)
 }
 
-func (cm *clientManage) RegisterService(reg *ServiceConfig) {
-	cm.Route3("router", "C2S_Register", reg)
+func (cm *clientManage) RegisterService(params *ServiceConfig) {
+	cm.Route3("router", "C2S_Register", params)
 	cm.mu.Lock()
 	client := cm.clients["router"]
-	client.reg = reg
+	client.params = params
 	cm.mu.Unlock()
 }
 
 // Client自动重连
-func funcAutoConnect(ctx *Context, data interface{}) {
-	client := ctx.Out.(*Client)
-	// ctx.Out.Close()
-
-	cm := defaultClientManage
-	reg, name := client.reg, client.name
-	if reg != nil && name == "router" {
-		cm.Route3(name, "C2S_Register", reg)
+func (client *Client) autoConnect() {
+	params, name := client.params, client.name
+	if params != nil && name == "router" {
+		Route(name, "C2S_Register", params)
 	}
-	cm.connect(name)
-}
-
-func funcRegister(ctx *Context, data interface{}) {
+	client.connect()
 }

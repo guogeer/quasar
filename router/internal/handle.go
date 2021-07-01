@@ -38,7 +38,6 @@ func C2S_Register(ctx *cmd.Context, data interface{}) {
 		addr = host + ":" + port
 	}
 	log.Infof("register server:%s %v addr:%s", args.ServerName, args.ServerList, addr)
-	ctx.Out.WriteJSON("C2S_RegisterOk", struct{}{})
 
 	newServer := &Server{
 		out:        ctx.Out,

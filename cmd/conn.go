@@ -48,6 +48,8 @@ type TCPConn struct {
 }
 
 func (c *TCPConn) Close() {
+	c.rwc.Close()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if !c.isClose {
@@ -111,8 +113,8 @@ func (c *TCPConn) WriteJSON(name string, i interface{}) error {
 }
 
 func (c *TCPConn) Write(data []byte) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.mu.RLock()
+	defer c.mu.RUnlock()
 	if c.isClose {
 		return errors.New("connection is closed")
 	}
@@ -216,10 +218,6 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 	}
 
 	return nil
-}
-
-func funcClose(ctx *Context, i interface{}) {
-	ctx.Out.Close()
 }
 
 var (

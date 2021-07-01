@@ -78,15 +78,10 @@ func (c *ServeConn) serve() {
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer func() {
-			// 关闭网络连接
-			c.rwc.Close()
-			// 当前上下文
-			ctx := &Context{Ssid: c.ssid, Out: c}
-			defaultCmdSet.Handle(ctx, "CMD_Close", nil)
-			defaultCmdSet.Handle(ctx, "FUNC_Close", nil)
+			c.Close() // 关闭网络连接
 
-			// 删除会话
-			RemoveSession(c.ssid)
+			RemoveSession(c.ssid) // 删除会话
+			defaultCmdSet.Handle(&Context{Ssid: c.ssid, Out: c}, "FUNC_Close", nil)
 		}()
 
 		for {

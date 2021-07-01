@@ -52,6 +52,8 @@ func (c *WsConn) RemoteAddr() string {
 }
 
 func (c *WsConn) Close() {
+	c.ws.Close()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if !c.isClose {
@@ -105,13 +107,12 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		ticker := time.NewTicker(pingPeriod)
 		defer func() {
 			// c.writeMessage(websocket.CloseMessage, []byte{})
-			c.ws.Close()
+			c.Close()
 			ticker.Stop() // 关闭定时器
+			cmd.RemoveSession(c.ssid)
 
 			ctx := &cmd.Context{Ssid: c.ssid, Out: c}
-			cmd.Handle(ctx, "CMD_Close", nil)
 			cmd.Handle(ctx, "FUNC_Close", nil)
-			cmd.RemoveSession(c.ssid)
 		}()
 
 		for {
