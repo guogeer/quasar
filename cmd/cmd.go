@@ -65,14 +65,6 @@ func Handle(ctx *Context, name string, data []byte) error {
 	return defaultCmdSet.Handle(ctx, name, data)
 }
 
-func Route(serverName, messageId string, data interface{}) {
-	defaultClientManage.Route3(serverName, messageId, data)
-}
-
-func RegisterService(config *ServiceConfig) {
-	defaultClientManage.RegisterService(config)
-}
-
 type ServiceConfig struct {
 	ServerName string      `json:",omitempty"`
 	ServerAddr string      `json:",omitempty"`

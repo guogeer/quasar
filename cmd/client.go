@@ -129,32 +129,28 @@ func (c *Client) start() {
 	}
 }
 
-type clientManage struct {
-	clients map[string]*Client // 已存在的连接不会被删除
-	mu      sync.RWMutex
-}
+var (
+	clients  = map[string]*Client{} // 已存在的连接不会被删除
+	clientMu sync.RWMutex
+)
 
-var defaultClientManage = &clientManage{
-	clients: make(map[string]*Client),
-}
-
-func (cm *clientManage) Route(serverName string, data []byte) {
+func routeMsg(serverName string, data []byte) {
 	if serverName == "" {
 		panic("route empty server name")
 	}
 
-	cm.mu.RLock()
-	client, ok := cm.clients[serverName]
-	cm.mu.RUnlock()
+	clientMu.RLock()
+	client, ok := clients[serverName]
+	clientMu.RUnlock()
 
 	if !ok {
-		cm.mu.Lock()
-		_, rok := cm.clients[serverName]
+		clientMu.Lock()
+		_, rok := clients[serverName]
 		if !rok {
-			cm.clients[serverName] = newClient(serverName)
+			clients[serverName] = newClient(serverName)
 		}
-		client = cm.clients[serverName]
-		cm.mu.Unlock()
+		client = clients[serverName]
+		clientMu.Unlock()
 		// 防止重复连接
 		if !rok {
 			client.connect()
@@ -166,23 +162,23 @@ func (cm *clientManage) Route(serverName string, data []byte) {
 	}
 }
 
-func (cm *clientManage) Route3(serverName, messageId string, i interface{}) {
-	serverName, messageId = routeMessage(serverName, messageId)
+func Route(serverName, messageId string, i interface{}) {
+	serverName, messageId = splitMsgId(serverName + "." + messageId)
 
 	pkg := &Package{Id: messageId, Body: i}
 	msg, err := pkg.Encode()
 	if err != nil {
 		return
 	}
-	cm.Route(serverName, msg)
+	routeMsg(serverName, msg)
 }
 
-func (cm *clientManage) RegisterService(params *ServiceConfig) {
-	cm.Route3("router", "C2S_Register", params)
-	cm.mu.Lock()
-	client := cm.clients["router"]
+func RegisterService(params *ServiceConfig) {
+	Route("router", "C2S_Register", params)
+	clientMu.Lock()
+	client := clients["router"]
 	client.params = params
-	cm.mu.Unlock()
+	clientMu.Unlock()
 }
 
 // Client自动重连

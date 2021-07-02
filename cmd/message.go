@@ -362,12 +362,10 @@ func marshalJSON(i interface{}) ([]byte, error) {
 	return json.Marshal(i)
 }
 
-func routeMessage(server, message string) (string, string) {
-	if server != "" {
-		message = server + "." + message
+func splitMsgId(msgId string) (string, string) {
+	var serverName string
+	if subs := strings.SplitN(msgId, ".", 2); len(subs) > 1 {
+		serverName, msgId = subs[0], subs[1]
 	}
-	if subs := strings.SplitN(message, ".", 2); len(subs) > 1 {
-		server, message = subs[0], subs[1]
-	}
-	return server, message
+	return serverName, msgId
 }

@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"sync"
-
-	"github.com/guogeer/quasar/log"
 )
 
 type Session struct {
@@ -12,9 +10,10 @@ type Session struct {
 }
 
 func (ss *Session) GetServerName() string {
-	// TODO 可能引发崩溃
-	client := ss.Out.(*Client)
-	return client.name
+	if client, ok := ss.Out.(*Client); ok {
+		return client.name
+	}
+	return ""
 }
 
 func (ss *Session) routeContext(ctx *Context, name string, i interface{}) {
@@ -30,16 +29,22 @@ func (ss *Session) routeContext(ctx *Context, name string, i interface{}) {
 	if err != nil {
 		return
 	}
-	defaultClientManage.Route(ctx.MatchServer, buf)
+	routeMsg(ctx.MatchServer, buf)
 }
 
 func (ss *Session) Route(serverName, name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, ServerName: serverName, SignType: "raw"}
+	pkg := &Package{
+		Id:         name,
+		Body:       i,
+		Ssid:       ss.Id,
+		ServerName: serverName,
+		SignType:   "raw",
+	}
 	buf, err := pkg.Encode()
 	if err != nil {
 		return
 	}
-	defaultClientManage.Route(serverName, buf)
+	routeMsg(serverName, buf)
 }
 
 func (ss *Session) WriteJSON(name string, i interface{}) {
@@ -51,68 +56,45 @@ func (ss *Session) WriteJSON(name string, i interface{}) {
 	ss.Out.Write(buf)
 }
 
-type SessionManage struct {
-	sessions map[string]*Session
-	mu       sync.RWMutex
-}
-
-var defaultSessionManage = &SessionManage{sessions: make(map[string]*Session)}
-
-func GetSessionManage() *SessionManage {
-	return defaultSessionManage
-}
-
-func (sm *SessionManage) Add(s *Session) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	if _, ok := sm.sessions[s.Id]; ok {
-		log.Warnf("session %s exist", s.Id)
-		return
-	}
-	sm.sessions[s.Id] = s
-}
-
-func (sm *SessionManage) Del(id string) {
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	delete(sm.sessions, id)
-}
-
-func (sm *SessionManage) Get(id string) *Session {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	s := sm.sessions[id]
-	return s
-}
-
-func (sm *SessionManage) GetList() []*Session {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	var active []*Session
-	for _, ss := range sm.sessions {
-		active = append(active, ss)
-	}
-	return active
-}
-
-func (sm *SessionManage) Count() int {
-	sm.mu.RLock()
-	defer sm.mu.RUnlock()
-	return len(sm.sessions)
-}
+var (
+	sessions  = map[string]*Session{}
+	sessionMu sync.RWMutex
+)
 
 func AddSession(s *Session) {
-	defaultSessionManage.Add(s)
+	sessionMu.Lock()
+	defer sessionMu.Unlock()
+	if _, ok := sessions[s.Id]; ok {
+		panic("add same session " + s.Id)
+	}
+	sessions[s.Id] = s
 }
 
 func RemoveSession(id string) {
-	defaultSessionManage.Del(id)
+	sessionMu.Lock()
+	defer sessionMu.Unlock()
+	delete(sessions, id)
 }
 
 func GetSession(id string) *Session {
-	return defaultSessionManage.Get(id)
+	sessionMu.RLock()
+	defer sessionMu.RUnlock()
+	return sessions[id]
 }
 
 func GetSessionList() []*Session {
-	return defaultSessionManage.GetList()
+	sessionMu.RLock()
+	defer sessionMu.RUnlock()
+
+	var all []*Session
+	for _, ss := range sessions {
+		all = append(all, ss)
+	}
+	return all
+}
+
+func CountSession() int {
+	sessionMu.RLock()
+	defer sessionMu.RUnlock()
+	return len(sessions)
 }

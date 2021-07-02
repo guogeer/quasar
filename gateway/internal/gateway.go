@@ -35,7 +35,7 @@ func init() {
 
 // update current online
 func concurrent() {
-	counter := cmd.GetSessionManage().Count()
+	counter := cmd.CountSession()
 	data := serverState{Weight: counter}
 	cmd.Route("router", "C2S_Concurrent", data)
 }

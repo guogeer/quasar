@@ -181,7 +181,7 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 		data = []byte("{}")
 	}
 
-	serverName, name := routeMessage("", msgId)
+	serverName, name := splitMsgId(msgId)
 	s.mu.RLock()
 	e := s.e[name]
 	hook := s.hook
