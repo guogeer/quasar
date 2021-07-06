@@ -109,7 +109,7 @@ func C2S_Concurrent(ctx *cmd.Context, data interface{}) {
 	if server == nil {
 		return
 	}
-	log.Debug("concurrent", server.name, args.Weight)
+	log.Debugf("concurrent %v %v", server.name, args.Weight)
 
 	server.weight = args.Weight
 	if server.typ == serverGateway {

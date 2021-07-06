@@ -206,7 +206,6 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			// 无效的服务
 			if !isAlive {
 				c.WriteJSON("ServerClose", map[string]interface{}{"ServerName": servers[0]})
-				time.Sleep(2 * time.Second)
 				continue
 			}
 		}
