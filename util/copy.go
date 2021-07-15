@@ -76,13 +76,11 @@ func doCopy(dval, sval reflect.Value) {
 			if aliasIndex, ok := aliasFields[sname]; ok {
 				dfield = dval.Field(aliasIndex)
 			}
-			// fmt.Println("##", dfield.Kind(), dfield.CanSet(), dval.Kind())
-			// fmt.Println("==", sname, sfield.Kind(), sfield.CanSet(), stype)
 			// exported anonymous struct field
-			doCopy(dfield, sfield)
-			if stype.PkgPath == "" && stype.Anonymous {
+			if stype.Anonymous {
 				doCopy(dval, sfield)
 			}
+			doCopy(dfield, sfield)
 		}
 	case reflect.Slice, reflect.Array:
 		if size := sval.Len(); size > 0 && sval.Kind() == reflect.Slice {
