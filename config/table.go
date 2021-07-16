@@ -9,7 +9,6 @@ package config
 // Version 1.2.0 表格名索引忽略大小写
 // 2019-12-03 增加类型: INT、JSON、FLOAT、STRING，后续计划增强JSON支持
 // 例如：列1[INT]	列2[JSON]	列3[FLOAT]
-// Version 2.0.0 计划支持SQL语句
 
 import (
 	"archive/zip"
@@ -19,7 +18,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -27,7 +25,6 @@ import (
 	"time"
 
 	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/util"
 )
 
 const (
@@ -48,9 +45,16 @@ func init() {
 	}
 }
 
+type tableCell struct {
+	s string
+	n int64
+	f float64
+	b bool
+}
+
 type tableFile struct {
 	rowName  map[string]int // 行名
-	cells    []map[string]string
+	table    []map[string]*tableCell
 	name     string
 	colTypes map[string]string
 
@@ -108,19 +112,14 @@ func (f *tableFile) Load(buf []byte) error {
 			line1 = lineCells
 			for k, cell := range line0 {
 				keys := regexp.MustCompile(`\[[^\]]+\]`).FindString(cell)
-				types := regexp.MustCompile(`[A-Za-z0-9]+`).FindAllStringSubmatch(keys, -1)
-				// TODO 支持多个关键字，当前仅考虑支持一个数据类型
-				for _, typ := range types {
-					if len(typ) > 0 {
-						f.colTypes[line1[k]] = typ[0]
-					}
-				}
+				types := regexp.MustCompile(`[A-Za-z0-9]+`).FindAllString(keys, -1)
+				f.colTypes[line1[k]] = "," + strings.Join(types, ",") + ","
 			}
 		default:
 			rowName := string(lineCells[0])
 			f.rowName[rowName] = rowID - 2
 
-			cells := make(map[string]string)
+			cells := map[string]*tableCell{}
 			for k, cell := range lineCells {
 				colKey := strings.ToLower(string(line1[k]))
 				if colKey == ".private" && len(cell) > 0 {
@@ -133,21 +132,27 @@ func (f *tableFile) Load(buf []byte) error {
 						if regexp.MustCompile(`^".*"$`).MatchString(s) {
 							s = s[1 : len(s)-1]
 						}
-						cells[attrk] = s
+						cells[attrk] = &tableCell{s: s}
+
 					}
 				}
-				cells[colKey] = string(cell)
+				cells[colKey] = &tableCell{s: cell}
 			}
-			f.cells = append(f.cells, cells)
+			for _, cell := range cells {
+				cell.n, _ = strconv.ParseInt(cell.s, 10, 64)
+				cell.f, _ = strconv.ParseFloat(cell.s, 64)
+				cell.b, _ = strconv.ParseBool(cell.s)
+			}
+			f.table = append(f.table, cells)
 		}
 	}
 	// 列索引忽略大小写
 	return nil
 }
 
-func (f *tableFile) String(row, col interface{}) (string, bool) {
+func (f *tableFile) Cell(row, col interface{}) (*tableCell, bool) {
 	if row == nil || col == nil {
-		return "", false
+		return nil, false
 	}
 	colKey := fmt.Sprintf("%v", col)
 	colKey = strings.ToLower(colKey)
@@ -161,20 +166,27 @@ func (f *tableFile) String(row, col interface{}) (string, bool) {
 		rowN = n
 	}
 
-	if rowN >= 0 && rowN < len(f.cells) {
-		s, ok := f.cells[rowN][colKey]
-		return s, ok
+	if rowN >= 0 && rowN < len(f.table) {
+		cell, ok := f.table[rowN][colKey]
+		return cell, ok
+	}
+	return nil, false
+}
+
+func (f *tableFile) String(row, col interface{}) (string, bool) {
+	if c, ok := f.Cell(row, col); ok {
+		return c.s, true
 	}
 	return "", false
 }
 
 func (f *tableFile) Rows() []*tableRow {
-	if len(f.cells) < len(gTableRowKeys) {
-		return gTableRowKeys[:len(f.cells)]
+	if len(f.table) < len(gTableRowKeys) {
+		return gTableRowKeys[:len(f.table)]
 	}
 
 	rows := make([]*tableRow, 0, 32)
-	for k := range f.cells {
+	for k := range f.table {
 		rows = append(rows, newTableRow(k))
 	}
 	return rows
@@ -207,6 +219,17 @@ func (g *tableGroup) Rows() []*tableRow {
 	return rows
 }
 
+func (g *tableGroup) Cell(row, col interface{}) (*tableCell, bool) {
+	for _, name := range g.members {
+		if f := getTableFile(name); f != nil {
+			if cell, ok := f.Cell(row, col); ok {
+				return cell, ok
+			}
+		}
+	}
+	return nil, false
+}
+
 func (g *tableGroup) String(row, col interface{}) (string, bool) {
 	for _, name := range g.members {
 		if f := getTableFile(name); f != nil {
@@ -218,48 +241,61 @@ func (g *tableGroup) String(row, col interface{}) (string, bool) {
 	return "", false
 }
 
-func (g *tableGroup) Type(col string) (string, bool) {
+func (g *tableGroup) IsType(col string, typ string) bool {
 	for _, name := range g.members {
 		if f := getTableFile(name); f != nil {
 			if s, ok := f.colTypes[col]; ok {
-				return s, ok
+				return strings.Contains(s, ","+typ+",")
 			}
 		}
 	}
-	return "", false
+	return false
 }
 
-func scanOne(val reflect.Value, s string) {
-	if s == "" {
-		return
-	}
-	switch util.ConvertKind(val.Kind()) {
+func (cell *tableCell) Scan(arg interface{}) error {
+	switch v := arg.(type) {
 	default:
-		panic("unsupport type" + val.Type().String())
-	case reflect.Ptr:
-		scanOne(val.Elem(), s)
-	case reflect.Int64:
-		n, _ := strconv.ParseInt(s, 10, 64)
-		val.SetInt(n)
-	case reflect.Uint64:
-		n, _ := strconv.ParseUint(s, 10, 64)
-		val.SetUint(n)
-	case reflect.Float64:
-		a, _ := strconv.ParseFloat(s, 64)
-		val.SetFloat(a)
-	case reflect.Bool:
-		b, _ := strconv.ParseBool(s)
-		val.SetBool(b)
-	case reflect.String:
-		val.SetString(s)
-	case reflect.Slice:
-		ss := ParseStrings(s)
-		newval := reflect.MakeSlice(val.Type(), len(ss), len(ss))
-		for i, s2 := range ss {
-			scanOne(newval.Index(i), s2)
+		if _, ok := arg.(Scanner); !ok {
+			panic("unsupport table cell arg")
 		}
-		val.Set(newval)
+	case *time.Duration:
+		arg = (*durationArg)(v)
+	case *time.Time:
+		arg = (*timeArg)(v)
+	case *int8:
+		*v = (int8)(cell.n)
+	case *int16:
+		*v = (int16)(cell.n)
+	case *int32:
+		*v = (int32)(cell.n)
+	case *int64:
+		*v = (int64)(cell.n)
+	case *int:
+		*v = (int)(cell.n)
+	case *uint8:
+		*v = (uint8)(cell.n)
+	case *uint16:
+		*v = (uint16)(cell.n)
+	case *uint32:
+		*v = (uint32)(cell.n)
+	case *uint64:
+		*v = (uint64)(cell.n)
+	case *uint:
+		*v = (uint)(cell.n)
+	case *float32:
+		*v = (float32)(cell.f)
+	case *float64:
+		*v = (float64)(cell.f)
+	case *string:
+		*v = cell.s
+	case *bool:
+		*v = cell.b
 	}
+
+	if scanner, ok := arg.(Scanner); ok {
+		return scanner.Scan(cell.s)
+	}
+	return nil
 }
 
 // 跳过表格不存在的元素
@@ -270,30 +306,23 @@ func (g *tableGroup) Scan(row, cols interface{}, args ...interface{}) (int, erro
 		panic("args not match")
 	}
 
-	counter := 0
+	var counter int
+	var lastErr error
 	for i, arg := range args {
 		colKey := strings.ToLower(colKeys[i])
-		if s, exist := g.String(row, colKey); exist {
+		if cell, exist := g.Cell(row, colKey); exist {
 			counter++
-			switch v := arg.(type) {
-			case *time.Duration:
-				arg = (*durationArg)(v)
-			case *time.Time:
-				arg = (*timeArg)(v)
-			}
+
 			// 自动解析JSON
-			if typ, ok := g.Type(colKey); ok && typ == "JSON" {
+			if _, ok := arg.(Scanner); !ok && g.IsType(colKey, "JSON") {
 				arg = &jsonArg{value: arg}
 			}
-
-			if scanner, ok := arg.(Scanner); ok {
-				scanner.Scan(s)
-			} else {
-				scanOne(reflect.ValueOf(arg), s)
+			if err := cell.Scan(arg); err != nil {
+				lastErr = err
 			}
 		}
 	}
-	return counter, nil
+	return counter, lastErr
 }
 
 func readTableFile(path string, rc io.ReadCloser) {
@@ -432,7 +461,7 @@ func Scan(name string, row, colArgs interface{}, args ...interface{}) (int, erro
 
 func NumRow(name string) int {
 	if f := getTableFile(name); f != nil {
-		return len(f.cells)
+		return len(f.table)
 	}
 	return -1
 }

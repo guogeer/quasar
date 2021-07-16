@@ -1,150 +1,48 @@
 package config
 
 import (
-	"reflect"
 	"testing"
-
-	"github.com/guogeer/quasar/util"
 )
 
-func TestLoad(t *testing.T) {
+func TestMain(m *testing.M) {
 	LoadLocalTables(".")
-
-	type struct1 struct {
-		A1     int64
-		A1ok   bool
-		C2     int64
-		P11    int64
-		PS1    string
-		P12    int64
-		P12ok  bool
-		Array3 string
-	}
-	var st1 struct1
-	var st2 = struct1{
-		A1: 1, C2: 12, P11: 1, PS1: "S", P12: 0,
-		A1ok:   true,
-		Array3: "[1,2,3]",
-	}
-	st1.A1, st1.A1ok = Int("test1", 1, "A")
-	st1.C2, _ = Int("test1", 2, "C")
-	st1.P11, _ = Int("test1", 1, "P1")
-	st1.PS1, _ = String("test1", 1, "PS")
-	st1.P12, st1.P12ok = Int("test1", 2, "P1")
-	st1.Array3, _ = String("test1", 1, "Array3")
-	if !util.EqualJSON(st1, st2) {
-		t.Error("Load error", st1, st2)
-	}
+	m.Run()
 }
 
 func TestScan(t *testing.T) {
-	type dataset struct {
-		N8  int8
-		N16 int16
-		N32 int32
-		N64 int64
-		N   int
-		U8  uint8
-		U16 uint16
-		U32 uint32
-		U64 uint64
-		U   uint
-		S   string
-		SS  string
-		NN  []int
-		NN8 []int8
-		F32 float32
-		F64 float64
-		FF  []float32
+	var a int
+	var b string
+	var c bool
+	var d float64
+	var argn int
+	argn, _ = Scan("test1", 1, "A,B,C,D", &a, &b, &c, &d)
+	if !(argn == 4 && a == 10 && b == "HelloB1" && c && d == 10.1) {
+		t.Errorf("scan config test1 row key:1 fail")
 	}
-	data1 := dataset{}
-	data2 := dataset{
-		N16: 16,
-		N64: 64,
-		N:   32,
-		U16: 16,
-		U64: 64,
-		U:   32,
-		S:   "s",
-		SS:  "ss",
-		NN:  []int{1, 2, 3},
-		NN8: []int8{1, 2, 3},
-		F32: 32,
-		F64: 64,
-		FF:  []float32{1.1, 2.2},
+	argn, _ = Scan("test1", 3, "A,B,C,D", &a, &b, &c, &d)
+	if !(argn == 4 && a == 30 && b == "HelloB3" && !c && d == 30.1) {
+		t.Errorf("scan config test1 row key:3 fail")
 	}
 
-	scanOne(reflect.ValueOf(&data1.N16), "16")
-	scanOne(reflect.ValueOf(&data1.N64), "64")
-	scanOne(reflect.ValueOf(&data1.N), "32")
-	scanOne(reflect.ValueOf(&data1.U16), "16")
-	scanOne(reflect.ValueOf(&data1.U64), "64")
-	scanOne(reflect.ValueOf(&data1.U), "32")
-	scanOne(reflect.ValueOf(&data1.S), "s")
-	scanOne(reflect.ValueOf(&data1.SS), "ss")
-	scanOne(reflect.ValueOf(&data1.NN), "1,2,3")
-	scanOne(reflect.ValueOf(&data1.NN8), "1,2,3")
-	scanOne(reflect.ValueOf(&data1.F32), "32")
-	scanOne(reflect.ValueOf(&data1.F64), "64")
-	scanOne(reflect.ValueOf(&data1.FF), "1.1,2.2")
-	if !util.EqualJSON(data1, data2) {
-		t.Error("scan error")
+	argn, _ = Scan("test1", 1, "PA,PB", &a, &b)
+	if !(argn == 2 && a == 11 && b == "[10,11,12]") {
+		t.Errorf("scan config test1 private data fail")
 	}
-}
 
-func TestScanner(t *testing.T) {
-	type json1 struct {
-		P1     int
-		PS     string
-		Array3 []int
-	}
-	data1 := json1{
-		P1:     1,
-		PS:     "S",
-		Array3: []int{1, 2, 3},
-	}
-	var data2 json1
-	Scan("test1", 1, ".Private", JSON(&data2))
-	t.Log(data1, data2)
-	if !util.EqualJSON(data1, data2) {
-		t.Error("scan scanner error")
-	}
-}
-
-func TestLoadValueByTableRow(t *testing.T) {
-	LoadLocalTables(".")
-	s1, _ := String("test1", 1, "PS")
-	s2, _ := String("test1", RowId(0), "PS")
-	s3, _ := String("test1", RowId(1), "A")
-	if s1 != "S" {
-		t.Error("read test1 1:PS error", s1)
-	}
-	if s2 != "S" {
-		t.Error("read test1 row0:PS error", s2)
-	}
-	if s3 != "10" {
-		t.Error("read test1 row1:PS error", s3)
+	argn, _ = Scan("test1", RowId(0), "A,B,C,D", &a, &b, &c, &d)
+	if !(argn == 4 && a == 10 && b == "HelloB1" && c && d == 10.1) {
+		t.Errorf("scan config test1 RowId(0) fail")
 	}
 }
 
 func TestFilterRows(t *testing.T) {
-	LoadLocalTables(".")
 	rows1 := FilterRows("test2", "C1,C4", 11, "S1")
-	rows2 := FilterRows("test2", "C1,C4", 12, "S1")
-	rows3 := FilterRows("test2", "C1,C4", 20, "S4")
-
-	res := [][]int{
-		{0, 7},
-		nil,
-		nil,
+	if !(len(rows1) == 2 && rows1[0].n == 0 && rows1[1].n == 7) {
+		t.Errorf("filter test2 11,S1 fail")
 	}
-	for i, rows := range [][]*tableRow{rows1, rows2, rows3} {
-		var rowNums []int
-		for _, rowId := range rows {
-			rowNums = append(rowNums, rowId.n)
-		}
-		if !util.EqualJSON(res[i], rowNums) {
-			t.Errorf("filter rowN: %d rows:%v != res:%v", i, rows, res[i])
-		}
+
+	rows2 := FilterRows("test2", "C1,C4", 12, "S1")
+	if len(rows2) != 0 {
+		t.Errorf("filter test2 12,S1 fail")
 	}
 }
