@@ -110,8 +110,8 @@ func (f *tableFile) Load(buf []byte) error {
 			line0 = lineCells
 		case 1: // 表格第二行列索引
 			line1 = lineCells
-			for k, cell := range line0 {
-				keys := regexp.MustCompile(`\[[^\]]+\]`).FindString(cell)
+			for k := 0; k < len(line0) && k < len(line1); k++ {
+				keys := regexp.MustCompile(`\[[^\]]+\]`).FindString(line0[k])
 				types := regexp.MustCompile(`[A-Za-z0-9]+`).FindAllString(keys, -1)
 				f.colTypes[line1[k]] = "," + strings.Join(types, ",") + ","
 			}
