@@ -3,7 +3,6 @@ package config
 import (
 	"encoding/json"
 	"regexp"
-	"strconv"
 	"time"
 )
 
@@ -56,19 +55,4 @@ func (arg *durationArg) Scan(s string) error {
 	d, err := parseDuration(s)
 	*arg = durationArg(d)
 	return err
-}
-
-// Version 1.0.0 配置表的数组分隔符支持多个[;-~/\,]
-func ParseStrings(s string) []string {
-	return regexp.MustCompile(`[,;\-~/\\]`).Split(s, -1)
-}
-
-func ParseInts(s string) []int64 {
-	chips := make([]int64, 0, 8)
-	for _, v := range ParseStrings(s) {
-		if n, err := strconv.ParseInt(v, 10, 64); err == nil {
-			chips = append(chips, n)
-		}
-	}
-	return chips
 }

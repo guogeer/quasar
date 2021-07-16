@@ -26,7 +26,6 @@ type AB struct {
 	B1  bool
 	M1  map[string]string
 	M2  map[string]string
-	n1  int32
 	N3  int
 	A1  []int
 }
@@ -43,7 +42,6 @@ type A struct {
 	AA1 AA
 	AA2 *AA
 	AA3 *AA
-	aa1 AA
 	AA4 [2]AA
 	AA5 []*AA
 	AA6 []int
@@ -107,13 +105,13 @@ type Child struct {
 }
 
 type GrandPa struct {
-	GrandAliasId int `alias:"TestGrandAliasId""`
+	GrandAliasId int `alias:"TestGrandAliasId"`
 }
 
 type Father struct {
 	GrandPa
 	Id      int `alias:"UId" json:"UId"`
-	AliasId int `alias:"TestAliasId""`
+	AliasId int `alias:"TestAliasId"`
 	UId2    int
 	N2      int
 	S2      string
@@ -123,7 +121,7 @@ type Father struct {
 type Father2 struct {
 	GrandPa
 	UId     int
-	AliasId int `alias:"TestAliasId""`
+	AliasId int `alias:"TestAliasId"`
 	Id2     int `alias:"UId2" json:"UId2"`
 	N2      int
 	S2      string

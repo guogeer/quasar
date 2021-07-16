@@ -13,7 +13,7 @@ import (
 
 func skipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
 	end := start
-	if start.IsZero() == true {
+	if start.IsZero() {
 		panic("start time is zero")
 	}
 	if diff := now.Sub(start); diff > 0 && d > 0 {
@@ -42,7 +42,7 @@ func InArray(array interface{}, some interface{}) int {
 	for i := 0; i < arrayValues.Len(); i++ {
 		if someValues.Kind() == reflect.Slice {
 			for k := 0; k < someValues.Len(); k++ {
-				if reflect.DeepEqual(arrayValues.Index(i).Interface(), someValues.Index(k).Interface()) == true {
+				if reflect.DeepEqual(arrayValues.Index(i).Interface(), someValues.Index(k).Interface()) {
 					counter++
 				}
 			}
@@ -59,5 +59,5 @@ func InArray(array interface{}, some interface{}) int {
 func EqualJSON(a, b interface{}) bool {
 	b1, _ := json.Marshal(a)
 	b2, _ := json.Marshal(b)
-	return bytes.Compare(b1, b2) == 0
+	return bytes.Equal(b1, b2)
 }

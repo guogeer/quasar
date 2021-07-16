@@ -76,6 +76,7 @@ func doCopy(dval, sval reflect.Value) {
 			if aliasIndex, ok := aliasFields[sname]; ok {
 				dfield = dval.Field(aliasIndex)
 			}
+			// anonymous struct field
 			if stype.Anonymous {
 				doCopy(dval, sfield)
 			}
