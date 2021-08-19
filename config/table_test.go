@@ -5,7 +5,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	LoadLocalTables(".")
+	LoadLocalTables("test_tables")
 	m.Run()
 }
 
@@ -44,5 +44,16 @@ func TestFilterRows(t *testing.T) {
 	rows2 := FilterRows("test2", "C1,C4", 12, "S1")
 	if len(rows2) != 0 {
 		t.Errorf("filter test2 12,S1 fail")
+	}
+}
+
+func TestScanTableGroup(t *testing.T) {
+	a, ok := Int("test", 1, "A")
+	if !(ok && a == 10) {
+		t.Errorf("scan table group:test valid field fail")
+	}
+	a, ok = Int("test", 100, "A")
+	if !(!ok && a == 0) {
+		t.Errorf("scan table group:test empty field fail")
 	}
 }
