@@ -188,12 +188,19 @@ func SetLevel(lv string) {
 	fileLog.SetLevel(lv)
 }
 
+// fmt.Sprint：string类型参数前后不会插入空格
+// fmt.Sprintln：参数之间都会插入空格，需移除串尾换行
+func sprintf(v ...interface{}) string {
+	s := fmt.Sprintln(v...)
+	return s[:len(s)-1]
+}
+
 func Testf(format string, v ...interface{}) {
 	fileLog.Output(LvTest, fmt.Sprintf(format, v...))
 }
 
 func Test(v ...interface{}) {
-	fileLog.Output(LvTest, fmt.Sprint(v...))
+	fileLog.Output(LvTest, sprintf(v...))
 }
 
 func Debugf(format string, v ...interface{}) {
@@ -201,7 +208,7 @@ func Debugf(format string, v ...interface{}) {
 }
 
 func Debug(v ...interface{}) {
-	fileLog.Output(LvDebug, fmt.Sprint(v...))
+	fileLog.Output(LvDebug, sprintf(v...))
 }
 
 func Infof(format string, v ...interface{}) {
@@ -209,7 +216,7 @@ func Infof(format string, v ...interface{}) {
 }
 
 func Info(v ...interface{}) {
-	fileLog.Output(LvInfo, fmt.Sprint(v...))
+	fileLog.Output(LvInfo, sprintf(v...))
 }
 
 func Warnf(format string, v ...interface{}) {
@@ -217,7 +224,7 @@ func Warnf(format string, v ...interface{}) {
 }
 
 func Warn(v ...interface{}) {
-	fileLog.Output(LvWarn, fmt.Sprint(v...))
+	fileLog.Output(LvWarn, sprintf(v...))
 }
 
 func Errorf(format string, v ...interface{}) {
@@ -225,7 +232,7 @@ func Errorf(format string, v ...interface{}) {
 }
 
 func Error(v ...interface{}) {
-	fileLog.Output(LvError, fmt.Sprint(v...))
+	fileLog.Output(LvError, sprintf(v...))
 }
 
 func Fatalf(format string, v ...interface{}) {
@@ -234,7 +241,7 @@ func Fatalf(format string, v ...interface{}) {
 }
 
 func Fatal(v ...interface{}) {
-	fileLog.Output(LvFatal, fmt.Sprint(v...))
+	fileLog.Output(LvFatal, sprintf(v...))
 	os.Exit(0)
 }
 
