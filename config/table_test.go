@@ -5,7 +5,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	LoadLocalTables("test_tables")
+	LoadLocalTables("testdata")
 	m.Run()
 }
 

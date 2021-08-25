@@ -66,12 +66,12 @@ func Handle(ctx *Context, name string, data []byte) error {
 }
 
 type ServiceConfig struct {
-	ServerName string      `json:",omitempty"`
+	ServerName string      `json:",omitempty"` // 服务ID
 	ServerAddr string      `json:",omitempty"`
 	ServerData interface{} `json:",omitempty"`
 	ServerType string      `json:",omitempty"` // center,gateway etc
 	IsRandPort bool        `json:",omitempty"` // Deprecated: 服务合并后指定端口，不再需要随机端口
-	ServerList []string    `json:",omitempty"`
+	ServerList []string    `json:",omitempty"` // 服务名，一般定义1个。可以对应多个服务ID
 	MinWeight  int         `json:",omitempty"` // 最小的负载
 	MaxWeight  int         `json:",omitempty"` // 最大的负载
 }

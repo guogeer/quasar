@@ -7,21 +7,23 @@ import (
 	"strconv"
 )
 
-const sampleSize = 100 * 10000 // 100W
+// Deprecated
+const sampleSize = 100 * 10000 // 100万
 
-// 随机
+// Deprecated: use Index
+// 数组根据权重随机一个下标
 func Array(array interface{}) int {
 	t := rand.Intn(sampleSize)
 
-	switch array.(type) {
+	switch v := array.(type) {
 	case []int:
-		for i, n := range array.([]int) {
+		for i, n := range v {
 			if t < n {
 				return i
 			}
 		}
 	case []int64:
-		for i, n := range array.([]int64) {
+		for i, n := range v {
 			if t < int(n) {
 				return i
 			}
@@ -30,6 +32,7 @@ func Array(array interface{}) int {
 	panic("random in empty array")
 }
 
+// Deprecatd
 func IsNice(n int) bool {
 	return rand.Intn(sampleSize) < n
 }
@@ -39,10 +42,12 @@ func IsPercentNice(percent float64) bool {
 	return IsNice(n)
 }
 
+// Deprecated
 func FromPercent(percent float64) int {
 	return int(float64(sampleSize/100) * percent)
 }
 
+// Deprecated
 func ToPercent(n int) float64 {
 	return float64(n) / float64(sampleSize/100)
 }
@@ -53,7 +58,7 @@ func Shuffle(a interface{}) {
 	ShuffleN(a, lst.Len())
 }
 
-// 随机打乱切片slice前n个元素
+// 随机打乱切片或数组前n个元素
 func ShuffleN(a interface{}, n int) {
 	if a == nil {
 		return
@@ -68,6 +73,7 @@ func ShuffleN(a interface{}, n int) {
 	}
 }
 
+// 根据数组权重随机多个不重复的结果，返回数组下标
 func IndexN(a interface{}, num int) []int {
 	var numbers []int64
 	var vals = reflect.ValueOf(a)
@@ -81,7 +87,7 @@ func IndexN(a interface{}, num int) []int {
 		numbers = append(numbers, int64(f*sampleSize))
 	}
 
-	res := make([]int, 0, 4)
+	var res []int
 	for try := 0; try < num; try++ {
 		var part, sum int64
 		for _, n := range numbers {
