@@ -13,6 +13,7 @@ package config
 import (
 	"archive/zip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -37,6 +38,8 @@ var (
 	enableDebug   = false
 	gTableFiles   sync.Map
 	gTableRowKeys [255]*tableRow
+
+	errUnsupportType = errors.New("unsupport table cell arg")
 )
 
 func init() {
@@ -56,7 +59,7 @@ type tableFile struct {
 	rowName  map[string]int // 行名
 	table    []map[string]*tableCell
 	name     string
-	colTypes map[string]string
+	colTypes map[string]string // 字段类型。Col1: JSON
 
 	groups map[string]*tableGroup
 }
@@ -110,10 +113,15 @@ func (f *tableFile) Load(buf []byte) error {
 			line0 = lineCells
 		case 1: // 表格第二行列索引
 			line1 = lineCells
+			// 列KEY转为小写
+			for k := 0; k < len(line1); k++ {
+				line1[k] = strings.ToLower(line1[k])
+			}
 			for k := 0; k < len(line0) && k < len(line1); k++ {
-				keys := regexp.MustCompile(`\[[^\]]+\]`).FindString(line0[k])
+				colName := strings.ToLower(line0[k])
+				keys := regexp.MustCompile(`\[[^\]]+\]`).FindString(colName)
 				types := regexp.MustCompile(`[A-Za-z0-9]+`).FindAllString(keys, -1)
-				f.colTypes[line1[k]] = "," + strings.Join(types, ",") + ","
+				f.colTypes[line1[k]] = strings.Join(types, ",")
 			}
 		default:
 			rowName := string(lineCells[0])
@@ -121,8 +129,7 @@ func (f *tableFile) Load(buf []byte) error {
 
 			cells := map[string]*tableCell{}
 			for k, cell := range lineCells {
-				colKey := strings.ToLower(string(line1[k]))
-				if colKey == ".private" && len(cell) > 0 {
+				if line1[k] == ".private" && len(cell) > 0 {
 					attrs := make(map[string]json.RawMessage)
 					json.Unmarshal([]byte(cell), &attrs)
 					for attrk, attrv := range attrs {
@@ -133,10 +140,9 @@ func (f *tableFile) Load(buf []byte) error {
 							s = s[1 : len(s)-1]
 						}
 						cells[attrk] = &tableCell{s: s}
-
 					}
 				}
-				cells[colKey] = &tableCell{s: cell}
+				cells[line1[k]] = &tableCell{s: cell}
 			}
 			for _, cell := range cells {
 				cell.n, _ = strconv.ParseInt(cell.s, 10, 64)
@@ -242,10 +248,11 @@ func (g *tableGroup) String(row, col interface{}) (string, bool) {
 }
 
 func (g *tableGroup) IsType(col string, typ string) bool {
+	typ = strings.ToLower(typ)
 	for _, name := range g.members {
 		if f := getTableFile(name); f != nil {
 			if s, ok := f.colTypes[col]; ok {
-				return strings.Contains(s, ","+typ+",")
+				return strings.Contains(","+s+",", ","+typ+",")
 			}
 		}
 	}
@@ -256,7 +263,7 @@ func (cell *tableCell) Scan(arg interface{}) error {
 	switch v := arg.(type) {
 	default:
 		if _, ok := arg.(Scanner); !ok {
-			panic("unsupport table cell arg")
+			return errUnsupportType
 		}
 	case *time.Duration:
 		arg = (*durationArg)(v)
@@ -306,19 +313,30 @@ func (g *tableGroup) Scan(row, cols interface{}, args ...interface{}) (int, erro
 		panic("args not match")
 	}
 
-	var counter int
-	var lastErr error
+	var counter int   // 读取成功的参数数量
+	var lastErr error // 最后产生的错误
 	for i, arg := range args {
 		colKey := strings.ToLower(colKeys[i])
 		if cell, exist := g.Cell(row, colKey); exist {
-			counter++
-
-			// 自动解析JSON
-			if _, ok := arg.(Scanner); !ok && g.IsType(colKey, "JSON") {
-				arg = &jsonArg{value: arg}
-			}
-			if err := cell.Scan(arg); err != nil {
+			// 优先匹配int/string等基本数据类型
+			err := cell.Scan(arg)
+			if err != nil {
 				lastErr = err
+			}
+			if err == errUnsupportType {
+				// 若列配置了[JSON]，则尝试解析成JSON类型
+				if g.IsType(colKey, "JSON") {
+					err = cell.Scan(JSON(arg))
+				}
+			}
+			if err == nil {
+				counter++
+			} else {
+				lastErr = err
+			}
+			// 配置读取错误容易引起BUG，直接异常退出
+			if err == errUnsupportType {
+				panic(err)
 			}
 		}
 	}
