@@ -112,14 +112,9 @@ func Forward(servers interface{}, messageId string, i interface{}) {
 
 // 同步请求
 func Request(serverName, msgId string, in interface{}) ([]byte, error) {
-	var addr string
-	if serverName == "router" {
-		addr = defaultRouterAddr
-	} else {
-		addr, _ = RequestServerAddr(serverName)
-	}
-	if addr == "" {
-		return nil, errInvalidAddr
+	addr, err := RequestServerAddr(serverName)
+	if err != nil {
+		return nil, err
 	}
 	rwc, err := net.Dial("tcp", addr)
 	if err != nil {
@@ -173,6 +168,9 @@ func RequestServerAddr(name string) (string, error) {
 	args := &cmdArgs{}
 	if err := json.Unmarshal(buf, args); err != nil {
 		return "", err
+	}
+	if args.ServerAddr == "" {
+		return "", errInvalidAddr
 	}
 	return args.ServerAddr, nil
 }
