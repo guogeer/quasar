@@ -32,6 +32,7 @@ const (
 	tableFileSuffix   = ".tbl"
 	attrTable         = "system_table_field"
 	tableRowKeyPrefix = "_default_table_line_"
+	privateColKey     = ".private" // 该列可以直接访问
 )
 
 var (
@@ -53,6 +54,8 @@ type tableCell struct {
 	n int64
 	f float64
 	b bool
+
+	rawColKey string
 }
 
 type tableFile struct {
@@ -113,15 +116,11 @@ func (f *tableFile) Load(buf []byte) error {
 			line0 = lineCells
 		case 1: // 表格第二行列索引
 			line1 = lineCells
-			// 列KEY转为小写
-			for k := 0; k < len(line1); k++ {
-				line1[k] = strings.ToLower(line1[k])
-			}
 			for k := 0; k < len(line0) && k < len(line1); k++ {
 				colName := strings.ToLower(line0[k])
 				keys := regexp.MustCompile(`\[[^\]]+\]`).FindString(colName)
 				types := regexp.MustCompile(`[A-Za-z0-9]+`).FindAllString(keys, -1)
-				f.colTypes[line1[k]] = strings.Join(types, ",")
+				f.colTypes[strings.ToLower(line1[k])] = strings.Join(types, ",")
 			}
 		default:
 			rowName := string(lineCells[0])
@@ -129,20 +128,21 @@ func (f *tableFile) Load(buf []byte) error {
 
 			cells := map[string]*tableCell{}
 			for k, cell := range lineCells {
-				if line1[k] == ".private" && len(cell) > 0 {
+				colKey := strings.ToLower(line1[k])
+				if colKey == privateColKey && len(cell) > 0 {
 					attrs := make(map[string]json.RawMessage)
 					json.Unmarshal([]byte(cell), &attrs)
 					for attrk, attrv := range attrs {
-						attrk = strings.ToLower(attrk)
+						key := strings.ToLower(attrk)
 						s := string(attrv)
 						// 格式"message"移除前缀后缀
 						if regexp.MustCompile(`^".*"$`).MatchString(s) {
 							s = s[1 : len(s)-1]
 						}
-						cells[attrk] = &tableCell{s: s}
+						cells[key] = &tableCell{s: s, rawColKey: attrk}
 					}
 				}
-				cells[line1[k]] = &tableCell{s: cell}
+				cells[colKey] = &tableCell{s: cell, rawColKey: line1[k]}
 			}
 			for _, cell := range cells {
 				cell.n, _ = strconv.ParseInt(cell.s, 10, 64)
@@ -191,11 +191,24 @@ func (f *tableFile) Rows() []*tableRow {
 		return gTableRowKeys[:len(f.table)]
 	}
 
-	rows := make([]*tableRow, 0, 32)
+	var rows []*tableRow
 	for k := range f.table {
 		rows = append(rows, newTableRow(k))
 	}
 	return rows
+}
+
+// 每一行的数据个数不一定相同
+func (f *tableFile) Cols(rowIndex int) []string {
+	if rowIndex >= len(f.table) {
+		return nil
+	}
+
+	var cols []string
+	for _, cell := range f.table[rowIndex] {
+		cols = append(cols, cell.rawColKey)
+	}
+	return cols
 }
 
 type tableGroup struct {
@@ -491,7 +504,7 @@ func RowId(n int) *tableRow {
 	return newTableRow(n)
 }
 
-// TODO 当前仅支持,分隔符
+// Deprecated 当前仅支持,分隔符
 func IsPart(s string, match interface{}) bool {
 	smatch := fmt.Sprintf("%v", match)
 	return strings.Contains(","+s+",", ","+smatch+",")
@@ -558,4 +571,11 @@ func FilterRows(name string, cols string, vals ...interface{}) []*tableRow {
 		}
 	}
 	return rows
+}
+
+func Cols(name string, rowIndex int) []string {
+	if f := getTableFile(name); f != nil {
+		return f.Cols(rowIndex)
+	}
+	return nil
 }
