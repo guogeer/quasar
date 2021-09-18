@@ -19,7 +19,7 @@ func main() {
 
 	log.Infof("start gateway, listen %d", *port)
 	addr := fmt.Sprintf("%s:%d", *proxy, *port)
-	cmd.RegisterService(&cmd.ServiceConfig{Name: "ws_gateway", Addr: addr})
+	cmd.RegisterService(&cmd.ServiceConfig{Id: "ws_gateway", Name: "gateway", Addr: addr})
 
 	addr = fmt.Sprintf(":%d", *port)
 	go func() {

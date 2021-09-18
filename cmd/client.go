@@ -110,11 +110,13 @@ func (c *Client) start() {
 		// read message head
 		mt, buf, err := c.ReadMessage()
 		if err != nil {
+			log.Debug(err)
 			return
 		}
 		if mt == RawMessage {
 			pkg, err := authParser.Decode(buf)
 			if err != nil {
+				log.Debug(err)
 				return
 			}
 
@@ -124,7 +126,6 @@ func (c *Client) start() {
 				log.Debugf("handle message[%s] %v", id, err)
 			}
 		}
-		saveBuf(buf)
 	}
 }
 

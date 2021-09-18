@@ -185,11 +185,13 @@ type hashParser struct {
 }
 
 func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
-	data, err := marshalJSON(pkg.Body)
-	if err != nil {
-		return nil, err
+	if pkg.Body != nil {
+		data, err := marshalJSON(pkg.Body)
+		if err != nil {
+			return nil, err
+		}
+		pkg.Data = data
 	}
-	pkg.Data = data
 
 	pkg.Sign = parser.tempSign
 	buf, err := json.Marshal(pkg)
@@ -226,7 +228,7 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 	if key == "" {
 		return "", nil
 	}
-	buf := newBuf(len(key) + len(data))
+	buf := make([]byte, len(key)+len(data))
 	copy(buf, key)
 	copy(buf[len(key):], data)
 	// buf = append([]byte(key), data...)
@@ -250,7 +252,6 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 		}
 		sign = string(sign2)
 	}
-	saveBuf(buf)
 	copy(data[n-signLen:n], sign)
 	return sign, nil
 }

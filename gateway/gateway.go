@@ -1,6 +1,7 @@
 package main
 
 import (
+	"strings"
 	"sync"
 	"time"
 
@@ -16,11 +17,10 @@ var (
 )
 
 type serverState struct {
-	MinWeight  int
-	MaxWeight  int
-	Weight     int
-	ServerName string
-	ServerList []string
+	MinWeight int
+	MaxWeight int
+	Weight    int
+	Name      string
 }
 
 type sessionLocation struct {
@@ -52,14 +52,14 @@ func matchBestServer(ssid, name string) string {
 
 	state, ok := serverStates[name]
 	if ok {
-		return state.ServerName
+		return state.Name
 	}
 
 	matchServers := map[string]bool{}
 	for _, server := range serverStates {
-		for _, child := range server.ServerList {
+		for _, child := range strings.Split(server.Name, ",") {
 			if name == child {
-				matchServers[server.ServerName] = true
+				matchServers[server.Name] = true
 			}
 		}
 	}
@@ -74,7 +74,7 @@ func matchBestServer(ssid, name string) string {
 	var matchName string
 	for server := range matchServers {
 		state := serverStates[server]
-		if state.Weight < state.MinWeight && matchName < state.ServerName {
+		if state.Weight < state.MinWeight && matchName < state.Name {
 			matchName = server
 		}
 	}

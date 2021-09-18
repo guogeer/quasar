@@ -118,7 +118,6 @@ func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	saveBuf(buf)
 	return pkg.Data, err
 }
 

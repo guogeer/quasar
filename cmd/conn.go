@@ -41,6 +41,7 @@ type TCPConn struct {
 	rwc     net.Conn
 	ssid    string
 	send    chan []byte
+	pong    chan bool
 	isClose bool
 	mu      sync.RWMutex
 }
@@ -70,32 +71,27 @@ func (c *TCPConn) ReadMessage() (uint8, []byte, error) {
 	// 消息
 	mt := uint8(head[0])
 	n := int(binary.BigEndian.Uint16(head[1:]))
-	if n == 0 {
-		return mt, nil, nil
-	}
-	if n < maxMessageSize {
-		buf := newBuf(n)
-		if _, err := io.ReadFull(c.rwc, buf); err != nil {
-			saveBuf(buf)
-			return 0, nil, err
+	switch mt {
+	case PingMessage:
+		if c.pong == nil {
+			c.pong = make(chan bool, 1)
 		}
-		return mt, buf, nil
+		c.pong <- true
+
+		c.rwc.SetReadDeadline(time.Now().Add(pongWait))
+		return mt, nil, nil
+	case PongMessage:
+		return mt, nil, nil
+	case RawMessage:
+		if n > 0 && n < maxMessageSize {
+			buf := make([]byte, n)
+			if _, err := io.ReadFull(c.rwc, buf); err != nil {
+				return 0, nil, err
+			}
+			return mt, buf, nil
+		}
 	}
 	return 0, nil, errors.New("invalid data")
-}
-
-func (c *TCPConn) NewMessageBytes(mt int, data []byte) ([]byte, error) {
-	if len(data) > maxMessageSize {
-		return nil, errTooLargeMessage
-	}
-	buf := newBuf(len(data) + messageHeadSize)
-
-	// 协议头
-	buf[0] = byte(mt)
-	binary.BigEndian.PutUint16(buf[1:messageHeadSize], uint16(len(data)))
-	// 协议数据
-	copy(buf[messageHeadSize:], data)
-	return buf, nil
 }
 
 func (c *TCPConn) WriteJSON(name string, i interface{}) error {
@@ -122,14 +118,18 @@ func (c *TCPConn) Write(data []byte) error {
 	return nil
 }
 
-func (c *TCPConn) writeMsg(mt int, msg []byte) (int, error) {
-	buf, err := c.NewMessageBytes(mt, msg)
-	if err != nil {
-		return 0, err
+func (c *TCPConn) writeMsg(mt int, data []byte) (int, error) {
+	if len(data) > maxMessageSize {
+		return 0, errTooLargeMessage
 	}
-	n, err := c.rwc.Write(buf)
-	saveBuf(msg)
-	return n, err
+	buf := make([]byte, len(data)+messageHeadSize)
+
+	// 协议头
+	buf[0] = byte(mt)
+	binary.BigEndian.PutUint16(buf[1:messageHeadSize], uint16(len(data)))
+	// 协议数据
+	copy(buf[messageHeadSize:], data)
+	return c.rwc.Write(buf)
 }
 
 type Handler func(*Context, interface{})
@@ -215,35 +215,4 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 	}
 
 	return nil
-}
-
-var (
-	bufPool256, bufPool1024 sync.Pool
-)
-
-// 缓存
-func newBuf(n int) []byte {
-	var p interface{}
-	if n <= 256 {
-		p = bufPool256.Get()
-	} else if n <= 1024 {
-		p = bufPool1024.Get()
-	}
-
-	var buf []byte
-	if p != nil {
-		buf = *(p.(*[]byte))
-	}
-	if buf == nil {
-		buf = make([]byte, n)
-	}
-	return buf[:n]
-}
-
-func saveBuf(buf []byte) {
-	if cap(buf) == 256 {
-		bufPool256.Put(&buf)
-	} else if cap(buf) == 1024 {
-		bufPool1024.Put(&buf)
-	}
 }

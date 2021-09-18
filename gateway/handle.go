@@ -12,12 +12,10 @@ type Args struct {
 	ServerName  string
 	MatchServer string
 
-	UId  int
 	Data json.RawMessage
 
-	Name       string
-	ServerList []string
-	Servers    []*serverState
+	Name    string
+	Servers []*serverState
 }
 
 func init() {
@@ -98,6 +96,6 @@ func S2C_QueryServerState(ctx *cmd.Context, data interface{}) {
 	defer serverStateMu.Unlock()
 	serverStates = map[string]*serverState{}
 	for _, state := range args.Servers {
-		serverStates[state.ServerName] = state
+		serverStates[state.Name] = state
 	}
 }

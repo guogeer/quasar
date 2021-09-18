@@ -70,7 +70,6 @@ type ServeConn struct {
 }
 
 func (c *ServeConn) serve() {
-	pong := make(chan bool, 1)
 	doneCtx, cancel := context.WithCancel(context.Background())
 	go func() {
 		defer func() {
@@ -93,7 +92,7 @@ func (c *ServeConn) serve() {
 						return
 					}
 				}
-			case <-pong:
+			case <-c.pong:
 				if _, err := c.writeMsg(PongMessage, []byte{}); err != nil {
 					return
 				}
@@ -105,28 +104,35 @@ func (c *ServeConn) serve() {
 
 	defer func() {
 		cancel() // 读关闭通知
-		close(pong)
+		if c.pong != nil {
+			close(c.pong)
+		}
 	}()
 	// 新连接5s内未收到有效数据判定无效
 	c.rwc.SetReadDeadline(time.Now().Add(5 * time.Second))
 
-	parser := authParser
-	for {
+	for needAuth := true; true; needAuth = false {
 		mt, buf, err := c.TCPConn.ReadMessage()
 		if err != nil {
+			log.Debug(err)
 			return
 		}
-		if mt == PingMessage {
-			pong <- true
-		}
-		if mt == PingMessage {
+
+		// 第一个包校验数据安全
+		parser := rawParser
+		if needAuth {
+			mt, parser = RawMessage, authParser
 			c.rwc.SetReadDeadline(time.Now().Add(pongWait))
 		}
-
 		if mt == RawMessage {
 			pkg, err := parser.Decode(buf)
 			if err != nil {
+				log.Debug(err)
 				return
+			}
+			// 忽略校验包空数据
+			if len(pkg.Data) == 0 && needAuth {
+				continue
 			}
 
 			ctx := &Context{
@@ -138,8 +144,6 @@ func (c *ServeConn) serve() {
 			if err := defaultCmdSet.Handle(ctx, pkg.Id, pkg.Data); err != nil {
 				log.Debugf("handle msg[%s] error: %v", buf, err)
 			}
-			parser = rawParser
 		}
-		saveBuf(buf)
 	}
 }
