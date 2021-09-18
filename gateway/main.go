@@ -3,12 +3,12 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/guogeer/quasar/cmd"
-	_ "github.com/guogeer/quasar/gateway/internal"
-	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/util"
 	"net/http"
 	"runtime"
+
+	"github.com/guogeer/quasar/cmd"
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/util"
 )
 
 var port = flag.Int("port", 8201, "gateway server port")
@@ -19,12 +19,7 @@ func main() {
 
 	log.Infof("start gateway, listen %d", *port)
 	addr := fmt.Sprintf("%s:%d", *proxy, *port)
-	cfg := &cmd.ServiceConfig{
-		ServerName: "ws_gateway",
-		ServerAddr: addr,
-		ServerType: "gateway",
-	}
-	cmd.RegisterService(cfg)
+	cmd.RegisterService(&cmd.ServiceConfig{Name: "ws_gateway", Addr: addr})
 
 	addr = fmt.Sprintf(":%d", *port)
 	go func() {

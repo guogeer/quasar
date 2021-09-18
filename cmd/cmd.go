@@ -9,31 +9,26 @@ import (
 	"strings"
 
 	"github.com/guogeer/quasar/config"
+	"github.com/guogeer/quasar/internal"
 )
 
 var (
 	enableDebug       = false
 	defaultRouterAddr = "127.0.0.1:9003"
-
-	errInvalidAddr = errors.New("request empty address")
+	errInvalidAddr    = errors.New("request empty address")
 )
 
 func init() {
-	cfg := config.Config()
-	sign, productKey := cfg.Sign, cfg.ProductKey
+	conf := config.Config()
 	// 服务器内部数据校验KEY
-	if h := defaultAuthParser; sign != "" {
-		h.key = sign
+	if conf.ProductKey != "" {
+		authParser.key = conf.ProductKey
+		clientParser.key = conf.ProductKey
 	}
-	// 客户端与服务器数据校验KEY
-	if h := defaultHashParser; productKey != "" {
-		h.key = productKey
-	}
-	defaultRawParser.compressPackage = cfg.CompressPackage
-	if cfg.EnableDebug {
+	if conf.EnableDebug {
 		enableDebug = true
 	}
-	if addr := config.Config().Server("router").Addr; addr != "" {
+	if addr := conf.Server("router").Addr; addr != "" {
 		defaultRouterAddr = addr
 	}
 }
@@ -66,46 +61,30 @@ func Handle(ctx *Context, name string, data []byte) error {
 }
 
 type ServiceConfig struct {
-	ServerName string      `json:",omitempty"` // 服务ID
-	ServerAddr string      `json:",omitempty"`
-	ServerData interface{} `json:",omitempty"`
-	ServerType string      `json:",omitempty"` // center,gateway etc
-	IsRandPort bool        `json:",omitempty"` // Deprecated: 服务合并后指定端口，不再需要随机端口
-	ServerList []string    `json:",omitempty"` // 服务名，一般定义1个。可以对应多个服务ID
-	MinWeight  int         `json:",omitempty"` // 最小的负载
-	MaxWeight  int         `json:",omitempty"` // 最大的负载
+	Id        string `json:",omitempty"` // 服务ID。可为空
+	Name      string `json:",omitempty"` // 服务名。存在多个时采用逗号,隔开
+	Addr      string `json:",omitempty"` // 地址
+	MinWeight int    `json:",omitempty"` // 最小的负载
+	MaxWeight int    `json:",omitempty"` // 最大的负载
 }
 
-type cmdArgs ServiceConfig
-
-type ForwardArgs struct {
-	ServerList []string
-	Name       string
-	Data       json.RawMessage
+type cmdArgs struct {
+	Name string
+	Addr string
 }
 
 // 消息通过router转发
-func Forward(servers interface{}, messageId string, i interface{}) {
+// name = "*"：向所有非网关服务转发消息
+func Forward(name string, msgId string, i interface{}) {
 	buf, err := marshalJSON(i)
 	if err != nil {
 		return
 	}
 
-	var serverList []string
-	switch v := servers.(type) {
-	case string:
-		serverList = []string{v}
-	case []string:
-		serverList = v
-	}
-	if len(serverList) == 0 {
-		return
-	}
-
-	args := &ForwardArgs{
-		ServerList: serverList,
-		Name:       messageId,
-		Data:       buf,
+	args := &internal.ForwardArgs{
+		ServerName: name,
+		MsgId:      msgId,
+		MsgData:    buf,
 	}
 	Route("router", "C2S_Route", args)
 }
@@ -123,13 +102,7 @@ func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 	defer rwc.Close()
 
 	c := &TCPConn{rwc: rwc}
-	// 第一个包发送校验数据
-	firstPackage, _ := defaultAuthParser.Encode(&Package{})
-	if _, err := c.writeMsg(AuthMessage, firstPackage); err != nil {
-		return nil, err
-	}
-	req := &Package{Id: msgId, Body: in}
-	buf, err := defaultRawParser.Encode(req)
+	buf, err := authParser.Encode(&Package{Id: msgId, Body: in}) // TODO
 	if err != nil {
 		return nil, err
 	}
@@ -137,21 +110,16 @@ func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	// read message, ignore heart beat message
-	for i := 0; i < 8; i++ {
-		mt, buf, err := c.ReadMessage()
-		if err != nil {
-			return nil, err
-		}
-		if mt == RawMessage {
-			pkg, err := defaultRawParser.Decode(buf)
-			if err != nil {
-				return nil, err
-			}
-			return pkg.Data, err
-		}
+	_, buf, err = c.ReadMessage()
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("unkown error")
+	pkg, err := authParser.Decode(buf)
+	if err != nil {
+		return nil, err
+	}
+	saveBuf(buf)
+	return pkg.Data, err
 }
 
 // 向路由请求服务器地址
@@ -160,7 +128,7 @@ func RequestServerAddr(name string) (string, error) {
 		return defaultRouterAddr, nil
 	}
 
-	req := cmdArgs{ServerName: name}
+	req := cmdArgs{Name: name}
 	buf, err := Request("router", "C2S_GetServerAddr", req)
 	if err != nil {
 		return "", err
@@ -169,8 +137,8 @@ func RequestServerAddr(name string) (string, error) {
 	if err := json.Unmarshal(buf, args); err != nil {
 		return "", err
 	}
-	if args.ServerAddr == "" {
+	if args.Addr == "" {
 		return "", errInvalidAddr
 	}
-	return args.ServerAddr, nil
+	return args.Addr, nil
 }

@@ -1,4 +1,4 @@
-package gateway
+package main
 
 import (
 	"sync"
@@ -10,7 +10,6 @@ import (
 
 var (
 	sessionLocations sync.Map // 连接会话的位置。[ssid:server_name]
-	regServices      sync.Map // Deprecated
 
 	serverStates  = map[string]*serverState{} // 服务负载。[server_name:serverState]
 	serverStateMu sync.RWMutex

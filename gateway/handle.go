@@ -1,8 +1,7 @@
-package gateway
+package main
 
 import (
 	"encoding/json"
-	"net"
 
 	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/log"
@@ -26,13 +25,10 @@ func init() {
 	cmd.BindWithoutQueue("HeartBeat", HeartBeat, (*Args)(nil))
 
 	cmd.Bind(FUNC_Broadcast, (*Args)(nil))
-	cmd.Bind(FUNC_ServerClose, (*Args)(nil))
 	cmd.Bind(FUNC_SwitchServer, (*Args)(nil))
 	cmd.Bind(FUNC_Close, (*Args)(nil))
-	cmd.Bind(FUNC_SyncServerState, (*Args)(nil))
-
-	cmd.Bind(FUNC_RegisterServiceInGateway, (*Args)(nil)) // Deprecated
-	cmd.Bind(FUNC_HelloGateway, (*Args)(nil))             // Deprecated
+	cmd.Bind(S2C_ServerClose, (*Args)(nil))
+	cmd.Bind(S2C_QueryServerState, (*Args)(nil))
 }
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
@@ -44,25 +40,6 @@ func FUNC_Close(ctx *cmd.Context, data interface{}) {
 
 	}
 	sessionLocations.Delete(ctx.Ssid)
-}
-
-// Deprecated: FUNC_SwitchServer替换；增加了Context.ClientAddr
-func FUNC_HelloGateway(ctx *cmd.Context, data interface{}) {
-	args := data.(*Args)
-	uid := args.UId
-	log.Debugf("session locate ssid:%s server name:%s", ctx.Ssid, args.ServerName)
-
-	ip := "UNKNOW"
-	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
-		addr := ss.Out.RemoteAddr()
-		loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.ServerName}
-		sessionLocations.Store(ctx.Ssid, loc)
-		if host, _, err := net.SplitHostPort(addr); err == nil {
-			ip = host
-		}
-	}
-	ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
-	ss.WriteJSON("FUNC_HelloGateway", map[string]interface{}{"UId": uid, "IP": ip})
 }
 
 func FUNC_SwitchServer(ctx *cmd.Context, data interface{}) {
@@ -95,7 +72,7 @@ func FUNC_Broadcast(ctx *cmd.Context, data interface{}) {
 	}
 }
 
-func FUNC_ServerClose(ctx *cmd.Context, data interface{}) {
+func S2C_ServerClose(ctx *cmd.Context, data interface{}) {
 	client := ctx.Out.(*cmd.Client)
 	for _, ss := range cmd.GetSessionList() {
 		// 2020-11-24 仅通知在当前服务的连接
@@ -106,23 +83,15 @@ func FUNC_ServerClose(ctx *cmd.Context, data interface{}) {
 			}
 		}
 	}
-	regServices.Store(client.ServerName(), false)
+	cmd.Forward("router", "C2S_QueryServerState", cmd.T{})
 }
 
 func HeartBeat(ctx *cmd.Context, data interface{}) {
 	ctx.Out.WriteJSON("HeartBeat", struct{}{})
 }
 
-// Deprecated: use FUNC_SyncServerState
-func FUNC_RegisterServiceInGateway(ctx *cmd.Context, data interface{}) {
-	args := data.(*Args)
-	for _, name := range args.ServerList {
-		regServices.Store(name, true)
-	}
-}
-
 // 同步服务负载
-func FUNC_SyncServerState(ctx *cmd.Context, data interface{}) {
+func S2C_QueryServerState(ctx *cmd.Context, data interface{}) {
 	args := data.(*Args)
 
 	serverStateMu.Lock()

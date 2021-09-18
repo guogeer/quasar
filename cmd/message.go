@@ -1,14 +1,10 @@
 package cmd
 
 import (
-	"bytes"
-	"compress/zlib"
 	"crypto/md5"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"io"
 	"sort"
 	"strings"
 	"time"
@@ -23,6 +19,8 @@ var (
 	errTooLargeMessage = errors.New("too large message")
 )
 
+type T map[string]interface{}
+
 type Context struct {
 	Out         Conn   // 连接
 	MsgId       string // 消息ID
@@ -34,11 +32,12 @@ type Context struct {
 	isFail      bool   // 失败处理后，不需要继续处理
 }
 
+// 失败后不再处理后续消息
 func (ctx *Context) Fail() {
 	ctx.isFail = true
 }
 
-type Message struct {
+type msgTask struct {
 	id   string
 	h    Handler
 	hook Handler
@@ -46,48 +45,15 @@ type Message struct {
 	args interface{}
 }
 
-type SafeQueue struct {
-	q chan interface{}
+type msgQueue struct {
+	q chan *msgTask
 }
 
-func NewSafeQueue(size int) *SafeQueue {
-	return &SafeQueue{q: make(chan interface{}, size)}
+func newMsgQueue(size int) *msgQueue {
+	return &msgQueue{q: make(chan *msgTask, size)}
 }
 
-func (h *SafeQueue) Enqueue(i interface{}) {
-	h.q <- i
-}
-
-func (h *SafeQueue) Dequeue(delay time.Duration) interface{} {
-	if delay > 0 {
-		select {
-		case msg := <-h.q:
-			return msg
-		case <-time.After(delay):
-			return nil
-		}
-	}
-	if delay == 0 {
-		select {
-		case msg := <-h.q:
-			return msg
-		default:
-			return nil
-		}
-	}
-	if delay < 0 {
-		msg := <-h.q
-		return msg
-
-	}
-	return nil
-}
-
-var defaultMessageQueue = NewSafeQueue(16 << 10)
-
-func GetMessageQueue() *SafeQueue {
-	return defaultMessageQueue
-}
+var defaultMsgQueue = newMsgQueue(8 << 10)
 
 // 统计消息平均负载&访问频率等
 type messageStat struct {
@@ -108,22 +74,25 @@ var (
 	messageStats  map[string]messageStat
 )
 
-// TODO 暂时未考虑并发访问
-func waitAndRunOnce(loop int, delay time.Duration) {
+func RunOnce() {
 	var t1, t2 time.Time
 	var stats map[string]messageStat
 	if enableDebug {
 		stats = map[string]messageStat{}
 	}
-	for i := 0; i < loop; i++ {
-		front := GetMessageQueue().Dequeue(delay)
-		if front == nil {
+	mq := defaultMsgQueue
+	for i := 0; i < 256; i++ {
+		var msg *msgTask
+		select {
+		case msg = <-mq.q:
+		case <-time.After(40 * time.Microsecond):
+		}
+		if msg == nil {
 			break
 		}
 		if enableDebug {
 			t1 = time.Now()
 		}
-		msg := front.(*Message)
 		if msg.hook != nil {
 			msg.hook(msg.ctx, msg.args)
 		}
@@ -179,92 +148,50 @@ func waitAndRunOnce(loop int, delay time.Duration) {
 	}
 }
 
-func RunOnce() {
-	waitAndRunOnce(256, 40*time.Millisecond)
-}
-
-func Enqueue(ctx *Context, h Handler, args interface{}) {
-	GetMessageQueue().Enqueue(&Message{ctx: ctx, h: h, args: args})
-}
-
 type Package struct {
 	Id         string          `json:",omitempty"`    // 消息ID
 	Data       json.RawMessage `json:",omitempty"`    // 数据,object类型
 	Sign       string          `json:",omitempty"`    // 签名
 	Ssid       string          `json:",omitempty"`    // 会话ID
 	Version    int             `json:"Ver,omitempty"` // 版本
-	ExpireTs   int64           `json:",omitempty"`    // 发送的时间戳
+	ExpireTs   int64           `json:",omitempty"`    // 过期时间戳
 	ServerName string          `json:",omitempty"`    // 请求的协议头
 	ClientAddr string          `json:",omitempty"`    // 客户端地址
 
-	Body     interface{} `json:"-"` // 传入的参数
-	IsZip    bool        `json:"-"`
-	SignType string      `json:"-"` // md5,raw
+	Body interface{} `json:"-"` // 解析成Data
 }
 
-func (pkg *Package) parser(typ string) *hashParser {
-	parser := defaultHashParser
-	switch typ {
-	case "md5":
-		parser = defaultAuthParser
-	case "raw":
-		parser = defaultRawParser
-	}
-	return parser
-}
+// 服务内部协议
+var rawParser = &hashParser{}
 
-func (pkg *Package) Encode() ([]byte, error) {
-	parser := pkg.parser(pkg.SignType)
-	return parser.Encode(pkg)
-}
-
-func (pkg *Package) Decode(buf []byte) error {
-	parser := pkg.parser(pkg.SignType)
-	if _, err := parser.Decode(buf); err != nil {
-		return err
-	}
-	if pkg.Body != nil {
-		return json.Unmarshal(buf, pkg.Body)
-	}
-	return nil
-}
-
-var defaultRawParser = &hashParser{}
-var defaultHashParser = &hashParser{
-	ref:      []int{0, 3, 4, 8, 10, 11, 13, 14},
-	key:      "helloworld!",
-	tempSign: "12345678",
-}
-var defaultAuthParser = &hashParser{
+// 服务器内建立连接时将检验第一个包的数据
+var authParser = &hashParser{
 	key:      "420e57b017066b44e05ea1577f6e2e12",
 	tempSign: "a9542bb104fe3f4d562e1d275e03f5ba",
 }
 
-// 哈希
+// 外网客户端协议
+var clientParser = &hashParser{
+	ref:      []int{0, 3, 4, 8, 10, 11, 13, 14},
+	key:      "helloworld!",
+	tempSign: "12345678",
+}
+
+// 协议使用哈希值检验
 type hashParser struct {
-	ref             []int
-	key             string
-	tempSign        string
-	compressPackage int // 压缩数据
+	ref      []int
+	key      string
+	tempSign string
 }
 
 func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
-	pkg.Sign = parser.tempSign
-	body, err := marshalJSON(pkg.Body)
+	data, err := marshalJSON(pkg.Body)
 	if err != nil {
 		return nil, err
 	}
-	pkg.Data = body
-	if n := parser.compressPackage; pkg.IsZip && n > 0 && n < len(pkg.Data) {
-		b := bytes.Buffer{}
-		w := zlib.NewWriter(&b)
-		w.Write(pkg.Data)
-		w.Close()
+	pkg.Data = data
 
-		zipData := base64.StdEncoding.EncodeToString(b.Bytes())
-		pkg.Data = json.RawMessage(`"` + zipData + `"`)
-	}
-
+	pkg.Sign = parser.tempSign
 	buf, err := json.Marshal(pkg)
 	if err != nil {
 		return nil, err
@@ -285,21 +212,6 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 	}
 
 	sign, err := parser.Signature(buf)
-	if n := len(pkg.Data); pkg.IsZip && n > 1 {
-		buf, err := base64.StdEncoding.DecodeString(string(pkg.Data[1 : n-1]))
-		if err != nil {
-			return nil, err
-		}
-		r, err := zlib.NewReader(bytes.NewReader(buf))
-		if err != nil {
-			return nil, err
-		}
-
-		raw := bytes.Buffer{}
-		io.Copy(&raw, r)
-		r.Close()
-		pkg.Data = raw.Bytes()
-	}
 	if err != nil {
 		return pkg, ErrInvalidSign
 	}
@@ -344,12 +256,17 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 }
 
 func Encode(name string, i interface{}) ([]byte, error) {
-	pkg := &Package{Id: name, Body: i}
-	return pkg.Encode()
+	buf, _ := marshalJSON(i)
+	pkg := &Package{Id: name, Data: buf}
+	return clientParser.Encode(pkg)
 }
 
 func Decode(buf []byte) (*Package, error) {
-	return defaultHashParser.Decode(buf)
+	return clientParser.Decode(buf)
+}
+
+func EncodePackage(pkg *Package) ([]byte, error) {
+	return rawParser.Encode(pkg)
 }
 
 func marshalJSON(i interface{}) ([]byte, error) {

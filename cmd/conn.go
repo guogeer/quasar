@@ -25,11 +25,9 @@ const (
 )
 
 const (
-	RawMessage   = 0x01
-	CloseMessage = 0xf0
-	PingMessage  = 0xf1
-	PongMessage  = 0xf2
-	AuthMessage  = 0xf3
+	RawMessage  = 0x01
+	PingMessage = 0xf1
+	PongMessage = 0xf2
 )
 
 type Conn interface {
@@ -62,30 +60,28 @@ func (c *TCPConn) RemoteAddr() string {
 	return c.rwc.RemoteAddr().String()
 }
 
-func (c *TCPConn) ReadMessage() (mt uint8, buf []byte, err error) {
+func (c *TCPConn) ReadMessage() (uint8, []byte, error) {
 	var head [messageHeadSize]byte
 	// read message
-	if _, err = io.ReadFull(c.rwc, head[:]); err != nil {
-		return
+	if _, err := io.ReadFull(c.rwc, head[:]); err != nil {
+		return 0, nil, err
 	}
-
-	n := int(binary.BigEndian.Uint16(head[1:]))
 
 	// 消息
-	mt = uint8(head[0])
-	switch mt {
-	case PingMessage, PongMessage, CloseMessage:
-		return
-	case AuthMessage, RawMessage:
-		if n > 0 && n < maxMessageSize {
-			buf = newBuf(n)
-			if _, err = io.ReadFull(c.rwc, buf); err == nil {
-				return
-			}
-		}
+	mt := uint8(head[0])
+	n := int(binary.BigEndian.Uint16(head[1:]))
+	if n == 0 {
+		return mt, nil, nil
 	}
-	err = errors.New("invalid data")
-	return
+	if n < maxMessageSize {
+		buf := newBuf(n)
+		if _, err := io.ReadFull(c.rwc, buf); err != nil {
+			saveBuf(buf)
+			return 0, nil, err
+		}
+		return mt, buf, nil
+	}
+	return 0, nil, errors.New("invalid data")
 }
 
 func (c *TCPConn) NewMessageBytes(mt int, data []byte) ([]byte, error) {
@@ -105,7 +101,7 @@ func (c *TCPConn) NewMessageBytes(mt int, data []byte) ([]byte, error) {
 func (c *TCPConn) WriteJSON(name string, i interface{}) error {
 	// 消息格式
 	pkg := &Package{Id: name, Body: i}
-	buf, err := defaultRawParser.Encode(pkg)
+	buf, err := EncodePackage(pkg)
 	if err != nil {
 		return err
 	}
@@ -206,8 +202,8 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 
 	// 消息入队处理
 	if e.isPushQueue {
-		msg := &Message{id: name, ctx: ctx, h: e.h, args: args, hook: hook}
-		defaultMessageQueue.Enqueue(msg)
+		msg := &msgTask{id: name, ctx: ctx, h: e.h, args: args, hook: hook}
+		defaultMsgQueue.q <- msg
 	} else {
 		// 消息直接处理。入网关转发数据时
 		if hook != nil {

@@ -11,7 +11,7 @@ type Session struct {
 
 func (ss *Session) GetServerName() string {
 	if client, ok := ss.Out.(*Client); ok {
-		return client.name
+		return client.serverName
 	}
 	return ""
 }
@@ -22,10 +22,9 @@ func (ss *Session) routeContext(ctx *Context, name string, i interface{}) {
 		Body:       i,
 		Ssid:       ss.Id,
 		ServerName: ctx.ServerName,
-		SignType:   "raw",
 		ClientAddr: ctx.ClientAddr,
 	}
-	buf, err := pkg.Encode()
+	buf, err := EncodePackage(pkg)
 	if err != nil {
 		return
 	}
@@ -35,12 +34,10 @@ func (ss *Session) routeContext(ctx *Context, name string, i interface{}) {
 func (ss *Session) Route(serverName, name string, i interface{}) {
 	pkg := &Package{
 		Id:         name,
-		Body:       i,
 		Ssid:       ss.Id,
 		ServerName: serverName,
-		SignType:   "raw",
 	}
-	buf, err := pkg.Encode()
+	buf, err := EncodePackage(pkg)
 	if err != nil {
 		return
 	}
@@ -48,8 +45,8 @@ func (ss *Session) Route(serverName, name string, i interface{}) {
 }
 
 func (ss *Session) WriteJSON(name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id, SignType: "raw"}
-	buf, err := pkg.Encode()
+	pkg := &Package{Id: name, Body: i, Ssid: ss.Id}
+	buf, err := EncodePackage(pkg)
 	if err != nil {
 		return
 	}

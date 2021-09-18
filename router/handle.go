@@ -1,0 +1,133 @@
+package main
+
+import (
+	"net"
+	"strings"
+
+	"github.com/guogeer/quasar/cmd"
+	"github.com/guogeer/quasar/internal"
+	"github.com/guogeer/quasar/log"
+)
+
+type routeArgs struct {
+	cmd.ServiceConfig
+
+	Weight int
+}
+
+func init() {
+	cmd.Bind(C2S_Register, (*routeArgs)(nil))
+	cmd.Bind(C2S_GetServerAddr, (*routeArgs)(nil))
+	cmd.Bind(C2S_Concurrent, (*routeArgs)(nil))
+	cmd.Bind(C2S_Route, (*internal.ForwardArgs)(nil))
+	cmd.Bind(C2S_QueryServerState, (*routeArgs)(nil))
+	cmd.Bind(C2S_GetBestGateway, (*routeArgs)(nil))
+
+	cmd.Bind(C2S_Broadcast, (*cmd.Package)(nil))
+	cmd.Bind(FUNC_Close, (*routeArgs)(nil))
+}
+
+// ServerAddr == "" 无服务
+func C2S_Register(ctx *cmd.Context, data interface{}) {
+	args := data.(*routeArgs)
+	host, port, _ := net.SplitHostPort(args.Addr)
+	if host == "" {
+		host, _, _ = net.SplitHostPort(ctx.Out.RemoteAddr())
+	}
+
+	var addr string
+	if port != "" {
+		addr = host + ":" + port
+	}
+	log.Infof("register server:%s %s addr:%s", args.Id, args.Name, addr)
+
+	newServer := &Server{
+		out:  ctx.Out,
+		id:   args.Id,
+		name: args.Name,
+		addr: addr,
+	}
+	addServer(newServer)
+}
+
+func C2S_GetServerAddr(ctx *cmd.Context, data interface{}) {
+	args := data.(*routeArgs)
+	name := args.Name
+	addr := matchBestServer(name)
+	log.Infof("get server:%s addr:%s", name, addr)
+	ctx.Out.WriteJSON("S2C_GetServerAddr", cmd.T{"Name": name, "Addr": addr})
+}
+
+func C2S_Broadcast(ctx *cmd.Context, data interface{}) {
+	pkg := data.(*cmd.Package)
+	for _, server := range servers {
+		if server.IsGateway() {
+			server.out.WriteJSON("FUNC_Broadcast", pkg)
+		}
+	}
+}
+
+// 更新网关负载
+func C2S_Concurrent(ctx *cmd.Context, data interface{}) {
+	args := data.(*routeArgs)
+
+	server := findServerByConn(ctx.Out)
+	if server == nil {
+		return
+	}
+	log.Debugf("concurrent %v %v", server.name, args.Weight)
+
+	server.weight = args.Weight
+}
+
+func C2S_Route(ctx *cmd.Context, data interface{}) {
+	args := data.(*internal.ForwardArgs)
+
+	matchServers := strings.Split(args.ServerName, ",")
+	if args.ServerName == "*" {
+		matchServers = matchServers[:0]
+		for id := range servers {
+			matchServers = append(matchServers, id)
+		}
+	}
+
+	for _, id := range matchServers {
+		if server, ok := servers[id]; ok {
+			server.out.WriteJSON(args.MsgId, args.MsgData)
+		}
+	}
+}
+
+func FUNC_Close(ctx *cmd.Context, data interface{}) {
+	// args := data.(*Args)
+	server := findServerByConn(ctx.Out)
+	if server == nil {
+		return
+	}
+	log.Infof("server %s lose connection", server.name)
+
+	removeServer(ctx.Out)
+	for _, server := range servers {
+		server.out.WriteJSON("S2C_ServerClose", cmd.T{"ServerName": server.name})
+	}
+}
+
+// 同步服务状态，需主动查询
+func C2S_QueryServerState(ctx *cmd.Context, data interface{}) {
+	var states []serverState
+	for _, server := range servers {
+		states = append(states, serverState{
+			Id:        server.id,
+			Name:      server.name,
+			Weight:    server.weight,
+			MinWeight: server.minWeight,
+			MaxWeight: server.maxWeight,
+		})
+	}
+	ctx.Out.WriteJSON("S2C_QueryServerState", cmd.T{"Servers": states})
+}
+
+func C2S_GetBestGateway(ctx *cmd.Context, data interface{}) {
+	addr := matchBestGateway()
+	ctx.Out.WriteJSON("S2C_GetBestGateway", cmd.T{"Addr": addr})
+}

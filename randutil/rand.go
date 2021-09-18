@@ -7,49 +7,11 @@ import (
 	"strconv"
 )
 
-// Deprecated
-const sampleSize = 100 * 10000 // 100万
-
-// Deprecated: use Index
-// 数组根据权重随机一个下标
-func Array(array interface{}) int {
-	t := rand.Intn(sampleSize)
-
-	switch v := array.(type) {
-	case []int:
-		for i, n := range v {
-			if t < n {
-				return i
-			}
-		}
-	case []int64:
-		for i, n := range v {
-			if t < int(n) {
-				return i
-			}
-		}
-	}
-	panic("random in empty array")
-}
-
-// Deprecatd
-func IsNice(n int) bool {
-	return rand.Intn(sampleSize) < n
-}
+const sampleSize = 100_0000 // 1000W
 
 func IsPercentNice(percent float64) bool {
-	n := FromPercent(percent)
-	return IsNice(n)
-}
-
-// Deprecated
-func FromPercent(percent float64) int {
-	return int(float64(sampleSize/100) * percent)
-}
-
-// Deprecated
-func ToPercent(n int) float64 {
-	return float64(n) / float64(sampleSize/100)
+	n := int(percent * sampleSize)
+	return rand.Intn(sampleSize) < n
 }
 
 // 随机打乱数组/切片

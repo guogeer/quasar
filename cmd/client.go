@@ -9,16 +9,18 @@ import (
 	"github.com/guogeer/quasar/log"
 )
 
+var clients sync.Map // 已存在的连接不会被删除
+
 type Client struct {
 	*TCPConn
 
-	name   string
-	params interface{} // 连接成功后发送的第一个请求
+	serverName string
+	conf       *ServiceConfig // 向路由注册的参数
 }
 
-func newClient(name string) *Client {
+func newClient(serverName string) *Client {
 	client := &Client{
-		name: name,
+		serverName: serverName,
 		TCPConn: &TCPConn{
 			send: make(chan []byte, sendQueueSize),
 		},
@@ -27,11 +29,11 @@ func newClient(name string) *Client {
 }
 
 func (c *Client) ServerName() string {
-	return c.name
+	return c.serverName
 }
 
 func (client *Client) connect() {
-	serverName := client.name
+	serverName := client.serverName
 	go func() {
 		intervals := []int{100, 400, 1600, 3200, 5000}
 		for retry := 0; true; retry++ {
@@ -57,7 +59,7 @@ func (client *Client) connect() {
 					break
 				}
 			}
-			log.Infof("connect server %s, retry %d after %dms", serverName, retry, ms)
+			log.Debugf("connect server %s, retry %d after %dms", serverName, retry, ms)
 		}
 		client.start()
 	}()
@@ -73,16 +75,14 @@ func (c *Client) start() {
 
 			// 关闭后，自动重连，并消息通知
 			c.autoConnect()
-			defaultCmdSet.Handle(&Context{Out: c}, "FUNC_ServerClose", nil)
 		}()
 
 		// 第一个包发送校验数据
 		pkg := &Package{
-			SignType: "md5",
 			ExpireTs: time.Now().Add(5 * time.Second).Unix(),
 		}
-		firstMsg, _ := pkg.Encode()
-		if _, err := c.writeMsg(AuthMessage, firstMsg); err != nil {
+		firstMsg, _ := authParser.Encode(pkg)
+		if _, err := c.writeMsg(RawMessage, firstMsg); err != nil {
 			return
 		}
 		for {
@@ -110,11 +110,10 @@ func (c *Client) start() {
 		// read message head
 		mt, buf, err := c.ReadMessage()
 		if err != nil {
-			log.Debugf("read %v", err)
 			return
 		}
 		if mt == RawMessage {
-			pkg, err := defaultRawParser.Decode(buf)
+			pkg, err := authParser.Decode(buf)
 			if err != nil {
 				return
 			}
@@ -129,63 +128,55 @@ func (c *Client) start() {
 	}
 }
 
-var (
-	clients  = map[string]*Client{} // 已存在的连接不会被删除
-	clientMu sync.RWMutex
-)
-
 func routeMsg(serverName string, data []byte) {
 	if serverName == "" {
 		panic("route empty server name")
 	}
 
-	clientMu.RLock()
-	client, ok := clients[serverName]
-	clientMu.RUnlock()
-
+	client, ok := clients.Load(serverName)
 	if !ok {
-		clientMu.Lock()
-		_, rok := clients[serverName]
-		if !rok {
-			clients[serverName] = newClient(serverName)
-		}
-		client = clients[serverName]
-		clientMu.Unlock()
+		newClient := newClient(serverName)
+		client, ok = clients.LoadOrStore(serverName, newClient)
 		// 防止重复连接
-		if !rok {
-			client.connect()
+		if ok {
+			close(newClient.send)
+		} else {
+			client.(*Client).connect()
 		}
 	}
 
-	if err := client.Write(data); err != nil {
+	if err := client.(*Client).Write(data); err != nil {
 		log.Errorf("server %s write %s error: %v", serverName, data, err)
 	}
 }
 
-func Route(serverName, messageId string, i interface{}) {
-	serverName, messageId = splitMsgId(serverName + "." + messageId)
-
-	pkg := &Package{Id: messageId, Body: i}
-	msg, err := pkg.Encode()
+func Route(serverName, msgId string, i interface{}) {
+	pkg := &Package{Id: msgId, Body: i}
+	buf, err := EncodePackage(pkg)
 	if err != nil {
 		return
 	}
-	routeMsg(serverName, msg)
+	routeMsg(serverName, buf)
 }
 
-func RegisterService(params *ServiceConfig) {
-	Route("router", "C2S_Register", params)
-	clientMu.Lock()
-	client := clients["router"]
-	client.params = params
-	clientMu.Unlock()
+// 向router注册服务
+func RegisterService(conf *ServiceConfig) {
+	if conf.Id == "" {
+		conf.Id = conf.Name
+	}
+	if conf.Id == "" {
+		panic("empty server id")
+	}
+	Route("router", "C2S_Register", conf)
+
+	client, _ := clients.Load("router")
+	client.(*Client).conf = conf
 }
 
 // Client自动重连
 func (client *Client) autoConnect() {
-	params, name := client.params, client.name
-	if params != nil && name == "router" {
-		Route(name, "C2S_Register", params)
+	if client.serverName == "router" {
+		RegisterService(client.conf)
 	}
 	client.connect()
 }

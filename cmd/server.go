@@ -1,11 +1,7 @@
 package cmd
 
-// 2017-11-13
-// 服务器内部请求增加身份验证，第一个数据包数据为Sign校验串
-
 import (
 	"context"
-	"io"
 	"net"
 	"time"
 
@@ -114,30 +110,21 @@ func (c *ServeConn) serve() {
 	// 新连接5s内未收到有效数据判定无效
 	c.rwc.SetReadDeadline(time.Now().Add(5 * time.Second))
 
-	var isAuth bool
+	parser := authParser
 	for {
 		mt, buf, err := c.TCPConn.ReadMessage()
 		if err != nil {
-			if err != io.EOF {
-				log.Debug(err)
-			}
 			return
-		}
-		if !isAuth {
-			if _, err = defaultAuthParser.Decode(buf); err != nil {
-				return
-			}
 		}
 		if mt == PingMessage {
 			pong <- true
 		}
-		if !isAuth || mt == PingMessage {
+		if mt == PingMessage {
 			c.rwc.SetReadDeadline(time.Now().Add(pongWait))
 		}
 
-		isAuth = true
 		if mt == RawMessage {
-			pkg, err := defaultRawParser.Decode(buf)
+			pkg, err := parser.Decode(buf)
 			if err != nil {
 				return
 			}
@@ -148,10 +135,10 @@ func (c *ServeConn) serve() {
 				ServerName: pkg.ServerName,
 				ClientAddr: pkg.ClientAddr,
 			}
-			err = defaultCmdSet.Handle(ctx, pkg.Id, pkg.Data)
-			if err != nil {
+			if err := defaultCmdSet.Handle(ctx, pkg.Id, pkg.Data); err != nil {
 				log.Debugf("handle msg[%s] error: %v", buf, err)
 			}
+			parser = rawParser
 		}
 		saveBuf(buf)
 	}
