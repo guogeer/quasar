@@ -3,11 +3,7 @@ package util
 import (
 	"bytes"
 	"encoding/json"
-
-	// "fmt"
-
-	// "strconv"
-	// "strings"
+	"reflect"
 	"time"
 )
 
@@ -24,6 +20,27 @@ func skipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
 
 func SkipPeriodTime(start time.Time, d time.Duration) time.Time {
 	return skipPeriodTime3(time.Now(), start, d)
+}
+
+func InArray(array interface{}, some interface{}) int {
+	counter := 0
+	someValues := reflect.ValueOf(some)
+	arrayValues := reflect.ValueOf(array)
+	for i := 0; i < arrayValues.Len(); i++ {
+		switch someValues.Kind() {
+		case reflect.Slice, reflect.Array:
+			for k := 0; k < someValues.Len(); k++ {
+				if reflect.DeepEqual(arrayValues.Index(i).Interface(), someValues.Index(k).Interface()) {
+					counter++
+				}
+			}
+		default:
+			if reflect.DeepEqual(arrayValues.Index(i).Interface(), some) {
+				counter++
+			}
+		}
+	}
+	return counter
 }
 
 // compare a,b json string
