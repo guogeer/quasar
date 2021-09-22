@@ -114,7 +114,7 @@ func (c *Client) start() {
 			return
 		}
 		if mt == RawMessage {
-			pkg, err := authParser.Decode(buf)
+			pkg, err := rawParser.Decode(buf)
 			if err != nil {
 				log.Debug(err)
 				return

@@ -19,7 +19,7 @@ var (
 	errTooLargeMessage = errors.New("too large message")
 )
 
-type T map[string]interface{}
+type M map[string]interface{}
 
 type Context struct {
 	Out         Conn   // 连接

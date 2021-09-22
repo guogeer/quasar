@@ -131,7 +131,7 @@ func (c *ServeConn) serve() {
 				return
 			}
 			// 忽略校验包空数据
-			if len(pkg.Data) == 0 && needAuth {
+			if pkg.Id == "" && needAuth {
 				continue
 			}
 

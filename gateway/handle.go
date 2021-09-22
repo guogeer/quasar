@@ -27,6 +27,7 @@ func init() {
 	cmd.Bind(FUNC_Close, (*Args)(nil))
 	cmd.Bind(S2C_ServerClose, (*Args)(nil))
 	cmd.Bind(S2C_QueryServerState, (*Args)(nil))
+	cmd.Bind(S2C_Register, (*Args)(nil))
 }
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
@@ -70,6 +71,10 @@ func FUNC_Broadcast(ctx *cmd.Context, data interface{}) {
 	}
 }
 
+func S2C_Register(ctx *cmd.Context, data interface{}) {
+	cmd.Route("router", "C2S_QueryServerState", cmd.M{})
+}
+
 func S2C_ServerClose(ctx *cmd.Context, data interface{}) {
 	client := ctx.Out.(*cmd.Client)
 	for _, ss := range cmd.GetSessionList() {
@@ -81,7 +86,7 @@ func S2C_ServerClose(ctx *cmd.Context, data interface{}) {
 			}
 		}
 	}
-	cmd.Forward("router", "C2S_QueryServerState", cmd.T{})
+	cmd.Route("router", "C2S_QueryServerState", cmd.M{})
 }
 
 func HeartBeat(ctx *cmd.Context, data interface{}) {
