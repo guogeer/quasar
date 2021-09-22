@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"encoding/json"
-	"errors"
 	"net"
 	"reflect"
 	"runtime"
@@ -15,7 +14,6 @@ import (
 var (
 	enableDebug       = false
 	defaultRouterAddr = "127.0.0.1:9003"
-	errInvalidAddr    = errors.New("request empty address")
 )
 
 func init() {
@@ -102,7 +100,7 @@ func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 	defer rwc.Close()
 
 	c := &TCPConn{rwc: rwc}
-	buf, err := authParser.Encode(&Package{Id: msgId, Body: in}) // TODO
+	buf, err := authParser.Encode(&Package{Id: msgId, Body: in})
 	if err != nil {
 		return nil, err
 	}
@@ -114,11 +112,11 @@ func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	pkg, err := authParser.Decode(buf)
+	pkg, err := rawParser.Decode(buf)
 	if err != nil {
 		return nil, err
 	}
-	return pkg.Data, err
+	return pkg.Data, nil
 }
 
 // 向路由请求服务器地址
@@ -135,9 +133,6 @@ func RequestServerAddr(name string) (string, error) {
 	args := &cmdArgs{}
 	if err := json.Unmarshal(buf, args); err != nil {
 		return "", err
-	}
-	if args.Addr == "" {
-		return "", errInvalidAddr
 	}
 	return args.Addr, nil
 }
