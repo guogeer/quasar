@@ -9,17 +9,17 @@ type Session struct {
 	Out Conn
 }
 
-func (ss *Session) GetServerName() string {
+func (ss *Session) ServerId() string {
 	if client, ok := ss.Out.(*Client); ok {
-		return client.serverName
+		return client.serverId
 	}
 	return ""
 }
 
-func (ss *Session) routeContext(ctx *Context, name string, i interface{}) {
+func (ss *Session) routeContext(ctx *Context, msgId string, msgData interface{}) {
 	pkg := &Package{
-		Id:         name,
-		Body:       i,
+		Id:         msgId,
+		Body:       msgData,
 		Ssid:       ss.Id,
 		ServerName: ctx.ServerName,
 		ClientAddr: ctx.ClientAddr,
@@ -31,21 +31,21 @@ func (ss *Session) routeContext(ctx *Context, name string, i interface{}) {
 	routeMsg(ctx.MatchServer, buf)
 }
 
-func (ss *Session) Route(serverName, name string, i interface{}) {
+func (ss *Session) Route(serverId, msgId string, msgData interface{}) {
 	pkg := &Package{
-		Id:         name,
-		Ssid:       ss.Id,
-		ServerName: serverName,
+		Id:   msgId,
+		Ssid: ss.Id,
+		Body: msgData,
 	}
 	buf, err := EncodePackage(pkg)
 	if err != nil {
 		return
 	}
-	routeMsg(serverName, buf)
+	routeMsg(serverId, buf)
 }
 
-func (ss *Session) WriteJSON(name string, i interface{}) {
-	pkg := &Package{Id: name, Body: i, Ssid: ss.Id}
+func (ss *Session) WriteJSON(msgId string, msgData interface{}) {
+	pkg := &Package{Id: msgId, Body: msgData, Ssid: ss.Id}
 	buf, err := EncodePackage(pkg)
 	if err != nil {
 		return

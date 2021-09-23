@@ -14,13 +14,13 @@ var clients sync.Map // 已存在的连接不会被删除
 type Client struct {
 	*TCPConn
 
-	serverName string
-	conf       *ServiceConfig // 向路由注册的参数
+	serverId string
+	conf     *ServiceConfig // 向路由注册的参数
 }
 
-func newClient(serverName string) *Client {
+func newClient(serverId string) *Client {
 	client := &Client{
-		serverName: serverName,
+		serverId: serverId,
 		TCPConn: &TCPConn{
 			send: make(chan []byte, sendQueueSize),
 		},
@@ -28,12 +28,12 @@ func newClient(serverName string) *Client {
 	return client
 }
 
-func (c *Client) ServerName() string {
-	return c.serverName
+func (c *Client) ServerId() string {
+	return c.serverId
 }
 
 func (client *Client) connect() {
-	serverName := client.serverName
+	serverId := client.serverId
 	go func() {
 		intervals := []int{100, 400, 1600, 3200, 5000}
 		for retry := 0; true; retry++ {
@@ -46,9 +46,9 @@ func (client *Client) connect() {
 			time.Sleep(time.Duration(ms) * time.Millisecond)
 
 			// 第一步向路由查询地址
-			addr, err := RequestServerAddr(serverName)
+			addr, err := RequestServerAddr(serverId)
 			if err != nil {
-				log.Errorf("connect %s %v", serverName, err)
+				log.Errorf("connect %s %v", serverId, err)
 			}
 
 			// 第二步建立连接
@@ -59,7 +59,7 @@ func (client *Client) connect() {
 					break
 				}
 			}
-			log.Debugf("connect server %s, retry %d after %dms", serverName, retry, ms)
+			log.Debugf("connect server %s, retry %d after %dms", serverId, retry, ms)
 		}
 		client.start()
 	}()
@@ -129,15 +129,15 @@ func (c *Client) start() {
 	}
 }
 
-func routeMsg(serverName string, data []byte) {
-	if serverName == "" {
-		panic("route empty server name")
+func routeMsg(serverId string, data []byte) {
+	if serverId == "" {
+		panic("route empty server")
 	}
 
-	client, ok := clients.Load(serverName)
+	client, ok := clients.Load(serverId)
 	if !ok {
-		newClient := newClient(serverName)
-		client, ok = clients.LoadOrStore(serverName, newClient)
+		newClient := newClient(serverId)
+		client, ok = clients.LoadOrStore(serverId, newClient)
 		// 防止重复连接
 		if ok {
 			close(newClient.send)
@@ -147,17 +147,17 @@ func routeMsg(serverName string, data []byte) {
 	}
 
 	if err := client.(*Client).Write(data); err != nil {
-		log.Errorf("server %s write %s error: %v", serverName, data, err)
+		log.Errorf("server %s write %s error: %v", serverId, data, err)
 	}
 }
 
-func Route(serverName, msgId string, i interface{}) {
+func Route(serverId, msgId string, i interface{}) {
 	pkg := &Package{Id: msgId, Body: i}
 	buf, err := EncodePackage(pkg)
 	if err != nil {
 		return
 	}
-	routeMsg(serverName, buf)
+	routeMsg(serverId, buf)
 }
 
 // 向router注册服务
@@ -176,7 +176,7 @@ func RegisterService(conf *ServiceConfig) {
 
 // Client自动重连
 func (client *Client) autoConnect() {
-	if client.serverName == "router" {
+	if client.serverId == "router" {
 		RegisterService(client.conf)
 	}
 	client.connect()

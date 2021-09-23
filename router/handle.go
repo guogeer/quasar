@@ -81,7 +81,7 @@ func C2S_Concurrent(ctx *cmd.Context, data interface{}) {
 	if server == nil {
 		return
 	}
-	log.Debugf("concurrent %v %v", server.name, args.Weight)
+	log.Debugf("concurrent %v %v", server.id, args.Weight)
 
 	server.weight = args.Weight
 }
@@ -131,6 +131,7 @@ func C2S_QueryServerState(ctx *cmd.Context, data interface{}) {
 			MinWeight: server.minWeight,
 			MaxWeight: server.maxWeight,
 		})
+		// log.Debug("query server state", server.id, server.weight)
 	}
 	ctx.Out.WriteJSON("S2C_QueryServerState", cmd.M{"Servers": states})
 }

@@ -114,7 +114,7 @@ func (c *ServeConn) serve() {
 	for needAuth := true; true; needAuth = false {
 		mt, buf, err := c.TCPConn.ReadMessage()
 		if err != nil {
-			log.Debug(err)
+			// log.Debug(err)
 			return
 		}
 

@@ -12,20 +12,21 @@ import (
 var (
 	sessionLocations sync.Map // 连接会话的位置。[ssid:server_name]
 
-	serverStates  = map[string]*serverState{} // 服务负载。[server_name:serverState]
+	serverStates  = map[string]*serverState{} // 服务负载。[server_id:serverState]
 	serverStateMu sync.RWMutex
 )
 
 type serverState struct {
-	MinWeight int
-	MaxWeight int
-	Weight    int
+	Id        string
 	Name      string
+	Weight    int
+	MaxWeight int
+	MinWeight int
 }
 
 type sessionLocation struct {
-	MatchServer string // 服务的ID
-	ServerName  string // 客户端请求的协议头
+	MatchServer   string // 服务的ID
+	RequestServer string // 客户端请求的协议头
 }
 
 func init() {
@@ -44,8 +45,8 @@ func concurrent() {
 //
 // 匹配最佳的服务
 // 匹配规则：
-// 1、ServerName == name时直接选中
-// 2、优先匹配最小ServerName且人数小于MinOnline
+// 1、serverId == name时直接选中
+// 2、优先匹配最小serverId且人数小于MinOnline
 // 3、匹配Weight最小
 //
 func matchBestServer(ssid, name string) string {
@@ -59,36 +60,36 @@ func matchBestServer(ssid, name string) string {
 
 	matchServers := map[string]bool{}
 	for _, server := range serverStates {
-		for _, child := range strings.Split(server.Name, ",") {
-			if name == child {
-				matchServers[server.Name] = true
+		for _, serverName := range strings.Split(server.Name, ",") {
+			if name == serverName {
+				matchServers[server.Id] = true
 			}
 		}
 	}
 
 	if v, ok := sessionLocations.Load(ssid); ok {
 		loc := v.(*sessionLocation)
-		if matchServers[loc.ServerName] {
-			return v.(string)
+		if matchServers[loc.RequestServer] {
+			return loc.RequestServer
 		}
 	}
 
-	var matchName string
-	for server := range matchServers {
-		state := serverStates[server]
-		if state.Weight < state.MinWeight && matchName < state.Name {
-			matchName = server
+	var matchServer string
+	for serverId := range matchServers {
+		state := serverStates[serverId]
+		if state.Weight < state.MinWeight && matchServer < state.Id {
+			matchServer = serverId
 		}
 	}
-	if matchName != "" {
-		return matchName
+	if matchServer != "" {
+		return matchServer
 	}
 	for server := range matchServers {
 		state := serverStates[server]
 		if (state.MaxWeight == 0 || state.Weight < state.MaxWeight) &&
-			(matchName == "" || state.Weight < serverStates[matchName].Weight) {
-			matchName = server
+			(matchServer == "" || state.Weight < serverStates[matchServer].Weight) {
+			matchServer = server
 		}
 	}
-	return matchName
+	return matchServer
 }
