@@ -136,11 +136,11 @@ func routeMsg(serverId string, data []byte) {
 
 	client, ok := clients.Load(serverId)
 	if !ok {
-		newClient := newClient(serverId)
-		client, ok = clients.LoadOrStore(serverId, newClient)
+		tempClient := newClient(serverId)
+		client, ok = clients.LoadOrStore(serverId, tempClient)
 		// 防止重复连接
 		if ok {
-			close(newClient.send)
+			close(tempClient.send)
 		} else {
 			client.(*Client).connect()
 		}

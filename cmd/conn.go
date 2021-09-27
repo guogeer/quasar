@@ -73,9 +73,6 @@ func (c *TCPConn) ReadMessage() (uint8, []byte, error) {
 	n := int(binary.BigEndian.Uint16(head[1:]))
 	switch mt {
 	case PingMessage:
-		if c.pong == nil {
-			c.pong = make(chan bool, 1)
-		}
 		c.pong <- true
 
 		c.rwc.SetReadDeadline(time.Now().Add(pongWait))

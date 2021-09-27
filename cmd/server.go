@@ -42,6 +42,7 @@ func (srv *Server) Serve(l net.Listener) error {
 				ssid: ssid,
 				rwc:  rwc,
 				send: make(chan []byte, 32<<10),
+				pong: make(chan bool, 1),
 			},
 		}
 		// log.Info("create guid", ssid)
