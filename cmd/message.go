@@ -154,7 +154,7 @@ type Package struct {
 	Sign       string          `json:",omitempty"`    // 签名
 	Ssid       string          `json:",omitempty"`    // 会话ID
 	Version    int             `json:"Ver,omitempty"` // 版本
-	ExpireTs   int64           `json:",omitempty"`    // 过期时间戳
+	Ts         int64           `json:",omitempty"`    // 过期时间戳
 	ServerName string          `json:",omitempty"`    // 请求的协议头
 	ClientAddr string          `json:",omitempty"`    // 客户端地址
 
@@ -166,6 +166,7 @@ var rawParser = &hashParser{}
 
 // 服务器内建立连接时将检验第一个包的数据
 var authParser = &hashParser{
+	secs:     5,
 	key:      "420e57b017066b44e05ea1577f6e2e12",
 	tempSign: "a9542bb104fe3f4d562e1d275e03f5ba",
 }
@@ -179,6 +180,7 @@ var clientParser = &hashParser{
 
 // 协议使用哈希值检验
 type hashParser struct {
+	secs     int64 // 有效时长
 	ref      []int
 	key      string
 	tempSign string
@@ -209,7 +211,7 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 	if err := json.Unmarshal(buf, pkg); err != nil {
 		return nil, err
 	}
-	if ts := pkg.ExpireTs; ts > 0 && ts < time.Now().Unix() {
+	if secs := parser.secs; secs > 0 && pkg.Ts+secs < time.Now().Unix() {
 		return nil, errPackageExpire
 	}
 

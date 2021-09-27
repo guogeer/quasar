@@ -79,7 +79,7 @@ func (c *Client) start() {
 
 		// 第一个包发送校验数据
 		pkg := &Package{
-			ExpireTs: time.Now().Add(5 * time.Second).Unix(),
+			Ts: time.Now().Unix(),
 		}
 		firstMsg, _ := authParser.Encode(pkg)
 		if _, err := c.writeMsg(RawMessage, firstMsg); err != nil {
