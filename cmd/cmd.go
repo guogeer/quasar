@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/guogeer/quasar/config"
 	"github.com/guogeer/quasar/internal"
@@ -100,7 +101,7 @@ func Request(serverName, msgId string, in interface{}) ([]byte, error) {
 	defer rwc.Close()
 
 	c := &TCPConn{rwc: rwc}
-	buf, err := authParser.Encode(&Package{Id: msgId, Body: in})
+	buf, err := authParser.Encode(&Package{Id: msgId, Body: in, Ts: time.Now().Unix()})
 	if err != nil {
 		return nil, err
 	}
