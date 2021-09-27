@@ -47,13 +47,11 @@ type server struct {
 type Env struct {
 	path string
 
-	Sign            string
-	ProductKey      string
-	ServerList      []server `xml:"ServerList>Server"`
-	CompressPackage int
-	LogPath         string `xml:"Log>Path"`
-	LogTag          string `xml:"Log>Tag"`
-	EnableDebug     bool   // 开启调试，将输出消息统计日志等
+	ProductKey  string
+	ServerList  []server `xml:"ServerList>Server"`
+	LogPath     string   `xml:"Log>Path"`
+	LogTag      string   `xml:"Log>Tag"`
+	EnableDebug bool     // 开启调试，将输出消息统计日志等
 }
 
 func (env *Env) Path() string {

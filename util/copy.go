@@ -37,7 +37,9 @@ func doCopy(dval, sval reflect.Value) {
 
 	sval = reflect.Indirect(sval)
 	dval = reflect.Indirect(dval)
-	if ConvertKind(sval.Kind()) != ConvertKind(dval.Kind()) {
+	skind := matchKind(sval.Kind())
+	dkind := matchKind(sval.Kind())
+	if skind != dkind {
 		return
 	}
 	if !dval.CanSet() {
@@ -45,7 +47,7 @@ func doCopy(dval, sval reflect.Value) {
 	}
 
 	// fmt.Println(sval.IsValid(), dval.CanSet())
-	switch ConvertKind(sval.Kind()) {
+	switch skind {
 	case reflect.Int64:
 		dval.SetInt(sval.Int())
 	case reflect.Uint64:
@@ -56,6 +58,13 @@ func doCopy(dval, sval reflect.Value) {
 		dval.SetBool(sval.Bool())
 	case reflect.String:
 		dval.SetString(sval.String())
+	case reflect.Array:
+		if n := sval.Len(); dval.Kind() == reflect.Slice && dval.IsNil() && n > 0 {
+			dval.Set(reflect.MakeSlice(dval.Type(), n, n))
+		}
+		for i := 0; i < sval.Len() && i < dval.Len(); i++ {
+			doCopy(dval.Index(i), sval.Index(i))
+		}
 	case reflect.Struct:
 		aliasFields := map[string]int{}
 		for i := 0; i < dval.NumField(); i++ {
@@ -82,15 +91,6 @@ func doCopy(dval, sval reflect.Value) {
 			}
 			doCopy(dfield, sfield)
 		}
-	case reflect.Slice, reflect.Array:
-		if size := sval.Len(); size > 0 && sval.Kind() == reflect.Slice {
-			newval := reflect.MakeSlice(dval.Type(), size, size)
-			dval.Set(newval)
-		}
-		for i := 0; i < sval.Len() && i < dval.Len(); i++ {
-			v1, v2 := dval.Index(i), sval.Index(i)
-			doCopy(v1, v2)
-		}
 	}
 }
 
@@ -98,12 +98,18 @@ func ConvertKind(k reflect.Kind) reflect.Kind {
 	switch k {
 	case reflect.Float32, reflect.Float64:
 		return reflect.Float64
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Int:
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 		return reflect.Int64
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Uint:
+	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 		return reflect.Uint64
 	}
 	return k
+}
+
+func matchKind(k reflect.Kind) reflect.Kind {
+	switch k {
+	case reflect.Array, reflect.Slice:
+		return reflect.Array
+	}
+	return ConvertKind(k)
 }

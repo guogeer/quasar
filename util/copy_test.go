@@ -150,3 +150,30 @@ func TestInheritSructCopy(t *testing.T) {
 		t.Error("deep copy inherit", f, f2)
 	}
 }
+
+type TestArray struct {
+	A [3]int
+}
+
+type TestSlice struct {
+	A []int
+}
+
+func TestArraySliceCopy(t *testing.T) {
+	fromS := &TestSlice{A: []int{1, 2, 3}}
+	toA := &TestArray{}
+
+	DeepCopy(toA, fromS)
+	if !EqualJSON(fromS, toA) {
+		t.Error("deep copy slice to array error", fromS, toA)
+	}
+
+	fromA := &TestArray{A: [3]int{1, 2, 3}}
+	toS := &TestSlice{A: []int{0, 0, 0}}
+	DeepCopy(toA, fromS)
+	if !EqualJSON(fromS, toA) {
+		t.Error("deep copy array to slice error", fromA, toS)
+	}
+
+	DeepCopy(fromA, toS)
+}

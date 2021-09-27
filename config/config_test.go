@@ -8,7 +8,6 @@ import (
 
 func TestLoadConfig(t *testing.T) {
 	env1 := &Env{
-		Sign:       "420e57b017066b44e05ea1577f6e2e12",
 		ProductKey: "helloworld!",
 		ServerList: []server{
 			{Name: "router", Addr: "127.0.0.1:9003"},
