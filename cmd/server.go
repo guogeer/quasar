@@ -113,7 +113,7 @@ func (c *ServeConn) serve() {
 	c.rwc.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 	for needAuth := true; true; needAuth = false {
-		mt, buf, err := c.TCPConn.ReadMessage()
+		mt, buf, err := c.ReadMessage()
 		if err != nil {
 			// log.Debug(err)
 			return

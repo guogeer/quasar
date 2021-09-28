@@ -81,15 +81,20 @@ func RunOnce() {
 		stats = map[string]messageStat{}
 	}
 	mq := defaultMsgQueue
+	msgs := []*msgTask{}
+	wait := time.After(40 * time.Millisecond)
 	for i := 0; i < 256; i++ {
 		var msg *msgTask
 		select {
 		case msg = <-mq.q:
-		case <-time.After(40 * time.Microsecond):
+		case <-wait:
 		}
 		if msg == nil {
 			break
 		}
+		msgs = append(msgs, msg)
+	}
+	for _, msg := range msgs {
 		if enableDebug {
 			t1 = time.Now()
 		}
