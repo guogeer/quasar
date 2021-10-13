@@ -9,6 +9,7 @@ import (
 
 type gatewayArgs struct {
 	Id            string
+	ServerName    string
 	RequestServer string
 	MatchServer   string // 匹配的ServerId
 	Data          json.RawMessage
@@ -71,13 +72,12 @@ func S2C_Register(ctx *cmd.Context, data interface{}) {
 }
 
 func S2C_ServerClose(ctx *cmd.Context, data interface{}) {
-	client := ctx.Out.(*cmd.Client)
+	args := data.(*gatewayArgs)
 	// 2020-11-24 仅通知在当前服务的连接
-
 	for _, ss := range cmd.GetSessionList() {
 		if v, ok := sessionLocations.Load(ss.Id); ok {
 			loc := v.(*sessionLocation)
-			if loc.MatchServer == client.ServerId() {
+			if loc.MatchServer == args.ServerName {
 				ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": loc.RequestServer})
 			}
 		}
