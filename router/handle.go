@@ -106,16 +106,16 @@ func C2S_Route(ctx *cmd.Context, data interface{}) {
 
 func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	// args := data.(*Args)
-	server := findServerByConn(ctx.Out)
-	if server == nil {
+	closedServer := findServerByConn(ctx.Out)
+	if closedServer == nil {
 		return
 	}
-	log.Infof("server %s lose connection", server.name)
+	log.Infof("server %s lose connection", closedServer.name)
 
 	removeServer(ctx.Out)
 	for _, server := range servers {
 		if server.IsGateway() {
-			server.out.WriteJSON("S2C_ServerClose", cmd.M{"ServerName": server.name})
+			server.out.WriteJSON("S2C_ServerClose", cmd.M{"ServerName": closedServer.name})
 		}
 	}
 }
