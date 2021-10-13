@@ -8,11 +8,12 @@ import (
 )
 
 type gatewayArgs struct {
-	Id            string
-	ServerName    string
-	RequestServer string
-	MatchServer   string // 匹配的ServerId
-	Data          json.RawMessage
+	Id   string
+	Data json.RawMessage
+
+	ServerId    string
+	ServerName  string
+	MatchServer string // 匹配的ServerId
 
 	Name    string
 	Servers []*serverState
@@ -42,8 +43,8 @@ func FUNC_Close(ctx *cmd.Context, data interface{}) {
 
 func FUNC_SwitchServer(ctx *cmd.Context, data interface{}) {
 	args := data.(*gatewayArgs)
-	log.Debugf("session ssid:%s switch request server:%s,match server:%s", ctx.Ssid, args.RequestServer, args.MatchServer)
-	loc := &sessionLocation{RequestServer: args.RequestServer, MatchServer: args.MatchServer}
+	log.Debugf("session ssid:%s switch request server:%s,match server:%s", ctx.Ssid, args.ServerName, args.MatchServer)
+	loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.MatchServer}
 	sessionLocations.Store(ctx.Ssid, loc)
 
 	// 新连接未关联业务服时断线，会丢失Close消息
@@ -77,8 +78,8 @@ func S2C_ServerClose(ctx *cmd.Context, data interface{}) {
 	for _, ss := range cmd.GetSessionList() {
 		if v, ok := sessionLocations.Load(ss.Id); ok {
 			loc := v.(*sessionLocation)
-			if loc.MatchServer == args.ServerName {
-				ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": loc.RequestServer})
+			if loc.MatchServer == args.ServerId {
+				ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": loc.ServerName})
 			}
 		}
 	}

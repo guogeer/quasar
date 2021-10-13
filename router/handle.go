@@ -110,12 +110,12 @@ func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	if closedServer == nil {
 		return
 	}
-	log.Infof("server %s lose connection", closedServer.name)
+	log.Infof("server %s lose connection", closedServer.id)
 
 	removeServer(ctx.Out)
 	for _, server := range servers {
 		if server.IsGateway() {
-			server.out.WriteJSON("S2C_ServerClose", cmd.M{"ServerName": closedServer.name})
+			server.out.WriteJSON("S2C_ServerClose", cmd.M{"ServerId": closedServer.id})
 		}
 	}
 }

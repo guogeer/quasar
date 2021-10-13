@@ -11,6 +11,7 @@ import (
 	"github.com/guogeer/quasar/util"
 )
 
+var id = flag.String("id", "w_gateway", "server id")
 var port = flag.Int("port", 8201, "gateway server port")
 var proxy = flag.String("proxy", "", "gateway server proxy addr")
 
@@ -19,11 +20,9 @@ func main() {
 
 	log.Infof("start gateway, listen %d", *port)
 	addr := fmt.Sprintf("%s:%d", *proxy, *port)
-	cmd.RegisterService(&cmd.ServiceConfig{Id: "ws_gateway", Name: "gateway", Addr: addr})
-
-	addr = fmt.Sprintf(":%d", *port)
+	cmd.RegisterService(&cmd.ServiceConfig{Id: *id, Name: "gateway", Addr: addr})
 	go func() {
-		if err := http.ListenAndServe(addr, nil); err != nil {
+		if err := http.ListenAndServe(fmt.Sprintf(":%d", *port), nil); err != nil {
 			log.Fatal(err)
 		}
 	}()

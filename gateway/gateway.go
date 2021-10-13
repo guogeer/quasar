@@ -25,8 +25,8 @@ type serverState struct {
 }
 
 type sessionLocation struct {
-	MatchServer   string // 服务的ID
-	RequestServer string // 客户端请求的协议头
+	MatchServer string // 服务的ID
+	ServerName  string // 客户端请求的协议头
 }
 
 func init() {
@@ -69,8 +69,8 @@ func matchBestServer(ssid, name string) string {
 
 	if v, ok := sessionLocations.Load(ssid); ok {
 		loc := v.(*sessionLocation)
-		if matchServers[loc.RequestServer] {
-			return loc.RequestServer
+		if matchServers[loc.ServerName] {
+			return loc.ServerName
 		}
 	}
 
