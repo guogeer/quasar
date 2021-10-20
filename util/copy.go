@@ -10,7 +10,7 @@ type deepCopyer interface {
 }
 
 // 深拷贝
-// 结构体、切片之间递归深拷贝
+// 结构体、切片、数组之间递归深拷贝
 // 整数、浮点数、字符串、布尔类型直接拷贝，其他类型忽略
 // 增加tag alias
 // 2020-04-29 结构体匿名字段可拷贝
@@ -38,7 +38,7 @@ func doCopy(dval, sval reflect.Value) {
 	sval = reflect.Indirect(sval)
 	dval = reflect.Indirect(dval)
 	skind := matchKind(sval.Kind())
-	dkind := matchKind(sval.Kind())
+	dkind := matchKind(dval.Kind())
 	if skind != dkind {
 		return
 	}

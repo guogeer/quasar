@@ -153,10 +153,12 @@ func TestInheritSructCopy(t *testing.T) {
 
 type TestArray struct {
 	A [3]int
+	B []int `json:"-"`
 }
 
 type TestSlice struct {
 	A []int
+	B int `json:"-"`
 }
 
 func TestArraySliceCopy(t *testing.T) {
@@ -168,7 +170,7 @@ func TestArraySliceCopy(t *testing.T) {
 		t.Error("deep copy slice to array error", fromS, toA)
 	}
 
-	fromA := &TestArray{A: [3]int{1, 2, 3}}
+	fromA := &TestArray{A: [3]int{1, 2, 3}, B: []int{100}}
 	toS := &TestSlice{A: []int{0, 0, 0}}
 	DeepCopy(toA, fromS)
 	if !EqualJSON(fromS, toA) {
