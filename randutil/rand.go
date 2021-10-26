@@ -10,7 +10,7 @@ import (
 const sampleSize = 100_0000 // 1000W
 
 func IsPercentNice(percent float64) bool {
-	n := int(percent * sampleSize)
+	n := int(percent / 100 * sampleSize)
 	return rand.Intn(sampleSize) < n
 }
 
