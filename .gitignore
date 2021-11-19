@@ -14,3 +14,5 @@ gateway/config.xml
 router/config.xml
 gateway/log
 router/log
+main/*
+.idea/
