@@ -22,6 +22,8 @@ func (m M) MarshalJSON() ([]byte, error) {
 				if !ref.IsNil() {
 					copyM[k] = v
 				}
+			default:
+				copyM[k] = v
 			}
 		}
 	}

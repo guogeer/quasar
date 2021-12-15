@@ -20,7 +20,7 @@ func TestM(t *testing.T) {
 		"Nil":       nil,
 		"String":    "StringA",
 	}
-	m2 := M{
+	m2 := map[string]interface{}{
 		"Slice":  []int{1, 2},
 		"Struct": mStruct{N: 1},
 		"String": "StringA",
