@@ -88,3 +88,35 @@ func TestIndexN(t *testing.T) {
 		}
 	}
 }
+
+func TestIndexFunc(t *testing.T) {
+	var datalist [][][]int
+
+	row1 := [][]int{
+		{1, 1, 1},
+		{2, 0, 3},
+	}
+
+	row2 := [][]int{
+		{1, 1, 1},
+		{2, 0, 3},
+	}
+
+	datalist = append(datalist,row1)
+	datalist = append(datalist,row2)
+
+	for _, data := range datalist {
+		indexs := IndexFunc(data, -1, func(i int) int {
+			size := len(data[i])
+			return data[i][size -1 ]
+		})
+
+		nums := map[int]bool{}
+		for _, n := range indexs {
+			if nums[n] == true || n < 0 || n >= len(data) {
+				t.Errorf("index data %v result %d error", data, n)
+			}
+			nums[n] = true
+		}
+	}
+}

@@ -48,7 +48,7 @@ func (client *Client) connect() {
 			// 第一步向路由查询地址
 			addr, err := RequestServerAddr(serverId)
 			if err != nil {
-				log.Errorf("connect %s %v", serverId, err)
+				log.Infof("connect %s %v", serverId, err)
 			}
 
 			// 第二步建立连接
