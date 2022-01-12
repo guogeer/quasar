@@ -17,6 +17,16 @@ config.xml       相关配置，如数据库账号密码，路由服地址等
 config           配置热更新，待整理
 ```
 
+下载
+```sh
+go get github.com/guogeer/quasar
+```
+项目包含了额外的通用组建router、gateay.执行脚本后查看$GOPATH目录
+```
+go get github.com/guogeer/quasar/...
+```
+
+
 ## 表格配置
 第一行方便阅读理解
 表格数据通过（行，列）进行索引。以表格为例，(1,"Title") = "香蕉"
