@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
+	"github.com/guogeer/quasar/internal"
 	"github.com/guogeer/quasar/log"
 )
 
@@ -19,7 +20,8 @@ var (
 	errTooLargeMessage = errors.New("too large message")
 )
 
-type M map[string]interface{}
+// 忽略nil类型nil/slice/pointer
+type M = internal.M
 
 type Context struct {
 	Out         Conn   // 连接

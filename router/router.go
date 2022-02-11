@@ -24,17 +24,24 @@ func (server *Server) IsGateway() bool {
 	return server.name == "gateway"
 }
 
-// 匹配负载最低的gw地址
+// 匹配最佳gw地址
+// 优先选择低负载
+// 负载相同，选择ID更小
 func matchBestGateway() string {
-	var addr string
-	var weight int
+	var matchServer *Server
 	for _, server := range servers {
-		if server.name == "gateway" && (weight == 0 || server.weight < weight) {
-			addr, weight = server.addr, server.weight
+		if server.IsGateway() {
+			if matchServer == nil || server.weight < matchServer.weight {
+				matchServer = server
+			} else if server.weight == matchServer.weight && server.id < matchServer.id {
+				matchServer = server
+			}
 		}
-
 	}
-	return addr
+	if matchServer == nil {
+		return ""
+	}
+	return matchServer.addr
 }
 
 // 匹配服务
