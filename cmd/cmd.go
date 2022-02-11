@@ -32,6 +32,8 @@ func init() {
 	}
 }
 
+// 绑定
+// 注：客户端发送的消息ID仅允许包含字母、数字
 func BindWithName(name string, h Handler, args interface{}) {
 	defaultCmdSet.Bind(name, h, args, true)
 }
@@ -40,11 +42,14 @@ func Hook(h Handler) {
 	defaultCmdSet.Hook(h)
 }
 
-// 消息不入队列直接处理
+// 绑定。消息不入队列直接处理
+// 注：客户端发送的消息ID仅允许包含字母、数字
 func BindWithoutQueue(name string, h Handler, args interface{}) {
 	defaultCmdSet.Bind(name, h, args, false)
 }
 
+// 绑定，函数名作为消息ID
+// 注：客户端发送的消息ID仅允许包含字母、数字
 func Bind(h Handler, args interface{}) {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	n := strings.LastIndexByte(name, '.')
