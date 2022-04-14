@@ -24,7 +24,7 @@ func ValidateConfigTable(buf []byte) error {
 
 	for i := 2; i < len(cells); i++ {
 		lineId := i + 1
-		lineCells := cells[0]
+		lineCells := cells[i]
 		if lineCells[0] == "" {
 			return fmt.Errorf("row %d empty", lineId)
 		}
