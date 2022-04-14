@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -67,5 +68,67 @@ func TestScanJSON(t *testing.T) {
 	Scan("test", 1, "E", &arr)
 	if !(len(arr) == 2 && arr[0] == 1 && arr[1] == 1) {
 		t.Errorf("scan table group:test (1,E) fail,[1,1] != %v", arr)
+	}
+}
+
+func TestCheckConfigTable(t *testing.T) {
+	contents := []string{
+		`MyCol1[INT]	MyCol2[DATE]	MyCol3[DURATION]	MyCol4[JSON]
+Col1	Col2	Col3	Col4
+A	2021-01-01	100s	{"A":1,"B":1}
+`,
+		`MyCol1[INT]	MyCol2[DATE]	MyCol3[DURATION]	MyCol4[JSON]
+Col1  Col2  Col3  Col4 
+1	2021-01-32	100s	{"A":1,"B":1}
+`,
+		`MyCol1[INT]	MyCol2[DATE]	MyCol3[DURATION]	MyCol4[JSON]
+Col1	Col2	Col3	Col4
+1	2021-01-01	100a	{"A":1,"B":1}
+`,
+		`MyCol1[INT]	MyCol2[DATE]	MyCol3[DURATION]	MyCol4[JSON]
+Col1	Col2	Col3 	Col4
+1	2021-01-01	100a	{"A":1,"B":}
+`,
+	}
+	for _, content := range contents {
+		err := ValidateConfigTable([]byte(content))
+		if err == nil {
+			t.Error("check config table cell fail", content)
+		}
+	}
+}
+
+func TestExportConfigTable(t *testing.T) {
+	contents := []string{
+		`MyCol1[INT]	MyCol2[DATE|HIDE]	MyCol3[DURATION]	MyCol4[JSON]
+Col1	Col2	Col3	.Private
+A	2021-01-01	100s	{"A":1,"B":1}
+`,
+		`MyCol1[INT]	MyCol2[DATE]	MyVisible[HIDE]	MyCol4[JSON|HIDE]
+Col1	Col2	Visible	.Private 
+1	2021-01-01	HIDE	{"A":1,"B":1}
+2	2021-01-02	HIDE	{}
+3	2021-01-03	YES	{}
+`,
+	}
+	exportTables := [][]map[string]interface{}{
+		{{
+			"Col1":     "A",
+			"Col3":     "100s",
+			".Private": `{"A":1,"B":1}`,
+			"A":        1,
+			"B":        1,
+		}},
+		{{
+			"Col1": 3,
+			"Col2": "2021-01-03",
+		}},
+	}
+	for i, content := range contents {
+		exportJS := ExportConfigTable([]byte(content))
+		expectJS, _ := json.Marshal(exportTables[i])
+		if len(exportJS) != len(expectJS) {
+			t.Errorf("export %s fail. export result: %s expect result %s", content, exportJS, expectJS)
+		}
 	}
 }

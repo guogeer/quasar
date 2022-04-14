@@ -80,80 +80,73 @@ func (r *tableRow) String() string {
 	return r.key
 }
 
-func newTableFile(name string) *tableFile {
+func parseTable2Array(buf []byte) [][]string {
+	body := strings.ReplaceAll(string(buf), "\r\n", "\n")
+	body = strings.TrimRight(body, "\n")
+
+	var cells [][]string
+	for _, line := range strings.Split(body, "\n") {
+		cells = append(cells, strings.Split(line, "\t"))
+	}
+	return cells
+}
+
+func parseColTypes(colName string) []string {
+	colName = strings.ToLower(colName)
+	keys := regexp.MustCompile(`\[[^\]]+\]`).FindString(colName)
+	types := regexp.MustCompile(`[A-Za-z0-9]+`).FindAllString(keys, -1)
+	return types
+}
+
+func loadTableFile(name string, buf []byte) (*tableFile, error) {
 	name = strings.ToLower(name)
-	return &tableFile{
+	f := &tableFile{
 		name:     name,
 		rowName:  make(map[string]int),
 		colTypes: make(map[string]string),
 	}
-}
-
-func (f *tableFile) Load(buf []byte) error {
-	// f.rowName = make(map[string]int)
-	body := string(buf) + "\n"
-	// windows 环境下环境"\r\n"替换为"\n"
-	body = strings.ReplaceAll(body, "\r\n", "\n")
+	cells := parseTable2Array(buf)
 
 	var line0, line1 []string
-	for rowID := 0; len(body) > 0; rowID++ {
-		line := body
-		if n := strings.Index(body, "\n"); n >= 0 {
-			line = body[:n]
-		}
-		body = body[len(line)+1:]
-		// 忽略空字符串
-		if b := regexp.MustCompile(`\S`).MatchString(line); !b {
-			// log.Warnf("config %s:%d empty", f.name, rowID)
-			continue
-		}
-
-		lineCells := strings.Split(line, "\t")
-		switch rowID {
-		// 表格第一行为标题注释，忽略
-		// 2019-12-03 增加列字段数据类型
-		case 0:
-			line0 = lineCells
-		case 1: // 表格第二行列索引
-			line1 = lineCells
-			for k := 0; k < len(line0) && k < len(line1); k++ {
-				colName := strings.ToLower(line0[k])
-				keys := regexp.MustCompile(`\[[^\]]+\]`).FindString(colName)
-				types := regexp.MustCompile(`[A-Za-z0-9]+`).FindAllString(keys, -1)
-				f.colTypes[strings.ToLower(line1[k])] = strings.Join(types, ",")
-			}
-		default:
-			rowName := string(lineCells[0])
-			f.rowName[rowName] = rowID - 2
-
-			cells := map[string]*tableCell{}
-			for k, cell := range lineCells {
-				colKey := strings.ToLower(line1[k])
-				if colKey == privateColKey && len(cell) > 0 {
-					attrs := make(map[string]json.RawMessage)
-					json.Unmarshal([]byte(cell), &attrs)
-					for attrk, attrv := range attrs {
-						key := strings.ToLower(attrk)
-						s := string(attrv)
-						// 格式"message"移除前缀后缀
-						if regexp.MustCompile(`^".*"$`).MatchString(s) {
-							s = s[1 : len(s)-1]
-						}
-						cells[key] = &tableCell{s: s, rawColKey: attrk}
-					}
-				}
-				cells[colKey] = &tableCell{s: cell, rawColKey: line1[k]}
-			}
-			for _, cell := range cells {
-				cell.n, _ = strconv.ParseInt(cell.s, 10, 64)
-				cell.f, _ = strconv.ParseFloat(cell.s, 64)
-				cell.b, _ = strconv.ParseBool(cell.s)
-			}
-			f.table = append(f.table, cells)
-		}
+	if len(cells) > 1 {
+		line0, line1 = cells[0], cells[1]
 	}
-	// 列索引忽略大小写
-	return nil
+
+	for k := 0; k < len(line0) && k < len(line1); k++ {
+		types := parseColTypes(line0[k])
+		f.colTypes[strings.ToLower(line1[k])] = strings.Join(types, ",")
+	}
+	for rowID := 2; rowID < len(cells); rowID++ {
+		lineCells := cells[rowID]
+		rowName := string(lineCells[0])
+		f.rowName[rowName] = rowID - 2
+
+		cells := map[string]*tableCell{}
+		for k, cell := range lineCells {
+			colKey := strings.ToLower(line1[k])
+			if colKey == privateColKey && len(cell) > 0 {
+				attrs := make(map[string]json.RawMessage)
+				json.Unmarshal([]byte(cell), &attrs)
+				for attrk, attrv := range attrs {
+					key := strings.ToLower(attrk)
+					s := string(attrv)
+					// 格式"message"移除前缀后缀
+					if regexp.MustCompile(`^".*"$`).MatchString(s) {
+						s = s[1 : len(s)-1]
+					}
+					cells[key] = &tableCell{s: s, rawColKey: attrk}
+				}
+			}
+			cells[colKey] = &tableCell{s: cell, rawColKey: line1[k]}
+		}
+		for _, cell := range cells {
+			cell.n, _ = strconv.ParseInt(cell.s, 10, 64)
+			cell.f, _ = strconv.ParseFloat(cell.s, 64)
+			cell.b, _ = strconv.ParseBool(cell.s)
+		}
+		f.table = append(f.table, cells)
+	}
+	return f, nil
 }
 
 func (f *tableFile) Cell(row, col interface{}) (*tableCell, bool) {
@@ -512,11 +505,12 @@ func IsPart(s string, match interface{}) bool {
 
 func LoadTable(name string, buf []byte) error {
 	name = strings.ToLower(name)
-	t := newTableFile(name)
 	if enableDebug {
 		log.Infof("load table %s", name)
 	}
-	if err := t.Load(buf); err != nil {
+
+	t, err := loadTableFile(name, buf)
+	if err != nil {
 		return err
 	}
 	if name == attrTable {
