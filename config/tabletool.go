@@ -18,7 +18,7 @@ func ValidateConfigTable(buf []byte) error {
 	}
 	for i := 1; i < len(cells); i++ {
 		if len(cells) != len(cells[0]) {
-			return fmt.Errorf("col nums between row %d and row 1 is different", i+1)
+			return fmt.Errorf("col nums between row %d and row 1 is different %d!=%d", i+1, len(cells[i]), len(cells[0]))
 		}
 	}
 
