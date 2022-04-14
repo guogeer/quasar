@@ -71,7 +71,7 @@ func TestScanJSON(t *testing.T) {
 	}
 }
 
-func TestCheckConfigTable(t *testing.T) {
+func TestValidateConfigTable(t *testing.T) {
 	contents := []string{
 		`MyCol1[INT]	MyCol2[DATE]	MyCol3[DURATION]	MyCol4[JSON]
 Col1	Col2	Col3	Col4
