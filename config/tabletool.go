@@ -73,7 +73,7 @@ func ExportConfigTable(buf []byte) []byte {
 
 	visibleCol := -1
 	for i, colKey := range cells[1] {
-		if strings.ToUpper(colKey) == "VISIBLE" {
+		if strings.ToUpper(colKey) == ".VISIBLE" {
 			visibleCol = i
 		}
 	}
