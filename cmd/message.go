@@ -77,44 +77,30 @@ var (
 )
 
 func RunOnce() {
-	var t1, t2 time.Time
-	var stats map[string]messageStat
-	if enableDebug {
-		stats = map[string]messageStat{}
+	var msg *msgTask
+	select {
+	case msg = <-defaultMsgQueue.q:
+	case <-time.After(40 * time.Millisecond):
 	}
-	mq := defaultMsgQueue
-	msgs := []*msgTask{}
-	wait := time.After(40 * time.Millisecond)
-	for i := 0; i < 256; i++ {
-		var msg *msgTask
-		select {
-		case msg = <-mq.q:
-		case <-wait:
-		}
-		if msg == nil {
-			break
-		}
-		msgs = append(msgs, msg)
+	if msg == nil {
+		return
 	}
-	for _, msg := range msgs {
-		if enableDebug {
-			t1 = time.Now()
-		}
-		if msg.hook != nil {
-			msg.hook(msg.ctx, msg.args)
-		}
-		if !msg.ctx.isFail {
-			msg.h(msg.ctx, msg.args)
-		}
 
-		if enableDebug {
-			t2 = time.Now()
-			stat := stats[msg.id]
-			stat.merge(&messageStat{d: t2.Sub(t1), call: 1})
-			stats[msg.id] = stat
-		}
-	}
+	var t time.Time
+	var stat messageStat
 	if enableDebug {
+		t = time.Now()
+	}
+	if msg.hook != nil {
+		msg.hook(msg.ctx, msg.args)
+	}
+	if !msg.ctx.isFail {
+		msg.h(msg.ctx, msg.args)
+	}
+
+	if enableDebug {
+		stat = messageStat{id: msg.id, d: time.Since(t), call: 1}
+
 		if lastPrintTime.IsZero() {
 			lastPrintTime = time.Now()
 		}
@@ -122,15 +108,14 @@ func RunOnce() {
 			messageStats = map[string]messageStat{}
 		}
 
-		for id, stat := range stats {
-			stat2 := messageStats[id]
-			stat2.merge(&stat)
-			messageStats[id] = stat2
-		}
-		tpc := make([]messageStat, 0, 256) // cost time per call
-		cps := make([]messageStat, 0, 256) // call per second
-		for id, stat := range messageStats {
-			stat.id = id
+		oldStat := messageStats[msg.id]
+		oldStat.d += stat.d
+		oldStat.call += stat.call
+		messageStats[msg.id] = oldStat
+
+		var tpc []messageStat // cost time per call
+		var cps []messageStat // call per second
+		for _, stat := range messageStats {
 			tpc = append(tpc, stat)
 			cps = append(cps, stat)
 		}
