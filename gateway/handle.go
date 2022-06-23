@@ -79,7 +79,7 @@ func S2C_ServerClose(ctx *cmd.Context, data interface{}) {
 		if v, ok := sessionLocations.Load(ss.Id); ok {
 			loc := v.(*sessionLocation)
 			if loc.MatchServer == args.ServerId {
-				ss.Out.WriteJSON("ServerClose", map[string]string{"ServerName": loc.ServerName})
+				ss.Out.WriteJSON("ServerClose", cmd.M{"ServerName": loc.ServerName})
 			}
 		}
 	}
@@ -87,7 +87,7 @@ func S2C_ServerClose(ctx *cmd.Context, data interface{}) {
 }
 
 func HeartBeat(ctx *cmd.Context, data interface{}) {
-	ctx.Out.WriteJSON("HeartBeat", struct{}{})
+	ctx.Out.WriteJSON("HeartBeat", cmd.M{})
 }
 
 // 同步服务负载

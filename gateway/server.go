@@ -103,7 +103,6 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	go func() {
 		ticker := time.NewTicker(pingPeriod)
 		defer func() {
-			// c.writeMessage(websocket.CloseMessage, []byte{})
 			c.Close()
 			ticker.Stop() // 关闭定时器
 			cmd.RemoveSession(c.ssid)
@@ -202,7 +201,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 			// 无效的服务
 			if !isAlive {
-				c.WriteJSON("ServerClose", map[string]interface{}{"ServerName": servers[0]})
+				c.WriteJSON("ServerClose", cmd.M{"ServerName": servers[0]})
 				continue
 			}
 		}
