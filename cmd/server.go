@@ -120,31 +120,29 @@ func (c *ServeConn) serve() {
 			return
 		}
 
-		if parser == authParser {
+		isAuth := (parser == authParser)
+		if isAuth {
 			c.rwc.SetReadDeadline(time.Now().Add(pongWait))
 		}
-		if mt == RawMessage {
+		if mt == RawMessage || isAuth {
 			pkg, err := parser.Decode(buf)
 			if err != nil {
-				log.Debug(err)
+				log.Debugf("recv data %s error %v", string(buf), err)
 				return
 			}
 			// 忽略校验包空数据
-			if pkg.Id == "" && parser == authParser {
-				continue
+			if !(pkg.Id == "" && isAuth) {
+				ctx := &Context{
+					Out:        c,
+					Ssid:       pkg.Ssid,
+					ServerName: pkg.ServerName,
+					ClientAddr: pkg.ClientAddr,
+				}
+				if err := defaultCmdSet.Handle(ctx, pkg.Id, pkg.Data); err != nil {
+					log.Debugf("handle msg[%s] error: %v", buf, err)
+				}
 			}
-
-			ctx := &Context{
-				Out:        c,
-				Ssid:       pkg.Ssid,
-				ServerName: pkg.ServerName,
-				ClientAddr: pkg.ClientAddr,
-			}
-			if err := defaultCmdSet.Handle(ctx, pkg.Id, pkg.Data); err != nil {
-				log.Debugf("handle msg[%s] error: %v", buf, err)
-			}
-
-			parser = rawParser
 		}
+		parser = rawParser
 	}
 }
