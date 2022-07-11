@@ -17,7 +17,7 @@ import (
 // BYTE0：消息类型，BYTE1-3：消息长度
 
 const (
-	pongWait        = 60 * time.Second
+	pongWait        = 60 * time.Second // 60s
 	pingPeriod      = (pongWait * 9) / 10
 	maxMessageSize  = 1 << 20 // 1M
 	sendQueueSize   = 32 << 10

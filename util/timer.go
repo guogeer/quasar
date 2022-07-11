@@ -5,7 +5,6 @@ package util
 
 import (
 	"container/heap"
-	// "github.com/guogeer/quasar/log"
 	"time"
 
 	"github.com/guogeer/quasar/log"
@@ -68,6 +67,7 @@ func NewTimerSet() *timerSet {
 	return tm
 }
 
+// 批量处理到期的定时器
 func (tm *timerSet) RunOnce() {
 	now := time.Now()
 	for i := 0; tm.h.Len() > 0; i++ {
@@ -76,8 +76,8 @@ func (tm *timerSet) RunOnce() {
 		if now.Before(top.t) {
 			break
 		}
-		if n := 4096; i > n {
-			log.Warnf("timer is busy, cost %d left %d", i, tm.h.Len())
+		if i > 4096 {
+			log.Warnf("too much timer, handle %d left %d", i, tm.h.Len())
 		}
 		// 分组已失效
 		if top.group != nil && top.group.isClose {
@@ -196,18 +196,22 @@ func GetTimerSet() *timerSet {
 	return defaultTimerSet
 }
 
+// 关闭定时器
 func StopTimer(t *Timer) {
 	GetTimerSet().StopTimer(t)
 }
 
+// 重制定时器过期时间
 func ResetTimer(t *Timer, d time.Duration) {
 	GetTimerSet().ResetTimer(t, d)
 }
 
+// 创建仅执行一次的定时器
 func NewTimer(f func(), d time.Duration) *Timer {
 	return GetTimerSet().NewTimer(f, d)
 }
 
+// 创建重复执行的定时器
 func NewPeriodTimer(f func(), start time.Time, period time.Duration) *Timer {
 	return GetTimerSet().NewPeriodTimer(f, start, period)
 }

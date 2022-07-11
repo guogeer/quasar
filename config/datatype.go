@@ -26,13 +26,11 @@ func (arg *jsonArg) Scan(s string) error {
 type timeArg time.Time
 
 func ParseTime(s string) (time.Time, error) {
-	name, offset := time.Now().Zone()
-	loc := time.FixedZone(name, offset)
 	match := "2006-01-02 15:04:05"
 	if form := "2006-01-02"; len(form) == len(s) {
 		match = form
 	}
-	return time.ParseInLocation(match, s, loc)
+	return time.ParseInLocation(match, s, time.Local)
 }
 
 func (arg *timeArg) Scan(s string) error {

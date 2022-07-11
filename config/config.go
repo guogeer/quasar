@@ -8,19 +8,23 @@ import (
 	"encoding/xml"
 	"errors"
 	"flag"
-	"github.com/go-yaml/yaml"
-	"github.com/guogeer/quasar/log"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"github.com/go-yaml/yaml"
+	"github.com/guogeer/quasar/log"
 )
 
-var gLogTag = flag.String("log", "DEBUG", "log DEBUG|INFO|ERROR")
-var gLogPath = flag.String("logpath", "log/{proc_name}/run.log", "log path")
-var gConfigPath = flag.String("config", "", "config xml|json|yaml")
+var (
+	gLogTag     = flag.String("log", "DEBUG", "log DEBUG|INFO|ERROR")
+	gLogPath    = flag.String("logpath", "log/{proc_name}/run.log", "log path")
+	gConfigPath = flag.String("config", "", "config xml|json|yaml")
+)
 
+// 加载xml/json/yaml格式配置文件
 func LoadFile(path string, conf interface{}) error {
 	b, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -84,7 +88,7 @@ func init() {
 			defaultConfig.path = path
 		}
 	}
-	// 未要求加载配置
+	// 无配置
 	if defaultConfig.path == "" {
 		return
 	}

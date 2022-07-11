@@ -1,4 +1,4 @@
-package config
+package util
 
 type trieNode struct {
 	tail   bool
@@ -38,6 +38,7 @@ func newTrie(words []string) *trie {
 
 var forbidWordsTrie *trie
 
+// 使用*替换msg中的屏蔽词
 func ForbidWords(msg string) string {
 	if forbidWordsTrie == nil {
 		return msg

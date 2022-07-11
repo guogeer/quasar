@@ -64,13 +64,6 @@ type messageStat struct {
 	call int           // 调用次数
 }
 
-func (stat *messageStat) merge(stat2 *messageStat) {
-	if stat2 != nil {
-		stat.d += stat2.d
-		stat.call += stat2.call
-	}
-}
-
 var (
 	lastPrintTime time.Time // 10分钟打印一次
 	messageStats  map[string]messageStat

@@ -112,17 +112,15 @@ func (c *ServeConn) serve() {
 	// 新连接5s内未收到有效数据判定无效
 	c.rwc.SetReadDeadline(time.Now().Add(5 * time.Second))
 
-	for needAuth := true; true; needAuth = false {
+	// 第一个包校验数据安全
+	parser := authParser
+	for {
 		mt, buf, err := c.ReadMessage()
 		if err != nil {
-			// log.Debug(err)
 			return
 		}
 
-		// 第一个包校验数据安全
-		parser := rawParser
-		if needAuth {
-			mt, parser = RawMessage, authParser
+		if parser == authParser {
 			c.rwc.SetReadDeadline(time.Now().Add(pongWait))
 		}
 		if mt == RawMessage {
@@ -132,7 +130,7 @@ func (c *ServeConn) serve() {
 				return
 			}
 			// 忽略校验包空数据
-			if pkg.Id == "" && needAuth {
+			if pkg.Id == "" && parser == authParser {
 				continue
 			}
 
@@ -145,6 +143,8 @@ func (c *ServeConn) serve() {
 			if err := defaultCmdSet.Handle(ctx, pkg.Id, pkg.Data); err != nil {
 				log.Debugf("handle msg[%s] error: %v", buf, err)
 			}
+
+			parser = rawParser
 		}
 	}
 }

@@ -9,13 +9,6 @@ type Session struct {
 	Out Conn
 }
 
-func (ss *Session) ServerId() string {
-	if client, ok := ss.Out.(*Client); ok {
-		return client.serverId
-	}
-	return ""
-}
-
 func (ss *Session) routeContext(ctx *Context, msgId string, msgData interface{}) {
 	pkg := &Package{
 		Id:         msgId,

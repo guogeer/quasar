@@ -12,57 +12,52 @@ import (
 var clients sync.Map // 已存在的连接不会被删除
 
 type Client struct {
-	*TCPConn
+	TCPConn
 
 	serverId string
-	conf     *ServiceConfig // 向路由注册的参数
+	conf     ServiceConfig // 向路由注册的参数
 }
 
 func newClient(serverId string) *Client {
 	client := &Client{
 		serverId: serverId,
-		TCPConn: &TCPConn{
+		TCPConn: TCPConn{
 			send: make(chan []byte, sendQueueSize),
 		},
 	}
 	return client
 }
 
-func (c *Client) ServerId() string {
-	return c.serverId
-}
-
 func (client *Client) connect() {
 	serverId := client.serverId
-	go func() {
-		intervals := []int{100, 400, 1600, 3200, 5000}
-		for retry := 0; true; retry++ {
-			// 间隔时间
-			ms := intervals[len(intervals)-1]
-			if retry < len(intervals) {
-				ms = intervals[retry]
-			}
-			// 断线后等待一定时候后再重连
-			time.Sleep(time.Duration(ms) * time.Millisecond)
 
-			// 第一步向路由查询地址
-			addr, err := RequestServerAddr(serverId)
-			if err != nil {
-				log.Infof("connect %s %v", serverId, err)
-			}
-
-			// 第二步建立连接
-			if addr != "" {
-				rwc, err := net.Dial("tcp", addr)
-				if err == nil {
-					client.rwc = rwc
-					break
-				}
-			}
-			log.Debugf("connect server %s, retry %d after %dms", serverId, retry, ms)
+	internalMillis := []int{100, 400, 1600, 3200, 5000}
+	for retry := 0; true; retry++ {
+		// 间隔时间
+		ms := internalMillis[len(internalMillis)-1]
+		if retry < len(internalMillis) {
+			ms = internalMillis[retry]
 		}
-		client.start()
-	}()
+
+		// 第一步向路由查询地址
+		addr, err := RequestServerAddr(serverId)
+		if err != nil {
+			log.Infof("connect %s %v", serverId, err)
+		}
+
+		// 第二步建立连接
+		if addr != "" {
+			rwc, err := net.Dial("tcp", addr)
+			if err == nil {
+				client.rwc = rwc
+				break
+			}
+		}
+		// 断线后等待一定时候后再重连
+		time.Sleep(time.Duration(ms) * time.Millisecond)
+		log.Debugf("connect server %s, retry %d after %dms", serverId, retry, ms)
+	}
+	client.start()
 }
 
 func (c *Client) start() {
@@ -136,13 +131,15 @@ func routeMsg(serverId string, data []byte) {
 
 	client, ok := clients.Load(serverId)
 	if !ok {
-		tempClient := newClient(serverId)
-		client, ok = clients.LoadOrStore(serverId, tempClient)
+		newClient := newClient(serverId)
+		client, ok = clients.LoadOrStore(serverId, newClient)
 		// 防止重复连接
 		if ok {
-			close(tempClient.send)
+			close(newClient.send)
 		} else {
-			client.(*Client).connect()
+			go func() {
+				client.(*Client).connect()
+			}()
 		}
 	}
 
@@ -171,13 +168,15 @@ func RegisterService(conf *ServiceConfig) {
 	Route("router", "C2S_Register", conf)
 
 	client, _ := clients.Load("router")
-	client.(*Client).conf = conf
+	client.(*Client).conf = *conf
 }
 
 // Client自动重连
 func (client *Client) autoConnect() {
 	if client.serverId == "router" {
-		RegisterService(client.conf)
+		RegisterService(&client.conf)
 	}
-	client.connect()
+	go func() {
+		client.connect()
+	}()
 }

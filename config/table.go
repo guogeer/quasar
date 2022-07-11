@@ -7,7 +7,7 @@ package config
 // Version 1.0.0 支持隐藏属性，属性格式：".Key"，其中".Private"私有属性
 // Version 1.1.0 列索引忽略大小写
 // Version 1.2.0 表格名索引忽略大小写
-// 2019-12-03 增加类型: INT、JSON、FLOAT、STRING，后续计划增强JSON支持
+// 2019-12-03 增加类型: INT、JSON、FLOAT、STRING、JSON支持
 // 例如：列1[INT]	列2[JSON]	列3[FLOAT]
 
 import (
@@ -469,7 +469,7 @@ func Time(name string, row, col interface{}, def ...time.Time) (time.Time, bool)
 }
 
 // 默认单位秒
-// 120s、120m、120h、120d，分别表示秒，分，时，天
+// 120、120s、120m、120h，分别表示秒，分，时
 func Duration(name string, row, col interface{}, def ...time.Duration) (time.Duration, bool) {
 	var res time.Duration
 	for _, v := range def {
@@ -495,12 +495,6 @@ func RowId(n int) *tableRow {
 		return gTableRowKeys[n]
 	}
 	return newTableRow(n)
-}
-
-// Deprecated 当前仅支持,分隔符
-func IsPart(s string, match interface{}) bool {
-	smatch := fmt.Sprintf("%v", match)
-	return strings.Contains(","+s+",", ","+smatch+",")
 }
 
 func LoadTable(name string, buf []byte) error {
