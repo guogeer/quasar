@@ -9,7 +9,7 @@ type Session struct {
 	Out Conn
 }
 
-func (ss *Session) routeContext(ctx *Context, msgId string, msgData interface{}) {
+func (ss *Session) routeContext(ctx *Context, msgId string, msgData any) {
 	pkg := &Package{
 		Id:         msgId,
 		Body:       msgData,
@@ -24,7 +24,7 @@ func (ss *Session) routeContext(ctx *Context, msgId string, msgData interface{})
 	routeMsg(ctx.MatchServer, buf)
 }
 
-func (ss *Session) Route(serverId, msgId string, msgData interface{}) {
+func (ss *Session) Route(serverId, msgId string, msgData any) {
 	pkg := &Package{
 		Id:   msgId,
 		Ssid: ss.Id,
@@ -37,7 +37,7 @@ func (ss *Session) Route(serverId, msgId string, msgData interface{}) {
 	routeMsg(serverId, buf)
 }
 
-func (ss *Session) WriteJSON(msgId string, msgData interface{}) {
+func (ss *Session) WriteJSON(msgId string, msgData any) {
 	pkg := &Package{Id: msgId, Body: msgData, Ssid: ss.Id}
 	buf, err := EncodePackage(pkg)
 	if err != nil {

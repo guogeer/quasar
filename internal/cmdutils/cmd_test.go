@@ -1,4 +1,4 @@
-package internal
+package cmdutils
 
 import (
 	"encoding/json"
@@ -20,7 +20,7 @@ func TestM(t *testing.T) {
 		"Nil":       nil,
 		"String":    "StringA",
 	}
-	m2 := map[string]interface{}{
+	m2 := map[string]any{
 		"Slice":  []int{1, 2},
 		"Struct": mStruct{N: 1},
 		"String": "StringA",

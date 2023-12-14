@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/guogeer/quasar/config"
-	"github.com/guogeer/quasar/internal"
+	"quasar/config"
+	"quasar/internal/cmdutils"
 )
 
 var (
@@ -34,7 +34,7 @@ func init() {
 
 // 绑定
 // 注：客户端发送的消息ID仅允许包含字母、数字
-func BindWithName(name string, h Handler, args interface{}) {
+func BindWithName(name string, h Handler, args any) {
 	defaultCmdSet.Bind(name, h, args, true)
 }
 
@@ -44,13 +44,13 @@ func Hook(h Handler) {
 
 // 绑定。消息不入队列直接处理
 // 注：客户端发送的消息ID仅允许包含字母、数字
-func BindWithoutQueue(name string, h Handler, args interface{}) {
+func BindWithoutQueue(name string, h Handler, args any) {
 	defaultCmdSet.Bind(name, h, args, false)
 }
 
 // 绑定，函数名作为消息ID
 // 注：客户端发送的消息ID仅允许包含字母、数字
-func Bind(h Handler, args interface{}) {
+func Bind(h Handler, args any) {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	n := strings.LastIndexByte(name, '.')
 	if n >= 0 {
@@ -79,13 +79,13 @@ type cmdArgs struct {
 
 // 消息通过router转发
 // name = "*"：向所有非网关服务转发消息
-func Forward(name string, msgId string, i interface{}) {
+func Forward(name string, msgId string, i any) {
 	buf, err := marshalJSON(i)
 	if err != nil {
 		return
 	}
 
-	args := &internal.ForwardArgs{
+	args := &cmdutils.ForwardArgs{
 		ServerName: name,
 		MsgId:      msgId,
 		MsgData:    buf,
@@ -94,7 +94,7 @@ func Forward(name string, msgId string, i interface{}) {
 }
 
 // 同步请求
-func Request(serverName, msgId string, in interface{}) ([]byte, error) {
+func Request(serverName, msgId string, in any) ([]byte, error) {
 	addr, err := RequestServerAddr(serverName)
 	if err != nil {
 		return nil, err

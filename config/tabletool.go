@@ -87,7 +87,7 @@ func ExportConfigTable(buf []byte) []byte {
 		}
 	}
 
-	var tableRows []interface{}
+	var tableRows []any
 	for i := 2; i < len(cells); i++ {
 		lineCells := cells[i]
 		// hide row
@@ -95,7 +95,7 @@ func ExportConfigTable(buf []byte) []byte {
 			continue
 		}
 
-		tableRow := map[string]interface{}{}
+		tableRow := map[string]any{}
 		for k, cell := range lineCells {
 			if hideCols[cells[1][k]] {
 				continue

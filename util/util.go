@@ -22,7 +22,7 @@ func SkipPeriodTime(start time.Time, d time.Duration) time.Time {
 	return skipPeriodTime3(time.Now(), start, d)
 }
 
-func InArray(array interface{}, some interface{}) int {
+func InArray(array any, some any) int {
 	counter := 0
 	someValues := reflect.ValueOf(some)
 	arrayValues := reflect.ValueOf(array)
@@ -44,7 +44,7 @@ func InArray(array interface{}, some interface{}) int {
 }
 
 // compare a,b json string
-func EqualJSON(a, b interface{}) bool {
+func EqualJSON(a, b any) bool {
 	b1, _ := json.Marshal(a)
 	b2, _ := json.Marshal(b)
 	return bytes.Equal(b1, b2)

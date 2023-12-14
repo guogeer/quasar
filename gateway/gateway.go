@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/guogeer/quasar/cmd"
-	"github.com/guogeer/quasar/util"
+	"quasar/cmd"
+	"quasar/util"
 )
 
 var (
@@ -42,13 +42,11 @@ func concurrent() {
 	cmd.Route("router", "C2S_QueryServerState", cmd.M{})
 }
 
-//
 // 匹配最佳的服务
 // 匹配规则：
 // 1、serverId == name时直接选中
 // 2、优先匹配最小serverId且人数小于MinOnline
 // 3、匹配Weight最小
-//
 func matchBestServer(ssid, name string) string {
 	serverStateMu.RLock()
 	defer serverStateMu.RUnlock()

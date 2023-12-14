@@ -6,7 +6,7 @@ import (
 )
 
 type deepCopyer interface {
-	DeepCopy(src interface{}) bool
+	DeepCopy(src any) bool
 }
 
 // 深拷贝
@@ -15,7 +15,7 @@ type deepCopyer interface {
 // 增加tag alias
 // 2020-04-29 结构体匿名字段可拷贝
 // 2020-07-16 修复源数据字段拷贝时跳过
-func DeepCopy(dst, src interface{}) {
+func DeepCopy(dst, src any) {
 	if dst != nil && src != nil {
 		sval := reflect.ValueOf(src)
 		dval := reflect.ValueOf(dst)

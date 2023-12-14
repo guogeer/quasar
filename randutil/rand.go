@@ -15,13 +15,13 @@ func IsPercentNice(percent float64) bool {
 }
 
 // 随机打乱数组/切片
-func Shuffle(a interface{}) {
+func Shuffle(a any) {
 	lst := reflect.ValueOf(a)
 	ShuffleN(a, lst.Len())
 }
 
 // 随机打乱切片或数组前n个元素
-func ShuffleN(a interface{}, n int) {
+func ShuffleN(a any, n int) {
 	if a == nil {
 		return
 	}
@@ -37,7 +37,7 @@ func ShuffleN(a interface{}, n int) {
 
 // 根据数组权重随机多个不重复的结果，返回数组下标
 // 传入randBase的函数，是为了获取多个数组里面的基础概率
-func IndexFunc(a interface{}, num int, randBase func(i int) int) []int {
+func IndexFunc(a any, num int, randBase func(i int) int) []int {
 	var vals = reflect.ValueOf(a)
 
 	if num == -1 {
@@ -73,7 +73,7 @@ func IndexFunc(a interface{}, num int, randBase func(i int) int) []int {
 }
 
 // 根据数组权重随机多个不重复的结果，返回数组下标
-func IndexN(a interface{}, num int) []int {
+func IndexN(a any, num int) []int {
 	values := reflect.ValueOf(a)
 
 	return IndexFunc(a, num, func(i int) int {
@@ -84,7 +84,7 @@ func IndexN(a interface{}, num int) []int {
 }
 
 // 根据a[i]比重随机下标i
-func Index(a interface{}) int {
+func Index(a any) int {
 	res := IndexN(a, 1)
 	for _, v := range res {
 		return v

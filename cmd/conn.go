@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/guogeer/quasar/log"
+	"quasar/log"
 )
 
 // 协议格式，前4个字节
@@ -32,7 +32,7 @@ const (
 
 type Conn interface {
 	Write([]byte) error
-	WriteJSON(string, interface{}) error
+	WriteJSON(string, any) error
 	RemoteAddr() string
 	Close()
 }
@@ -91,7 +91,7 @@ func (c *TCPConn) ReadMessage() (uint8, []byte, error) {
 	return 0, nil, errors.New("invalid data")
 }
 
-func (c *TCPConn) WriteJSON(name string, i interface{}) error {
+func (c *TCPConn) WriteJSON(name string, i any) error {
 	// 消息格式
 	pkg := &Package{Id: name, Body: i}
 	buf, err := EncodePackage(pkg)
@@ -129,7 +129,7 @@ func (c *TCPConn) writeMsg(mt int, data []byte) (int, error) {
 	return c.rwc.Write(buf)
 }
 
-type Handler func(*Context, interface{})
+type Handler func(*Context, any)
 
 type cmdEntry struct {
 	h           Handler
@@ -148,7 +148,7 @@ var defaultCmdSet = &CmdSet{
 	e: make(map[string]*cmdEntry),
 }
 
-func (s *CmdSet) Bind(name string, h Handler, i interface{}, isPushQueue bool) {
+func (s *CmdSet) Bind(name string, h Handler, i any, isPushQueue bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.e[name]; ok {

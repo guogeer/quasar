@@ -111,7 +111,7 @@ Col1	Col2	Visible	.Private
 3	2021-01-03	YES	{}
 `,
 	}
-	exportTables := [][]map[string]interface{}{
+	exportTables := [][]map[string]any{
 		{{
 			"Col1":     "A",
 			"Col3":     "100s",

@@ -11,10 +11,10 @@ type Scanner interface {
 }
 
 type jsonArg struct {
-	value interface{}
+	value any
 }
 
-func JSON(v interface{}) *jsonArg {
+func JSON(v any) *jsonArg {
 	return &jsonArg{value: v}
 }
 

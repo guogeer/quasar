@@ -19,13 +19,13 @@ func (h timerHeap) Swap(i, j int) {
 	h[i].pos, h[j].pos = i, j
 }
 
-func (h *timerHeap) Push(x interface{}) {
+func (h *timerHeap) Push(x any) {
 	timer := x.(*Timer)
 	*h = append(*h, timer)
 	timer.pos = len(*h) - 1
 }
 
-func (h *timerHeap) Pop() interface{} {
+func (h *timerHeap) Pop() any {
 	old := *h
 	n := len(old)
 	timer := old[n-1]

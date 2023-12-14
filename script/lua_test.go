@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/guogeer/quasar/util"
+	"quasar/util"
+
 	lua "github.com/yuin/gopher-lua"
 )
 
@@ -100,14 +101,14 @@ func TestPreloadModule(t *testing.T) {
 }
 
 func TestGenericMap(t *testing.T) {
-	genericMap := map[interface{}]interface{}{
+	genericMap := map[any]any{
 		"S1": 1,
-		"A1": map[interface{}]interface{}{
+		"A1": map[any]any{
 			"1": "abc",
 			"2": "cde",
 		},
 	}
-	expectMap := map[string]interface{}{
+	expectMap := map[string]any{
 		"S1": 1,
 		"A1": []string{"abc", "cde"},
 	}

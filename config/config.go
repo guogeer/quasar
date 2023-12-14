@@ -8,14 +8,14 @@ import (
 	"encoding/xml"
 	"errors"
 	"flag"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"quasar/log"
+
 	"github.com/go-yaml/yaml"
-	"github.com/guogeer/quasar/log"
 )
 
 var (
@@ -25,8 +25,8 @@ var (
 )
 
 // 加载xml/json/yaml格式配置文件
-func LoadFile(path string, conf interface{}) error {
-	b, err := ioutil.ReadFile(path)
+func LoadFile(path string, conf any) error {
+	b, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}

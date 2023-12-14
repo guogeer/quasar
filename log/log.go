@@ -190,62 +190,62 @@ func SetLevel(lv string) {
 
 // fmt.Sprint：string类型参数前后不会插入空格
 // fmt.Sprintln：参数之间都会插入空格，需移除串尾换行
-func sprintf(v ...interface{}) string {
+func sprintf(v ...any) string {
 	s := fmt.Sprintln(v...)
 	return s[:len(s)-1]
 }
 
-func Testf(format string, v ...interface{}) {
+func Testf(format string, v ...any) {
 	fileLog.Output(LvTest, fmt.Sprintf(format, v...))
 }
 
-func Test(v ...interface{}) {
+func Test(v ...any) {
 	fileLog.Output(LvTest, sprintf(v...))
 }
 
-func Debugf(format string, v ...interface{}) {
+func Debugf(format string, v ...any) {
 	fileLog.Output(LvDebug, fmt.Sprintf(format, v...))
 }
 
-func Debug(v ...interface{}) {
+func Debug(v ...any) {
 	fileLog.Output(LvDebug, sprintf(v...))
 }
 
-func Infof(format string, v ...interface{}) {
+func Infof(format string, v ...any) {
 	fileLog.Output(LvInfo, fmt.Sprintf(format, v...))
 }
 
-func Info(v ...interface{}) {
+func Info(v ...any) {
 	fileLog.Output(LvInfo, sprintf(v...))
 }
 
-func Warnf(format string, v ...interface{}) {
+func Warnf(format string, v ...any) {
 	fileLog.Output(LvWarn, fmt.Sprintf(format, v...))
 }
 
-func Warn(v ...interface{}) {
+func Warn(v ...any) {
 	fileLog.Output(LvWarn, sprintf(v...))
 }
 
-func Errorf(format string, v ...interface{}) {
+func Errorf(format string, v ...any) {
 	fileLog.Output(LvError, fmt.Sprintf(format, v...))
 }
 
-func Error(v ...interface{}) {
+func Error(v ...any) {
 	fileLog.Output(LvError, sprintf(v...))
 }
 
-func Fatalf(format string, v ...interface{}) {
+func Fatalf(format string, v ...any) {
 	fileLog.Output(LvFatal, fmt.Sprintf(format, v...))
 	os.Exit(0)
 }
 
-func Fatal(v ...interface{}) {
+func Fatal(v ...any) {
 	fileLog.Output(LvFatal, sprintf(v...))
 	os.Exit(0)
 }
 
-func Printf(level, format string, v ...interface{}) {
+func Printf(level, format string, v ...any) {
 	level = strings.ToUpper(level)
 	fileLog.Output(level, fmt.Sprintf(format, v...))
 }

@@ -1,4 +1,4 @@
-package internal
+package cmdutils
 
 import (
 	"encoding/json"
@@ -11,11 +11,11 @@ type ForwardArgs struct {
 	MsgData    json.RawMessage
 }
 
-type M map[string]interface{}
+type M map[string]any
 
 // 忽略空值nil
 func (m M) MarshalJSON() ([]byte, error) {
-	copyM := map[string]interface{}{}
+	copyM := map[string]any{}
 	for k, v := range m {
 		if v != nil {
 			switch ref := reflect.ValueOf(v); ref.Kind() {

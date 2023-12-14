@@ -16,7 +16,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -25,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/guogeer/quasar/log"
+	"quasar/log"
 )
 
 const (
@@ -149,7 +148,7 @@ func loadTableFile(name string, buf []byte) (*tableFile, error) {
 	return f, nil
 }
 
-func (f *tableFile) Cell(row, col interface{}) (*tableCell, bool) {
+func (f *tableFile) Cell(row, col any) (*tableCell, bool) {
 	if row == nil || col == nil {
 		return nil, false
 	}
@@ -172,7 +171,7 @@ func (f *tableFile) Cell(row, col interface{}) (*tableCell, bool) {
 	return nil, false
 }
 
-func (f *tableFile) String(row, col interface{}) (string, bool) {
+func (f *tableFile) String(row, col any) (string, bool) {
 	if c, ok := f.Cell(row, col); ok {
 		return c.s, true
 	}
@@ -231,7 +230,7 @@ func (g *tableGroup) Rows() []*tableRow {
 	return rows
 }
 
-func (g *tableGroup) Cell(row, col interface{}) (*tableCell, bool) {
+func (g *tableGroup) Cell(row, col any) (*tableCell, bool) {
 	for _, name := range g.members {
 		if f := getTableFile(name); f != nil {
 			if cell, ok := f.Cell(row, col); ok {
@@ -242,7 +241,7 @@ func (g *tableGroup) Cell(row, col interface{}) (*tableCell, bool) {
 	return nil, false
 }
 
-func (g *tableGroup) String(row, col interface{}) (string, bool) {
+func (g *tableGroup) String(row, col any) (string, bool) {
 	for _, name := range g.members {
 		if f := getTableFile(name); f != nil {
 			if s, ok := f.String(row, col); ok {
@@ -265,7 +264,7 @@ func (g *tableGroup) IsType(col string, typ string) bool {
 	return false
 }
 
-func (cell *tableCell) Scan(arg interface{}) error {
+func (cell *tableCell) Scan(arg any) error {
 	switch v := arg.(type) {
 	default:
 		if _, ok := arg.(Scanner); !ok {
@@ -312,7 +311,7 @@ func (cell *tableCell) Scan(arg interface{}) error {
 }
 
 // 跳过表格不存在的元素
-func (g *tableGroup) Scan(row, cols interface{}, args ...interface{}) (int, error) {
+func (g *tableGroup) Scan(row, cols any, args ...any) (int, error) {
 	s := fmt.Sprintf("%v", cols)
 	colKeys := strings.Split(s, ",")
 	if len(colKeys) != len(args) {
@@ -360,7 +359,7 @@ func readTableFile(path string, rc io.ReadCloser) {
 		return
 	}
 
-	buf, err := ioutil.ReadAll(rc)
+	buf, err := io.ReadAll(rc)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -399,7 +398,7 @@ func LoadLocalTables(fileName string) {
 		if enableDebug {
 			log.Infof("load tables %s/*", fileName)
 		}
-		files, err := ioutil.ReadDir(fileName)
+		files, err := os.ReadDir(fileName)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -432,7 +431,7 @@ func Rows(name string) []*tableRow {
 	return nil
 }
 
-func String(name string, row, col interface{}, def ...string) (string, bool) {
+func String(name string, row, col any, def ...string) (string, bool) {
 	var res string
 	for _, v := range def {
 		res = v
@@ -441,7 +440,7 @@ func String(name string, row, col interface{}, def ...string) (string, bool) {
 	return res, n == 1
 }
 
-func Int(name string, row, col interface{}, def ...int64) (int64, bool) {
+func Int(name string, row, col any, def ...int64) (int64, bool) {
 	var res int64
 	for _, v := range def {
 		res = v
@@ -450,7 +449,7 @@ func Int(name string, row, col interface{}, def ...int64) (int64, bool) {
 	return res, n == 1
 }
 
-func Float(name string, row, col interface{}, def ...float64) (float64, bool) {
+func Float(name string, row, col any, def ...float64) (float64, bool) {
 	var res float64
 	for _, v := range def {
 		res = v
@@ -459,7 +458,7 @@ func Float(name string, row, col interface{}, def ...float64) (float64, bool) {
 	return res, n == 1
 }
 
-func Time(name string, row, col interface{}, def ...time.Time) (time.Time, bool) {
+func Time(name string, row, col any, def ...time.Time) (time.Time, bool) {
 	var res time.Time
 	for _, v := range def {
 		res = v
@@ -470,7 +469,7 @@ func Time(name string, row, col interface{}, def ...time.Time) (time.Time, bool)
 
 // 默认单位秒
 // 120、120s、120m、120h，分别表示秒，分，时
-func Duration(name string, row, col interface{}, def ...time.Duration) (time.Duration, bool) {
+func Duration(name string, row, col any, def ...time.Duration) (time.Duration, bool) {
 	var res time.Duration
 	for _, v := range def {
 		res = v
@@ -479,7 +478,7 @@ func Duration(name string, row, col interface{}, def ...time.Duration) (time.Dur
 	return res, n == 1
 }
 
-func Scan(name string, row, colArgs interface{}, args ...interface{}) (int, error) {
+func Scan(name string, row, colArgs any, args ...any) (int, error) {
 	return getTableGroup(name).Scan(row, colArgs, args...)
 }
 
@@ -533,7 +532,7 @@ func LoadTable(name string, buf []byte) error {
 // 过滤表格行
 // cols：多个列名。例如col1,col2,col3
 // cells：过滤的值，对应列
-func FilterRows(name string, cols string, vals ...interface{}) []*tableRow {
+func FilterRows(name string, cols string, vals ...any) []*tableRow {
 	colKeys := strings.Split(cols, ",")
 	if len(colKeys) != len(vals) {
 		panic("filter rows args not match")

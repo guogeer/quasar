@@ -9,9 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"quasar/internal/cmdutils"
+	"quasar/log"
+
 	"github.com/buger/jsonparser"
-	"github.com/guogeer/quasar/internal"
-	"github.com/guogeer/quasar/log"
 )
 
 var (
@@ -21,7 +22,7 @@ var (
 )
 
 // 忽略nil类型nil/slice/pointer
-type M = internal.M
+type M = cmdutils.M
 
 type Context struct {
 	Out         Conn   // 连接
@@ -44,7 +45,7 @@ type msgTask struct {
 	h    Handler
 	hook Handler
 	ctx  *Context
-	args interface{}
+	args any
 }
 
 type msgQueue struct {
@@ -143,7 +144,7 @@ type Package struct {
 	ServerName string          `json:",omitempty"`    // 请求的协议头
 	ClientAddr string          `json:",omitempty"`    // 客户端地址
 
-	Body interface{} `json:"-"` // 解析成Data
+	Body any `json:"-"` // 解析成Data
 }
 
 // 服务内部协议
@@ -243,7 +244,7 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 	return sign, nil
 }
 
-func Encode(name string, i interface{}) ([]byte, error) {
+func Encode(name string, i any) ([]byte, error) {
 	buf, _ := marshalJSON(i)
 	pkg := &Package{Id: name, Data: buf}
 	return clientParser.Encode(pkg)
@@ -257,7 +258,7 @@ func EncodePackage(pkg *Package) ([]byte, error) {
 	return rawParser.Encode(pkg)
 }
 
-func marshalJSON(i interface{}) ([]byte, error) {
+func marshalJSON(i any) ([]byte, error) {
 	switch v := i.(type) {
 	case []byte:
 		return v, nil

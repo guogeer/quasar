@@ -26,12 +26,12 @@ func TestSkipPeriodTime(t *testing.T) {
 }
 
 func TestEqualJSON(t *testing.T) {
-	a1 := map[string]interface{}{
+	a1 := map[string]any{
 		"A": 1,
 		"B": 2,
 		"S": "s",
 	}
-	b1 := map[string]interface{}{
+	b1 := map[string]any{
 		"A": 1,
 		"B": 2,
 		"S": "s",

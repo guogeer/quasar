@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -61,10 +60,10 @@ type Scanner interface {
 }
 
 type jsonArg struct {
-	value interface{}
+	value any
 }
 
-func JSON(v interface{}) *jsonArg {
+func JSON(v any) *jsonArg {
 	return &jsonArg{value: v}
 }
 
@@ -73,7 +72,7 @@ func (arg *jsonArg) Scan(v lua.LValue) error {
 	return json.Unmarshal(b, arg.value)
 }
 
-func (res Result) Scan(args ...interface{}) error {
+func (res Result) Scan(args ...any) error {
 	maxn := len(res.rets)
 	if maxn > len(args) {
 		maxn = len(args)
@@ -101,7 +100,7 @@ func (res Result) Scan(args ...interface{}) error {
 	return nil
 }
 
-func (script *scriptFile) Call(funcName string, args ...interface{}) *Result {
+func (script *scriptFile) Call(funcName string, args ...any) *Result {
 	L := script.L
 	largs := make([]lua.LValue, 0, 4)
 	for _, arg := range args {
@@ -198,7 +197,7 @@ func (set *scriptSet) LoadString(path, body string) error {
 	return nil
 }
 
-func (set *scriptSet) Call(fileName, funcName string, args ...interface{}) *Result {
+func (set *scriptSet) Call(fileName, funcName string, args ...any) *Result {
 	set.mtx.RLock()
 	script, ok := set.files[fileName]
 	set.mtx.RUnlock()
@@ -219,7 +218,7 @@ func GetFileName(L *lua.LState) (string, bool) {
 	return gScriptSet.GetFileName(L)
 }
 
-func Call(fileName, funcName string, args ...interface{}) *Result {
+func Call(fileName, funcName string, args ...any) *Result {
 	res := gScriptSet.Call(fileName, funcName, args...)
 	if res.Err != nil {
 		log.Errorf("call script %s:%s error: %v", fileName, funcName, res.Err)
@@ -260,7 +259,7 @@ func LoadScripts(path string) error {
 			return nil
 		}
 		// log.Infof("load script %s %s", path, name)
-		buf, err := ioutil.ReadFile(path)
+		buf, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
@@ -282,19 +281,19 @@ func LoadLocalScriptByName(dir, name string) error {
 	return LoadScripts(dir + "/" + name)
 }
 
-// map[interface{}]interface{} to json
+// map[any]any to json
 // map[1:1 2:2] to [1,2]
-type GenericMap map[interface{}]interface{}
+type GenericMap map[any]any
 
 func (m GenericMap) MarshalJSON() ([]byte, error) {
 	if m == nil {
 		return []byte("null"), nil
 	}
 
-	dict := map[string]interface{}{}
+	dict := map[string]any{}
 	for k, v := range m {
 		s := fmt.Sprintf("%v", k)
-		if child, ok := v.(map[interface{}]interface{}); ok {
+		if child, ok := v.(map[any]any); ok {
 			buf, err := json.Marshal(GenericMap(child))
 			if err != nil {
 				return buf, err
@@ -315,7 +314,7 @@ func (m GenericMap) MarshalJSON() ([]byte, error) {
 		return json.Marshal(dict)
 	}
 
-	array := make([]interface{}, 0, 4)
+	array := make([]any, 0, 4)
 	for i := 1; i <= len(dict); i++ {
 		array = append(array, dict[strconv.Itoa(i)])
 	}

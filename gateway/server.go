@@ -11,10 +11,11 @@ import (
 	"sync"
 	"time"
 
+	"quasar/cmd"
+	"quasar/log"
+	"quasar/util"
+
 	"github.com/gorilla/websocket"
-	"github.com/guogeer/quasar/cmd"
-	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/util"
 )
 
 const (
@@ -60,7 +61,7 @@ func (c *WsConn) Close() {
 	}
 }
 
-func (c *WsConn) WriteJSON(name string, i interface{}) error {
+func (c *WsConn) WriteJSON(name string, i any) error {
 	// 消息格式
 	pkg := &cmd.Package{Id: name, Body: i}
 	buf, err := cmd.EncodePackage(pkg)

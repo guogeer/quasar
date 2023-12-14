@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/guogeer/quasar/log"
+	"quasar/log"
 )
 
 var clients sync.Map // 已存在的连接不会被删除
@@ -148,7 +148,7 @@ func routeMsg(serverId string, data []byte) {
 	}
 }
 
-func Route(serverId, msgId string, i interface{}) {
+func Route(serverId, msgId string, i any) {
 	pkg := &Package{Id: msgId, Body: i}
 	buf, err := EncodePackage(pkg)
 	if err != nil {

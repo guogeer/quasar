@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 
-	"github.com/guogeer/quasar/cmd"
-	"github.com/guogeer/quasar/log"
+	"quasar/cmd"
+	"quasar/log"
 )
 
 type gatewayArgs struct {
@@ -31,7 +31,7 @@ func init() {
 	cmd.Bind(S2C_Register, (*gatewayArgs)(nil))
 }
 
-func FUNC_Close(ctx *cmd.Context, data interface{}) {
+func FUNC_Close(ctx *cmd.Context, data any) {
 	log.Debugf("session close %s", ctx.Ssid)
 	if v, ok := sessionLocations.Load(ctx.Ssid); ok {
 		loc := v.(*sessionLocation)
@@ -41,7 +41,7 @@ func FUNC_Close(ctx *cmd.Context, data interface{}) {
 	sessionLocations.Delete(ctx.Ssid)
 }
 
-func FUNC_SwitchServer(ctx *cmd.Context, data interface{}) {
+func FUNC_SwitchServer(ctx *cmd.Context, data any) {
 	args := data.(*gatewayArgs)
 	log.Debugf("session ssid:%s switch request server:%s,match server:%s", ctx.Ssid, args.ServerName, args.MatchServer)
 	loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.MatchServer}
@@ -54,25 +54,25 @@ func FUNC_SwitchServer(ctx *cmd.Context, data interface{}) {
 }
 
 // 直接转发消息到客户端
-func FUNC_Route(ctx *cmd.Context, data interface{}) {
+func FUNC_Route(ctx *cmd.Context, data any) {
 	args := data.(*gatewayArgs)
 	if ss := cmd.GetSession(ctx.Ssid); ss != nil {
 		ss.Out.WriteJSON(args.Id, args.Data)
 	}
 }
 
-func FUNC_Broadcast(ctx *cmd.Context, data interface{}) {
+func FUNC_Broadcast(ctx *cmd.Context, data any) {
 	args := data.(*gatewayArgs)
 	for _, ss := range cmd.GetSessionList() {
 		ss.Out.WriteJSON(args.Id, args.Data)
 	}
 }
 
-func S2C_Register(ctx *cmd.Context, data interface{}) {
+func S2C_Register(ctx *cmd.Context, data any) {
 	cmd.Route("router", "C2S_QueryServerState", cmd.M{})
 }
 
-func S2C_ServerClose(ctx *cmd.Context, data interface{}) {
+func S2C_ServerClose(ctx *cmd.Context, data any) {
 	args := data.(*gatewayArgs)
 	// 2020-11-24 仅通知在当前服务的连接
 	for _, ss := range cmd.GetSessionList() {
@@ -86,12 +86,12 @@ func S2C_ServerClose(ctx *cmd.Context, data interface{}) {
 	cmd.Route("router", "C2S_QueryServerState", cmd.M{})
 }
 
-func HeartBeat(ctx *cmd.Context, data interface{}) {
+func HeartBeat(ctx *cmd.Context, data any) {
 	ctx.Out.WriteJSON("HeartBeat", cmd.M{})
 }
 
 // 同步服务负载
-func S2C_QueryServerState(ctx *cmd.Context, data interface{}) {
+func S2C_QueryServerState(ctx *cmd.Context, data any) {
 	args := data.(*gatewayArgs)
 
 	serverStateMu.Lock()
