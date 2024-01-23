@@ -3,7 +3,7 @@ package main
 import (
 	"strings"
 
-	"github.com/guogeer/quasar/cmd"
+	"quasar/cmd"
 )
 
 var servers = map[string]*Server{}

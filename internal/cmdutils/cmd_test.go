@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/guogeer/quasar/util"
+	"quasar/util"
 )
 
 type mStruct struct {

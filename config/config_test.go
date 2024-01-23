@@ -3,7 +3,7 @@ package config
 import (
 	"testing"
 
-	"github.com/guogeer/quasar/util"
+	"quasar/util"
 )
 
 func TestLoadConfig(t *testing.T) {

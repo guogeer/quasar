@@ -10,18 +10,17 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
+	"quasar/log"
 	"regexp"
 	"strings"
 
-	"quasar/log"
-
-	"github.com/go-yaml/yaml"
+	"gopkg.in/yaml.v3"
 )
 
 var (
-	gLogTag     = flag.String("log", "DEBUG", "log DEBUG|INFO|ERROR")
-	gLogPath    = flag.String("logpath", "log/{proc_name}/run.log", "log path")
-	gConfigPath = flag.String("config", "", "config xml|json|yaml")
+	gLogLevel   = flag.String("log-level", "DEBUG", "log DEBUG|INFO|ERROR")
+	gLogPath    = flag.String("log-path", "log/{proc_name}/run.log", "log path")
+	gConfigPath = flag.String("config-file", "", "config xml|json|yaml")
 )
 
 // 加载xml/json/yaml格式配置文件
@@ -44,18 +43,20 @@ func LoadFile(path string, conf any) error {
 }
 
 type server struct {
-	Name string
-	Addr string `xml:"Address"`
+	Name string `yaml:"name"`
+	Addr string `yaml:"address" xml:"Address"`
 }
 
 type Env struct {
 	path string
 
-	ProductKey  string
-	ServerList  []server `xml:"ServerList>Server"`
-	LogPath     string   `xml:"Log>Path"`
-	LogTag      string   `xml:"Log>Tag"`
-	EnableDebug bool     // 开启调试，将输出消息统计日志等
+	ProductKey string   `yaml:"productKey"`
+	ServerList []server `yaml:"serverList" xml:"ServerList>Server"`
+	Log        struct {
+		Path  string `yaml:"path"`
+		Level string `yaml:"level"`
+	} `yaml:"log"`
+	EnableDebug bool `yaml:"enableDebug"` // 开启调试，将输出消息统计日志等
 }
 
 func (env *Env) Path() string {
@@ -79,11 +80,11 @@ func Config() *Env {
 
 func init() {
 	// 命令行参数优先
-	logPath, logTag, path := *gLogPath, *gLogTag, *gConfigPath
-	defaultConfig.path = parseCommandLine(os.Args[1:], "config", path)
+	logPath, logLevel, path := *gLogPath, *gLogLevel, *gConfigPath
+	defaultConfig.path = parseCommandLine(os.Args[1:], "config-file", path)
 	// 未指定配置路径，默认加载当前目录下config.xml
 	if defaultConfig.path == "" {
-		path := "config.xml"
+		path := "config.yaml"
 		if _, err := os.Stat(path); err == nil {
 			defaultConfig.path = path
 		}
@@ -98,16 +99,16 @@ func init() {
 		log.Errorf("load config %s error %v", defaultConfig.path, err)
 	}
 	if logPath == "" {
-		logPath = defaultConfig.LogPath
+		logPath = defaultConfig.Log.Path
 	}
-	if logTag == "" {
-		logTag = defaultConfig.LogTag
+	if logLevel == "" {
+		logLevel = defaultConfig.Log.Level
 	}
-	defaultConfig.LogTag = parseCommandLine(os.Args[1:], "log", logTag)
-	defaultConfig.LogPath = parseCommandLine(os.Args[1:], "logpath", logPath)
+	defaultConfig.Log.Level = parseCommandLine(os.Args[1:], "log-level", logLevel)
+	defaultConfig.Log.Path = parseCommandLine(os.Args[1:], "log-path", logPath)
 
-	log.Create(defaultConfig.LogPath)
-	log.SetLevel(defaultConfig.LogTag)
+	log.Create(defaultConfig.Log.Path)
+	log.SetLevel(defaultConfig.Log.Level)
 }
 
 // 解析命令行参数，支持4种格式

@@ -7,10 +7,10 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/guogeer/quasar/cmd"
-	"github.com/guogeer/quasar/config"
-	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/util"
+	"quasar/cmd"
+	"quasar/config"
+	"quasar/log"
+	"quasar/util"
 )
 
 var port = flag.Int("port", 9003, "router server port")
@@ -24,7 +24,9 @@ func main() {
 		*port, _ = strconv.Atoi(portStr)
 	}
 	log.Infof("start router server, listen %d", *port)
-	go func() { cmd.ListenAndServe(fmt.Sprintf(":%d", *port)) }()
+	go func() {
+		cmd.ListenAndServe(fmt.Sprintf(":%d", *port))
+	}()
 
 	defer func() {
 		if err := recover(); err != nil {
