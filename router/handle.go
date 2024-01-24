@@ -1,11 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"net"
 	"strings"
 
 	"quasar/cmd"
-	"quasar/internal/cmdutils"
 	"quasar/log"
 )
 
@@ -15,16 +15,22 @@ type routeArgs struct {
 	Weight int
 }
 
-func init() {
-	cmd.Bind(C2S_Register, (*routeArgs)(nil))
-	cmd.Bind(C2S_GetServerAddr, (*routeArgs)(nil))
-	cmd.Bind(C2S_Concurrent, (*routeArgs)(nil))
-	cmd.Bind(C2S_Route, (*cmdutils.ForwardArgs)(nil))
-	cmd.Bind(C2S_QueryServerState, (*routeArgs)(nil))
-	cmd.Bind(C2S_GetBestGateway, (*routeArgs)(nil))
+type forwardArgs struct {
+	ServerName string
+	MsgId      string
+	MsgData    json.RawMessage
+}
 
-	cmd.Bind(C2S_Broadcast, (*cmd.Package)(nil))
-	cmd.Bind(FUNC_Close, (*routeArgs)(nil))
+func init() {
+	cmd.BindFunc(C2S_Register, (*routeArgs)(nil))
+	cmd.BindFunc(C2S_GetServerAddr, (*routeArgs)(nil))
+	cmd.BindFunc(C2S_Concurrent, (*routeArgs)(nil))
+	cmd.BindFunc(C2S_Route, (*forwardArgs)(nil))
+	cmd.BindFunc(C2S_QueryServerState, (*routeArgs)(nil))
+	cmd.BindFunc(C2S_GetBestGateway, (*routeArgs)(nil))
+
+	cmd.BindFunc(C2S_Broadcast, (*cmd.Package)(nil))
+	cmd.BindFunc(FUNC_Close, (*routeArgs)(nil))
 }
 
 // ServerAddr == "" 无服务
@@ -87,7 +93,7 @@ func C2S_Concurrent(ctx *cmd.Context, data any) {
 }
 
 func C2S_Route(ctx *cmd.Context, data any) {
-	args := data.(*cmdutils.ForwardArgs)
+	args := data.(*forwardArgs)
 
 	matchServers := strings.Split(args.ServerName, ",")
 	if args.ServerName == "*" {

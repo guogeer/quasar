@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"quasar/internal/cmdutils"
 	"quasar/log"
 
 	"github.com/buger/jsonparser"
@@ -20,9 +19,6 @@ var (
 	errPackageExpire   = errors.New("package expire")
 	errTooLargeMessage = errors.New("too large message")
 )
-
-// 忽略nil类型nil/slice/pointer
-type M = cmdutils.M
 
 type Context struct {
 	Out         Conn   // 连接
@@ -135,44 +131,44 @@ func RunOnce() {
 }
 
 type Package struct {
-	Id         string          `json:",omitempty"`    // 消息ID
-	Data       json.RawMessage `json:",omitempty"`    // 数据,object类型
-	Sign       string          `json:",omitempty"`    // 签名
-	Ssid       string          `json:",omitempty"`    // 会话ID
-	Version    int             `json:"Ver,omitempty"` // 版本
-	Ts         int64           `json:",omitempty"`    // 过期时间戳
-	ServerName string          `json:",omitempty"`    // 请求的协议头
-	ClientAddr string          `json:",omitempty"`    // 客户端地址
+	Id         string          `json:"id,omitempty"`         // 消息ID
+	Data       json.RawMessage `json:"data,omitempty"`       // 数据,object类型
+	Sign       string          `json:"sign,omitempty"`       // 签名
+	Ssid       string          `json:"ssid,omitempty"`       // 会话ID
+	Version    int             `json:"version,omitempty"`    // 版本
+	Ts         int64           `json:"ts,omitempty"`         // 过期时间戳
+	ServerName string          `json:"serverName,omitempty"` // 请求的协议头
+	ClientAddr string          `json:"clientAddr,omitempty"` // 客户端地址
 
 	Body any `json:"-"` // 解析成Data
 }
 
 // 服务内部协议
-var rawParser = &hashParser{}
+var rawCodec = &hashCodec{}
 
 // 服务器内建立连接时将检验第一个包的数据
-var authParser = &hashParser{
+var authCodec = &hashCodec{
 	secs:     5,
 	key:      "420e57b017066b44e05ea1577f6e2e12",
 	tempSign: "a9542bb104fe3f4d562e1d275e03f5ba",
 }
 
 // 外网客户端协议
-var clientParser = &hashParser{
+var clientCodec = &hashCodec{
 	ref:      []int{0, 3, 4, 8, 10, 11, 13, 14},
 	key:      "helloworld!",
 	tempSign: "12345678",
 }
 
 // 协议使用哈希值检验
-type hashParser struct {
+type hashCodec struct {
 	secs     int64 // 有效时长
 	ref      []int
 	key      string
 	tempSign string
 }
 
-func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
+func (codec *hashCodec) Encode(pkg *Package) ([]byte, error) {
 	if pkg.Body != nil {
 		data, err := marshalJSON(pkg.Body)
 		if err != nil {
@@ -181,27 +177,27 @@ func (parser *hashParser) Encode(pkg *Package) ([]byte, error) {
 		pkg.Data = data
 	}
 
-	pkg.Sign = parser.tempSign
+	pkg.Sign = codec.tempSign
 	buf, err := json.Marshal(pkg)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := parser.Signature(buf); err != nil {
+	if _, err := codec.Signature(buf); err != nil {
 		return nil, err
 	}
 	return buf, nil
 }
 
-func (parser *hashParser) Decode(buf []byte) (*Package, error) {
+func (codec *hashCodec) Decode(buf []byte) (*Package, error) {
 	pkg := &Package{}
 	if err := json.Unmarshal(buf, pkg); err != nil {
 		return nil, err
 	}
-	if secs := parser.secs; secs > 0 && pkg.Ts+secs < time.Now().Unix() {
+	if secs := codec.secs; secs > 0 && pkg.Ts+secs < time.Now().Unix() {
 		return nil, errPackageExpire
 	}
 
-	sign, err := parser.Signature(buf)
+	sign, err := codec.Signature(buf)
 	if err != nil {
 		return pkg, ErrInvalidSign
 	}
@@ -211,8 +207,8 @@ func (parser *hashParser) Decode(buf []byte) (*Package, error) {
 	return pkg, nil
 }
 
-func (parser *hashParser) Signature(data []byte) (string, error) {
-	ref, key := parser.ref, parser.key
+func (codec *hashCodec) Signature(data []byte) (string, error) {
+	ref, key := codec.ref, codec.key
 	if key == "" {
 		return "", nil
 	}
@@ -220,7 +216,7 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 	copy(buf, key)
 	copy(buf[len(key):], data)
 	// buf = append([]byte(key), data...)
-	tempSign := parser.tempSign
+	tempSign := codec.tempSign
 	_, _, n, err := jsonparser.Get(data, "Sign")
 	if err != nil {
 		return "", err
@@ -247,15 +243,15 @@ func (parser *hashParser) Signature(data []byte) (string, error) {
 func Encode(name string, i any) ([]byte, error) {
 	buf, _ := marshalJSON(i)
 	pkg := &Package{Id: name, Data: buf}
-	return clientParser.Encode(pkg)
+	return clientCodec.Encode(pkg)
 }
 
 func Decode(buf []byte) (*Package, error) {
-	return clientParser.Decode(buf)
+	return clientCodec.Decode(buf)
 }
 
 func EncodePackage(pkg *Package) ([]byte, error) {
-	return rawParser.Encode(pkg)
+	return rawCodec.Encode(pkg)
 }
 
 func marshalJSON(i any) ([]byte, error) {

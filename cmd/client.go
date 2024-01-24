@@ -76,7 +76,7 @@ func (c *Client) start() {
 		pkg := &Package{
 			Ts: time.Now().Unix(),
 		}
-		firstMsg, _ := authParser.Encode(pkg)
+		firstMsg, _ := authCodec.Encode(pkg)
 		if _, err := c.writeMsg(RawMessage, firstMsg); err != nil {
 			return
 		}
@@ -109,7 +109,7 @@ func (c *Client) start() {
 			return
 		}
 		if mt == RawMessage {
-			pkg, err := rawParser.Decode(buf)
+			pkg, err := rawCodec.Decode(buf)
 			if err != nil {
 				log.Debug(err)
 				return

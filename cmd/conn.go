@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 
@@ -149,6 +150,8 @@ var defaultCmdSet = &CmdSet{
 }
 
 func (s *CmdSet) Bind(name string, h Handler, i any, isPushQueue bool) {
+	name = strings.ToLower(name)
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if _, ok := s.e[name]; ok {

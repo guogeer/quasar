@@ -113,19 +113,19 @@ func (c *ServeConn) serve() {
 	c.rwc.SetReadDeadline(time.Now().Add(5 * time.Second))
 
 	// 第一个包校验数据安全
-	parser := authParser
+	codec := authCodec
 	for {
 		mt, buf, err := c.ReadMessage()
 		if err != nil {
 			return
 		}
 
-		isAuth := (parser == authParser)
+		isAuth := (codec == authCodec)
 		if isAuth {
 			c.rwc.SetReadDeadline(time.Now().Add(pongWait))
 		}
 		if mt == RawMessage || isAuth {
-			pkg, err := parser.Decode(buf)
+			pkg, err := codec.Decode(buf)
 			if err != nil {
 				log.Debugf("recv data %s error %v", string(buf), err)
 				return
@@ -143,6 +143,6 @@ func (c *ServeConn) serve() {
 				}
 			}
 		}
-		parser = rawParser
+		codec = rawCodec
 	}
 }

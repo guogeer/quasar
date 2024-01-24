@@ -23,12 +23,12 @@ func init() {
 	cmd.BindWithoutQueue("FUNC_Route", FUNC_Route, (*gatewayArgs)(nil))
 	cmd.BindWithoutQueue("HeartBeat", HeartBeat, (*gatewayArgs)(nil))
 
-	cmd.Bind(FUNC_Broadcast, (*gatewayArgs)(nil))
-	cmd.Bind(FUNC_SwitchServer, (*gatewayArgs)(nil))
-	cmd.Bind(FUNC_Close, (*gatewayArgs)(nil))
-	cmd.Bind(S2C_ServerClose, (*gatewayArgs)(nil))
-	cmd.Bind(S2C_QueryServerState, (*gatewayArgs)(nil))
-	cmd.Bind(S2C_Register, (*gatewayArgs)(nil))
+	cmd.BindFunc(FUNC_Broadcast, (*gatewayArgs)(nil))
+	cmd.BindFunc(FUNC_SwitchServer, (*gatewayArgs)(nil))
+	cmd.BindFunc(FUNC_Close, (*gatewayArgs)(nil))
+	cmd.BindFunc(S2C_ServerClose, (*gatewayArgs)(nil))
+	cmd.BindFunc(S2C_QueryServerState, (*gatewayArgs)(nil))
+	cmd.BindFunc(S2C_Register, (*gatewayArgs)(nil))
 }
 
 func FUNC_Close(ctx *cmd.Context, data any) {

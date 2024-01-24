@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"quasar/config"
-	"quasar/internal/cmdutils"
 )
 
 var (
@@ -21,8 +20,8 @@ func init() {
 	conf := config.Config()
 	// 服务器内部数据校验KEY
 	if conf.ProductKey != "" {
-		authParser.key = conf.ProductKey
-		clientParser.key = conf.ProductKey
+		authCodec.key = conf.ProductKey
+		clientCodec.key = conf.ProductKey
 	}
 	if conf.EnableDebug {
 		enableDebug = true
@@ -34,7 +33,7 @@ func init() {
 
 // 绑定
 // 注：客户端发送的消息ID仅允许包含字母、数字
-func BindWithName(name string, h Handler, args any) {
+func Bind(name string, h Handler, args any) {
 	defaultCmdSet.Bind(name, h, args, true)
 }
 
@@ -50,14 +49,14 @@ func BindWithoutQueue(name string, h Handler, args any) {
 
 // 绑定，函数名作为消息ID
 // 注：客户端发送的消息ID仅允许包含字母、数字
-func Bind(h Handler, args any) {
+func BindFunc(h Handler, args any) {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	n := strings.LastIndexByte(name, '.')
 	if n >= 0 {
 		name = name[n+1:]
 	}
 	// log.Debug("method name =", name)
-	BindWithName(name, h, args)
+	Bind(name, h, args)
 }
 
 func Handle(ctx *Context, name string, data []byte) error {
@@ -77,6 +76,33 @@ type cmdArgs struct {
 	Addr string
 }
 
+// 忽略nil类型nil/slice/pointer
+type M map[string]any
+
+// 忽略空值nil
+func (m M) MarshalJSON() ([]byte, error) {
+	copyM := map[string]any{}
+	for k, v := range m {
+		if v != nil {
+			switch ref := reflect.ValueOf(v); ref.Kind() {
+			case reflect.Ptr, reflect.Slice, reflect.Map, reflect.Interface:
+				if !ref.IsNil() {
+					copyM[k] = v
+				}
+			default:
+				copyM[k] = v
+			}
+		}
+	}
+	return json.Marshal(copyM)
+}
+
+type forwardArgs struct {
+	ServerName string
+	MsgId      string
+	MsgData    json.RawMessage
+}
+
 // 消息通过router转发
 // name = "*"：向所有非网关服务转发消息
 func Forward(name string, msgId string, i any) {
@@ -85,7 +111,7 @@ func Forward(name string, msgId string, i any) {
 		return
 	}
 
-	args := &cmdutils.ForwardArgs{
+	args := &forwardArgs{
 		ServerName: name,
 		MsgId:      msgId,
 		MsgData:    buf,
@@ -106,7 +132,7 @@ func Request(serverName, msgId string, in any) ([]byte, error) {
 	defer rwc.Close()
 
 	c := &TCPConn{rwc: rwc}
-	buf, err := authParser.Encode(&Package{Id: msgId, Body: in, Ts: time.Now().Unix()})
+	buf, err := authCodec.Encode(&Package{Id: msgId, Body: in, Ts: time.Now().Unix()})
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +144,7 @@ func Request(serverName, msgId string, in any) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	pkg, err := rawParser.Decode(buf)
+	pkg, err := rawCodec.Decode(buf)
 	if err != nil {
 		return nil, err
 	}

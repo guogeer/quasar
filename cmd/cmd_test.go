@@ -1,4 +1,4 @@
-package cmdutils
+package cmd
 
 import (
 	"encoding/json"

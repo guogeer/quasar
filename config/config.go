@@ -11,16 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"quasar/log"
-	"regexp"
-	"strings"
 
 	"gopkg.in/yaml.v3"
-)
-
-var (
-	gLogLevel   = flag.String("log-level", "DEBUG", "log DEBUG|INFO|ERROR")
-	gLogPath    = flag.String("log-path", "log/{proc_name}/run.log", "log path")
-	gConfigPath = flag.String("config-file", "", "config xml|json|yaml")
 )
 
 // 加载xml/json/yaml格式配置文件
@@ -33,11 +25,11 @@ func LoadFile(path string, conf any) error {
 	default:
 		return errors.New("only support xml|json|yaml")
 	case ".xml":
-		err = xml.Unmarshal(b, &conf)
+		err = xml.Unmarshal(b, conf)
 	case ".json":
-		err = json.Unmarshal(b, &conf)
-	case ".yaml":
-		err = yaml.Unmarshal(b, &conf)
+		err = json.Unmarshal(b, conf)
+	case ".yaml", ".yml":
+		err = yaml.Unmarshal(b, conf)
 	}
 	return err
 }
@@ -53,8 +45,8 @@ type Env struct {
 	ProductKey string   `yaml:"productKey"`
 	ServerList []server `yaml:"serverList" xml:"ServerList>Server"`
 	Log        struct {
-		Path  string `yaml:"path"`
-		Level string `yaml:"level"`
+		Path  string `yaml:"path" long:"log-path" default:"DEBUG" description:"log DEBUG|INFO|ERROR"`
+		Level string `yaml:"level"  long:"log-level" default:"log/{proc_name}/run.log" description:"log file path"`
 	} `yaml:"log"`
 	EnableDebug bool `yaml:"enableDebug"` // 开启调试，将输出消息统计日志等
 }
@@ -79,55 +71,27 @@ func Config() *Env {
 }
 
 func init() {
-	// 命令行参数优先
-	logPath, logLevel, path := *gLogPath, *gLogLevel, *gConfigPath
-	defaultConfig.path = parseCommandLine(os.Args[1:], "config-file", path)
-	// 未指定配置路径，默认加载当前目录下config.xml
-	if defaultConfig.path == "" {
-		path := "config.yaml"
-		if _, err := os.Stat(path); err == nil {
-			defaultConfig.path = path
+	conf := Config()
+	// 参数优先级：命令行>配置文件
+	newFlag := flag.NewFlagSet("init config", flag.ContinueOnError)
+	configPath := newFlag.String("config", "config.yaml", "config file path")
+	logLevel := newFlag.String("log-level", "DEBUG", "log DEBUG|INFO|ERROR")
+	logPath := newFlag.String("log-path", "log/{proc_name}/run.log", "log path")
+
+	newFlag.Parse(flag.CommandLine.Args())
+	if *configPath != "" {
+		conf.path = *configPath
+	}
+	conf.Log.Path = *logPath
+	conf.Log.Level = *logLevel
+
+	if conf.path != "" {
+		err := LoadFile(conf.path, &conf)
+		if err != nil {
+			log.Errorf("load config %s error %v", conf.path, err)
 		}
 	}
-	// 无配置
-	if defaultConfig.path == "" {
-		return
-	}
 
-	err := LoadFile(defaultConfig.path, &defaultConfig)
-	if err != nil {
-		log.Errorf("load config %s error %v", defaultConfig.path, err)
-	}
-	if logPath == "" {
-		logPath = defaultConfig.Log.Path
-	}
-	if logLevel == "" {
-		logLevel = defaultConfig.Log.Level
-	}
-	defaultConfig.Log.Level = parseCommandLine(os.Args[1:], "log-level", logLevel)
-	defaultConfig.Log.Path = parseCommandLine(os.Args[1:], "log-path", logPath)
-
-	log.Create(defaultConfig.Log.Path)
-	log.SetLevel(defaultConfig.Log.Level)
-}
-
-// 解析命令行参数，支持4种格式
-// 1、-name=value
-// 2、-name value
-// 3、--name=value
-// 4、--name value
-func parseCommandLine(args []string, name, def string) string {
-	s := " " + strings.Join(args, " ")
-	re := regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))\S+`)
-
-	// 匹配的子串
-	s = re.FindString(s)
-	if s == "" {
-		return def
-	}
-	re = regexp.MustCompile(`\s+[-]{1,2}` + name + `(=|(\s+))`)
-
-	// 前缀关键字
-	prefix := re.FindString(s)
-	return s[len(prefix):]
+	log.Create(conf.Log.Path)
+	log.SetLevel(conf.Log.Level)
 }
