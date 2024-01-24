@@ -23,8 +23,17 @@ type apiEntry struct {
 	codec MessageCodec
 }
 
-func (e *apiEntry) SetCodec(codec MessageCodec) {
-	e.codec = codec
+type wrapper struct {
+	m  *sync.Map
+	id string
+	e  *apiEntry
+}
+
+func (ctx wrapper) SetCodec(codec MessageCodec) wrapper {
+	e := ctx.e
+	ctx.e = &apiEntry{h: e.h, typ: e.typ, codec: codec}
+	ctx.m.Store(ctx.id, ctx.e)
+	return ctx
 }
 
 var apiEntries sync.Map
@@ -59,10 +68,16 @@ func merge(method, uri string) string {
 	return method + " " + uri
 }
 
-func Handle(method, uri string, h Handler, i any) *apiEntry {
-	e := &apiEntry{h: h, typ: reflect.TypeOf(i), codec: &jsonMessageCodec{}}
-	apiEntries.Store(merge(method, uri), e)
-	return e
+var jsonCodec = &jsonMessageCodec{}
+
+func Add(method, uri string, h Handler, i any) wrapper {
+	ctx := wrapper{
+		id: merge(method, uri),
+		m:  &apiEntries,
+		e:  &apiEntry{h: h, typ: reflect.TypeOf(i), codec: jsonCodec},
+	}
+	ctx.m.Store(ctx.id, ctx.e)
+	return ctx
 }
 
 func matchAPI(c *Context, method, uri string) ([]byte, error) {

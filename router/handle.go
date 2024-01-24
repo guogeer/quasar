@@ -12,13 +12,13 @@ import (
 type routeArgs struct {
 	cmd.ServiceConfig
 
-	Weight int
+	Weight int `json:"weight,omitempty"`
 }
 
 type forwardArgs struct {
-	ServerName string
-	MsgId      string
-	MsgData    json.RawMessage
+	ServerName string          `json:"serverName,omitempty"`
+	MsgId      string          `json:"msgId,omitempty"`
+	MsgData    json.RawMessage `json:"msgData,omitempty"`
 }
 
 func init() {

@@ -8,20 +8,20 @@ import (
 )
 
 type gatewayArgs struct {
-	Id   string
-	Data json.RawMessage
+	Id   string          `json:"id,omitempty"`
+	Data json.RawMessage `json:"data,omitempty"`
 
-	ServerId    string
-	ServerName  string
-	MatchServer string // 匹配的ServerId
+	ServerId    string `json:"serverId,omitempty"`
+	ServerName  string `json:"serverName,omitempty"`
+	MatchServer string `json:"matchServer,omitempty"` // 匹配的ServerId
 
-	Name    string
-	Servers []*serverState
+	Name    string         `json:"name,omitempty"`
+	Servers []*serverState `json:"servers,omitempty"`
 }
 
 func init() {
-	cmd.BindWithoutQueue("FUNC_Route", FUNC_Route, (*gatewayArgs)(nil))
-	cmd.BindWithoutQueue("HeartBeat", HeartBeat, (*gatewayArgs)(nil))
+	cmd.Bind("FUNC_Route", FUNC_Route, (*gatewayArgs)(nil)).SetNoQueue()
+	cmd.Bind("HeartBeat", HeartBeat, (*gatewayArgs)(nil)).SetNoQueue()
 
 	cmd.BindFunc(FUNC_Broadcast, (*gatewayArgs)(nil))
 	cmd.BindFunc(FUNC_SwitchServer, (*gatewayArgs)(nil))

@@ -17,16 +17,16 @@ var (
 )
 
 type serverState struct {
-	Id        string
-	Name      string
-	Weight    int
-	MaxWeight int
-	MinWeight int
+	Id        string `json:"id,omitempty"`
+	Name      string `json:"name,omitempty"`
+	Weight    int    `json:"weight,omitempty"`
+	MaxWeight int    `json:"maxWeight,omitempty"`
+	MinWeight int    `json:"minWeight,omitempty"`
 }
 
 type sessionLocation struct {
-	MatchServer string // 服务的ID
-	ServerName  string // 客户端请求的协议头
+	MatchServer string `json:"matchServer,omitempty"` // 服务的ID
+	ServerName  string `json:"serverName,omitempty"`  // 客户端请求的协议头
 }
 
 func init() {

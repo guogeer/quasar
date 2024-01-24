@@ -31,32 +31,24 @@ func init() {
 	}
 }
 
-// 绑定
-// 注：客户端发送的消息ID仅允许包含字母、数字
-func Bind(name string, h Handler, args any) {
-	defaultCmdSet.Bind(name, h, args, true)
+func Bind(name string, h Handler, args any) wrapper {
+	return defaultCmdSet.Bind(name, h, args)
 }
 
 func Hook(h Handler) {
 	defaultCmdSet.Hook(h)
 }
 
-// 绑定。消息不入队列直接处理
-// 注：客户端发送的消息ID仅允许包含字母、数字
-func BindWithoutQueue(name string, h Handler, args any) {
-	defaultCmdSet.Bind(name, h, args, false)
-}
-
 // 绑定，函数名作为消息ID
 // 注：客户端发送的消息ID仅允许包含字母、数字
-func BindFunc(h Handler, args any) {
+func BindFunc(h Handler, args any) wrapper {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	n := strings.LastIndexByte(name, '.')
 	if n >= 0 {
 		name = name[n+1:]
 	}
 	// log.Debug("method name =", name)
-	Bind(name, h, args)
+	return Bind(name, h, args)
 }
 
 func Handle(ctx *Context, name string, data []byte) error {
@@ -64,16 +56,16 @@ func Handle(ctx *Context, name string, data []byte) error {
 }
 
 type ServiceConfig struct {
-	Id        string `json:",omitempty"` // 服务ID。可为空
-	Name      string `json:",omitempty"` // 服务名。存在多个时采用逗号,隔开
-	Addr      string `json:",omitempty"` // 地址
-	MinWeight int    `json:",omitempty"` // 最小的负载
-	MaxWeight int    `json:",omitempty"` // 最大的负载
+	Id        string `json:"id,omitempty"`        // 服务ID。可为空
+	Name      string `json:"name,omitempty"`      // 服务名。存在多个时采用逗号,隔开
+	Addr      string `json:"addr,omitempty"`      // 地址
+	MinWeight int    `json:"minWeight,omitempty"` // 最小的负载
+	MaxWeight int    `json:"maxWeight,omitempty"` // 最大的负载
 }
 
 type cmdArgs struct {
-	Name string
-	Addr string
+	Name string `json:"name,omitempty"`
+	Addr string `json:"addr,omitempty"`
 }
 
 // 忽略nil类型nil/slice/pointer

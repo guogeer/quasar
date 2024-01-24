@@ -133,32 +133,60 @@ func (c *TCPConn) writeMsg(mt int, data []byte) (int, error) {
 type Handler func(*Context, any)
 
 type cmdEntry struct {
-	h           Handler
-	type_       reflect.Type
-	isPushQueue bool // 请求入消息队列处理
+	name      string
+	h         Handler
+	type_     reflect.Type
+	inQueue   bool // 请求入消息队列处理
+	isPrivate bool // 内部消息，不对外开放
+}
+
+type wrapper struct {
+	name string
+	e    *cmdEntry
+	s    *CmdSet
+}
+
+func (w wrapper) SetNoQueue() wrapper {
+	e := w.e
+	w.e = &cmdEntry{name: e.name, h: e.h, type_: e.type_, inQueue: false}
+	w.s.add(w.name, w.e, false)
+	return w
+}
+
+func (w wrapper) SetPrivate() wrapper {
+	e := w.e
+	w.e = &cmdEntry{name: e.name, h: e.h, type_: e.type_, inQueue: false, isPrivate: true}
+	w.s.table[w.name] = w.e
+	w.s.add(w.name, w.e, false)
+	return w
 }
 
 type CmdSet struct {
-	e  map[string]*cmdEntry
-	mu sync.RWMutex
+	table map[string]*cmdEntry
+	mu    sync.RWMutex
 
 	hook Handler // 调用顺序：hook->bind
 }
 
 var defaultCmdSet = &CmdSet{
-	e: make(map[string]*cmdEntry),
+	table: make(map[string]*cmdEntry),
 }
 
-func (s *CmdSet) Bind(name string, h Handler, i any, isPushQueue bool) {
-	name = strings.ToLower(name)
-
+func (s *CmdSet) add(name string, e *cmdEntry, check bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.e[name]; ok {
-		log.Warnf("%s exist", name)
+	if _, ok := s.table[name]; ok && check {
+		panic("cmd " + name + " redefined")
 	}
+	s.table[name] = e
+}
+
+func (s *CmdSet) Bind(name string, h Handler, i any) wrapper {
+	name = strings.ToLower(name)
 	type_ := reflect.TypeOf(i)
-	s.e[name] = &cmdEntry{h: h, type_: type_, isPushQueue: isPushQueue}
+	e := &cmdEntry{name: name, h: h, type_: type_, inQueue: true}
+	s.add(name, e, true)
+	return wrapper{name: name, s: s, e: e}
 }
 
 func (s *CmdSet) Hook(h Handler) {
@@ -179,7 +207,7 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 
 	serverName, name := splitMsgId(msgId)
 	s.mu.RLock()
-	e := s.e[name]
+	e := s.table[name]
 	hook := s.hook
 	s.mu.RUnlock()
 	// 转发消息
@@ -201,17 +229,19 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 	}
 
 	// 消息入队处理
-	if e.isPushQueue {
+	if e.inQueue {
 		msg := &msgTask{id: name, ctx: ctx, h: e.h, args: args, hook: hook}
 		defaultMsgQueue.q <- msg
 	} else {
-		// 消息直接处理。入网关转发数据时
-		if hook != nil {
-			hook(ctx, args)
-		}
-		if !ctx.isFail {
-			e.h(ctx, args)
-		}
+		go func() {
+			// 消息直接处理。入网关转发数据时
+			if hook != nil {
+				hook(ctx, args)
+			}
+			if !ctx.isFail {
+				e.h(ctx, args)
+			}
+		}()
 	}
 
 	return nil
