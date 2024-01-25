@@ -90,9 +90,9 @@ func (m M) MarshalJSON() ([]byte, error) {
 }
 
 type forwardArgs struct {
-	ServerName string
-	MsgId      string
-	MsgData    json.RawMessage
+	ServerName string          `json:"serverName,omitempty"`
+	MsgId      string          `json:"msgId,omitempty"`
+	MsgData    json.RawMessage `json:"msgData,omitempty"`
 }
 
 // 消息通过router转发

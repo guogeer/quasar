@@ -217,7 +217,7 @@ func (codec *hashCodec) Signature(data []byte) (string, error) {
 	copy(buf[len(key):], data)
 	// buf = append([]byte(key), data...)
 	tempSign := codec.tempSign
-	_, _, n, err := jsonparser.Get(data, "Sign")
+	_, _, n, err := jsonparser.Get(data, "sign")
 	if err != nil {
 		return "", err
 	}

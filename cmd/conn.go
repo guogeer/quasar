@@ -199,6 +199,8 @@ func (s *CmdSet) Hook(h Handler) {
 }
 
 func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
+	msgId = strings.ToLower(msgId)
+
 	ctx.MsgId = msgId
 	// 空数据使用默认JSON格式数据
 	if len(data) == 0 {

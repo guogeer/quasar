@@ -1,9 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
 	"reflect"
+	"strings"
 	"sync"
 
 	"quasar/cmd"
@@ -108,14 +112,15 @@ func matchAPI(c *Context, method, uri string) ([]byte, error) {
 
 // 处理游戏内请求
 func dispatchAPI(c *Context) {
-	rawData, _ := c.GetRawData() // 只能读一次
+	rawData, _ := c.GetRawData()
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawData))
+
 	c.Set("body", rawData)
 	log.Debugf("recv request method %s uri %s body %s", c.Request.Method, c.Request.RequestURI, rawData)
 
 	buf, err := matchAPI(c, c.Request.Method, c.Request.RequestURI)
 	if err != nil {
-		buf, _ = json.Marshal(map[string]any{"Code": 1, "Msg": err.Error()})
-		log.Warnf("dispatch api error: %v", err)
+		c.AbortWithError(http.StatusInternalServerError, err)
 	}
 	c.Data(200, "application/json", buf)
 }
@@ -123,11 +128,24 @@ func dispatchAPI(c *Context) {
 func Run(addr string) {
 	r := gin.Default()
 	r.Use(func(c *Context) {
-		c.Writer.Header().Add("Access-Control-Allow-Origin", "*")
+		method := c.Request.Method
+		origin := c.Request.Header.Get("Origin")
+		if origin != "" {
+			c.Header("Access-Control-Allow-Origin", "*") // 可将将 * 替换为指定的域名
+			c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
+			c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
+			// c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
+			c.Header("Access-Control-Allow-Credentials", "true")
+		}
+		if method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+		}
+		c.Next()
 	})
 
 	apiEntries.Range(func(key, value any) bool {
-		r.POST(key.(string), dispatchAPI)
+		data := strings.SplitN(key.(string), " ", 2)
+		r.POST(data[1], dispatchAPI)
 		return true
 	})
 
