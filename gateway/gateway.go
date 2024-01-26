@@ -12,7 +12,7 @@ import (
 var (
 	sessionLocations sync.Map // 连接会话的位置。[ssid:serverId]
 
-	serverStates  = map[string]*serverState{} // 服务负载。[serverId:serverState]
+	serverStates  = map[string]serverState{} // 服务负载。[serverId:serverState]
 	serverStateMu sync.RWMutex
 )
 

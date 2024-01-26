@@ -202,7 +202,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 			// 无效的服务
 			if !isAlive {
-				c.WriteJSON("ServerClose", cmd.M{"ServerName": servers[0]})
+				c.WriteJSON("serverClose", cmd.M{"serverId": servers[0], "cause": "not alive"})
 				continue
 			}
 		}

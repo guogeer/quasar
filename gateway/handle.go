@@ -15,20 +15,20 @@ type gatewayArgs struct {
 	ServerName  string `json:"serverName,omitempty"`
 	MatchServer string `json:"matchServer,omitempty"` // 匹配的ServerId
 
-	Name    string         `json:"name,omitempty"`
-	Servers []*serverState `json:"servers,omitempty"`
+	Name    string        `json:"name,omitempty"`
+	Servers []serverState `json:"servers,omitempty"`
 }
 
 func init() {
-	cmd.Bind("FUNC_Route", FUNC_Route, (*gatewayArgs)(nil)).SetNoQueue()
+	cmd.Bind("FUNC_Route", FUNC_Route, (*gatewayArgs)(nil)).SetNoQueue().SetPrivate()
 	cmd.Bind("HeartBeat", HeartBeat, (*gatewayArgs)(nil)).SetNoQueue()
 
-	cmd.BindFunc(FUNC_Broadcast, (*gatewayArgs)(nil))
-	cmd.BindFunc(FUNC_SwitchServer, (*gatewayArgs)(nil))
-	cmd.BindFunc(FUNC_Close, (*gatewayArgs)(nil))
-	cmd.BindFunc(S2C_ServerClose, (*gatewayArgs)(nil))
-	cmd.BindFunc(S2C_QueryServerState, (*gatewayArgs)(nil))
-	cmd.BindFunc(S2C_Register, (*gatewayArgs)(nil))
+	cmd.BindFunc(FUNC_Broadcast, (*gatewayArgs)(nil)).SetPrivate()
+	cmd.BindFunc(FUNC_SwitchServer, (*gatewayArgs)(nil)).SetPrivate()
+	cmd.BindFunc(FUNC_Close, (*gatewayArgs)(nil)).SetPrivate()
+	cmd.BindFunc(serverClose, (*gatewayArgs)(nil)).SetPrivate()
+	cmd.BindFunc(S2C_QueryServerState, (*gatewayArgs)(nil)).SetPrivate()
+	cmd.BindFunc(S2C_Register, (*gatewayArgs)(nil)).SetPrivate()
 }
 
 func FUNC_Close(ctx *cmd.Context, data any) {
@@ -72,14 +72,14 @@ func S2C_Register(ctx *cmd.Context, data any) {
 	cmd.Route("router", "C2S_QueryServerState", cmd.M{})
 }
 
-func S2C_ServerClose(ctx *cmd.Context, data any) {
+func serverClose(ctx *cmd.Context, data any) {
 	args := data.(*gatewayArgs)
 	// 2020-11-24 仅通知在当前服务的连接
 	for _, ss := range cmd.GetSessionList() {
 		if v, ok := sessionLocations.Load(ss.Id); ok {
 			loc := v.(*sessionLocation)
 			if loc.MatchServer == args.ServerId {
-				ss.Out.WriteJSON("ServerClose", cmd.M{"ServerName": loc.ServerName})
+				ss.Out.WriteJSON("serverClose", cmd.M{"serverId": loc.ServerName, "cause": "server crash"})
 			}
 		}
 	}
@@ -87,7 +87,7 @@ func S2C_ServerClose(ctx *cmd.Context, data any) {
 }
 
 func HeartBeat(ctx *cmd.Context, data any) {
-	ctx.Out.WriteJSON("HeartBeat", cmd.M{})
+	ctx.Out.WriteJSON("heartBeat", cmd.M{})
 }
 
 // 同步服务负载
@@ -96,7 +96,7 @@ func S2C_QueryServerState(ctx *cmd.Context, data any) {
 
 	serverStateMu.Lock()
 	defer serverStateMu.Unlock()
-	serverStates = map[string]*serverState{}
+	serverStates = map[string]serverState{}
 	for _, state := range args.Servers {
 		serverStates[state.Id] = state
 	}

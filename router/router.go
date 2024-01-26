@@ -87,9 +87,9 @@ func addServer(server *Server) {
 }
 
 type serverState struct {
-	MinWeight int
-	MaxWeight int
-	Weight    int
-	Id        string
-	Name      string
+	MinWeight int    `json:"minWeight,omitempty"`
+	MaxWeight int    `json:"maxWeight,omitempty"`
+	Weight    int    `json:"weight,omitempty"`
+	Id        string `json:"id,omitempty"`
+	Name      string `json:"name,omitempty"`
 }

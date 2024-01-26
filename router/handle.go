@@ -57,7 +57,7 @@ func C2S_Register(ctx *cmd.Context, data any) {
 
 	for _, server := range servers {
 		if server.IsGateway() {
-			server.out.WriteJSON("S2C_Register", cmd.M{})
+			server.out.WriteJSON("S2C_Register", struct{}{})
 		}
 	}
 }
@@ -121,7 +121,7 @@ func FUNC_Close(ctx *cmd.Context, data any) {
 	removeServer(ctx.Out)
 	for _, server := range servers {
 		if server.IsGateway() {
-			server.out.WriteJSON("S2C_ServerClose", cmd.M{"ServerId": closedServer.id})
+			server.out.WriteJSON("serverClose", cmd.M{"serverId": closedServer.id, "cause": "gateway crash"})
 		}
 	}
 }
@@ -139,10 +139,10 @@ func C2S_QueryServerState(ctx *cmd.Context, data any) {
 		})
 		// log.Debug("query server state", server.id, server.weight)
 	}
-	ctx.Out.WriteJSON("S2C_QueryServerState", cmd.M{"Servers": states})
+	ctx.Out.WriteJSON("S2C_QueryServerState", cmd.M{"servers": states})
 }
 
 func C2S_GetBestGateway(ctx *cmd.Context, data any) {
 	addr := matchBestGateway()
-	ctx.Out.WriteJSON("S2C_GetBestGateway", cmd.M{"Addr": addr})
+	ctx.Out.WriteJSON("S2C_GetBestGateway", cmd.M{"addr": addr})
 }
