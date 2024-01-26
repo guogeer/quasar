@@ -358,7 +358,7 @@ func readTableFile(path string, rc io.ReadCloser) {
 	if ext != tableFileSuffix {
 		return
 	}
-
+	log.Debug("load table file", path)
 	buf, err := io.ReadAll(rc)
 	if err != nil {
 		log.Fatal(err)
@@ -375,9 +375,8 @@ func LoadLocalTables(fileName string) {
 	// 第一步加载tables.zip
 	zipFile := fileName + ".zip"
 	if _, err := os.Stat(zipFile); err == nil {
-		if enableDebug {
-			log.Infof("load tables %s", zipFile)
-		}
+		log.Infof("load tables %s", zipFile)
+
 		r, err := zip.OpenReader(fileName + ".zip")
 		if err != nil {
 			panic(err)
@@ -392,12 +391,11 @@ func LoadLocalTables(fileName string) {
 			readTableFile(f.Name, rc)
 		}
 	}
+
 	// 第二部加载scripts/*.tbl
 	fileInfo, err := os.Stat(fileName)
 	if err == nil && fileInfo.IsDir() {
-		if enableDebug {
-			log.Infof("load tables %s/*", fileName)
-		}
+		log.Infof("load tables %s/*", fileName)
 		files, err := os.ReadDir(fileName)
 		if err != nil {
 			log.Fatal(err)

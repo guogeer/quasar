@@ -19,9 +19,9 @@ var (
 func init() {
 	conf := config.Config()
 	// 服务器内部数据校验KEY
-	if conf.ProductKey != "" {
-		authCodec.key = conf.ProductKey
-		clientCodec.key = conf.ProductKey
+	if conf.ClientKey != "" {
+		authCodec.key = conf.ClientKey
+		clientCodec.key = conf.ClientKey
 	}
 	if conf.EnableDebug {
 		enableDebug = true

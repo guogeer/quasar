@@ -42,7 +42,8 @@ type server struct {
 type Env struct {
 	path string
 
-	ProductKey string   `yaml:"productKey"`
+	ServerKey  string   `yaml:"serverKey"`
+	ClientKey  string   `yaml:"clientKey"`
 	ServerList []server `yaml:"serverList" xml:"ServerList>Server"`
 	Log        struct {
 		Path  string `yaml:"path" long:"log-path" default:"DEBUG" description:"log DEBUG|INFO|ERROR"`
