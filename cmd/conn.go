@@ -147,15 +147,15 @@ type wrapper struct {
 }
 
 func (w wrapper) SetNoQueue() wrapper {
-	e := w.e
-	w.e = &cmdEntry{name: e.name, h: e.h, type_: e.type_, inQueue: false}
-	w.s.add(w.name, w.e, false)
+	newe := *w.e
+	newe.inQueue = false
+	w.s.add(w.name, &newe, false)
 	return w
 }
 
 func (w wrapper) SetPrivate() wrapper {
-	e := w.e
-	w.e = &cmdEntry{name: e.name, h: e.h, type_: e.type_, inQueue: false, isPrivate: true}
+	newe := *w.e
+	newe.isPrivate = true
 	w.s.table[w.name] = w.e
 	w.s.add(w.name, w.e, false)
 	return w

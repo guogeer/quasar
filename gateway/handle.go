@@ -20,7 +20,7 @@ type gatewayArgs struct {
 }
 
 func init() {
-	cmd.Bind("FUNC_Route", FUNC_Route, (*gatewayArgs)(nil)).SetNoQueue().SetPrivate()
+	cmd.Bind("FUNC_Route", FUNC_Route, (*gatewayArgs)(nil)).SetPrivate()
 	cmd.Bind("HeartBeat", HeartBeat, (*gatewayArgs)(nil)).SetNoQueue()
 
 	cmd.BindFunc(FUNC_Broadcast, (*gatewayArgs)(nil)).SetPrivate()
