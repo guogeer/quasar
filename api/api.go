@@ -122,7 +122,9 @@ func dispatchAPI(c *Context) {
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	}
-	c.Data(200, "application/json", buf)
+	if !c.IsAborted() {
+		c.Data(200, "application/json", buf)
+	}
 }
 
 func Run(addr string) {
