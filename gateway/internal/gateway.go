@@ -1,7 +1,6 @@
 package internal
 
 import (
-	"strings"
 	"sync"
 	"time"
 
@@ -25,8 +24,8 @@ type serverState struct {
 }
 
 type sessionLocation struct {
-	MatchServer string `json:"matchServer,omitempty"` // 服务的ID
-	ServerName  string `json:"serverName,omitempty"`  // 客户端请求的协议头
+	MatchServerId string `json:"matchServerId,omitempty"` // 服务的ID
+	ServerName    string `json:"serverName,omitempty"`    // 客户端请求的协议头
 }
 
 func init() {
@@ -58,10 +57,8 @@ func matchBestServer(ssid, name string) string {
 
 	matchServers := map[string]bool{}
 	for _, server := range serverStates {
-		for _, serverName := range strings.Split(server.Name, ",") {
-			if name == serverName {
-				matchServers[server.Id] = true
-			}
+		if name == server.Name {
+			matchServers[server.Id] = true
 		}
 	}
 

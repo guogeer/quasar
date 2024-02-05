@@ -11,9 +11,9 @@ type gatewayArgs struct {
 	Id   string          `json:"id,omitempty"`
 	Data json.RawMessage `json:"data,omitempty"`
 
-	ServerId    string `json:"serverId,omitempty"`
-	ServerName  string `json:"serverName,omitempty"`
-	MatchServer string `json:"matchServer,omitempty"` // 匹配的ServerId
+	ServerId      string `json:"serverId,omitempty"`
+	ServerName    string `json:"serverName,omitempty"`
+	MatchServerId string `json:"matchServerId,omitempty"` // 匹配的ServerId
 
 	Name    string        `json:"name,omitempty"`
 	Servers []serverState `json:"servers,omitempty"`
@@ -34,7 +34,7 @@ func closeSession(ss *cmd.Session) {
 	log.Debugf("session close %s", ss.Id)
 	if v, ok := sessionLocations.Load(ss.Id); ok {
 		loc := v.(*sessionLocation)
-		ss.Route(loc.MatchServer, "Close", struct{}{})
+		ss.Route(loc.MatchServerId, "Close", struct{}{})
 	}
 	sessionLocations.Delete(ss.Id)
 }
@@ -46,8 +46,8 @@ func FUNC_Close(ctx *cmd.Context, data any) {
 
 func FUNC_SwitchServer(ctx *cmd.Context, data any) {
 	args := data.(*gatewayArgs)
-	log.Debugf("session ssid:%s switch request server:%s,match server:%s", ctx.Ssid, args.ServerName, args.MatchServer)
-	loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.MatchServer}
+	log.Debugf("session ssid:%s switch request server:%s,match server:%s", ctx.Ssid, args.ServerName, args.MatchServerId)
+	loc := &sessionLocation{ServerName: args.ServerName, MatchServerId: args.MatchServerId}
 	sessionLocations.Store(ctx.Ssid, loc)
 
 	// 新连接未关联业务服时断线，会丢失close消息
@@ -81,7 +81,7 @@ func serverClose(ctx *cmd.Context, data any) {
 	for _, ss := range cmd.GetSessionList() {
 		if v, ok := sessionLocations.Load(ss.Id); ok {
 			loc := v.(*sessionLocation)
-			if loc.MatchServer == args.ServerId {
+			if loc.MatchServerId == args.ServerId {
 				ss.Out.WriteJSON("serverClose", cmd.M{"serverId": loc.ServerName, "cause": "server crash"})
 			}
 		}
