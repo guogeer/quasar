@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"net"
-	"strings"
 
 	"quasar/cmd"
 	"quasar/log"
@@ -16,6 +15,7 @@ type routeArgs struct {
 }
 
 type forwardArgs struct {
+	ServerId   string          `json:"serverId,omitempty"`
 	ServerName string          `json:"serverName,omitempty"`
 	MsgId      string          `json:"msgId,omitempty"`
 	MsgData    json.RawMessage `json:"msgData,omitempty"`
@@ -95,11 +95,15 @@ func C2S_Concurrent(ctx *cmd.Context, data any) {
 func C2S_Route(ctx *cmd.Context, data any) {
 	args := data.(*forwardArgs)
 
-	matchServers := strings.Split(args.ServerName, ",")
-	if args.ServerName == "*" {
-		matchServers = matchServers[:0]
-		for id := range servers {
+	var matchServers []string
+	for id := range servers {
+		if args.ServerName == "*" || args.ServerName == servers[id].name {
 			matchServers = append(matchServers, id)
+		}
+	}
+	if args.ServerId != "" {
+		if _, ok := servers[args.ServerId]; ok {
+			matchServers = []string{args.ServerId}
 		}
 	}
 
