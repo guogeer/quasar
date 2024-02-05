@@ -7,6 +7,7 @@ import (
 	"runtime"
 
 	"quasar/cmd"
+	_ "quasar/gateway/internal"
 	"quasar/log"
 	"quasar/util"
 )

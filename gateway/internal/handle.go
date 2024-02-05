@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"encoding/json"
@@ -20,9 +20,8 @@ type gatewayArgs struct {
 }
 
 func init() {
-	cmd.Bind("FUNC_Route", FUNC_Route, (*gatewayArgs)(nil)).SetPrivate()
-	cmd.Bind("HeartBeat", HeartBeat, (*gatewayArgs)(nil)).SetNoQueue()
-
+	cmd.BindFunc(FUNC_Route, (*gatewayArgs)(nil)).SetPrivate()
+	cmd.BindFunc(HeartBeat, (*gatewayArgs)(nil)).SetNoQueue()
 	cmd.BindFunc(FUNC_Broadcast, (*gatewayArgs)(nil)).SetPrivate()
 	cmd.BindFunc(FUNC_SwitchServer, (*gatewayArgs)(nil)).SetPrivate()
 	cmd.BindFunc(FUNC_Close, (*gatewayArgs)(nil)).SetPrivate()
@@ -31,14 +30,18 @@ func init() {
 	cmd.BindFunc(S2C_Register, (*gatewayArgs)(nil)).SetPrivate()
 }
 
-func FUNC_Close(ctx *cmd.Context, data any) {
-	log.Debugf("session close %s", ctx.Ssid)
-	if v, ok := sessionLocations.Load(ctx.Ssid); ok {
+func closeSession(ss *cmd.Session) {
+	log.Debugf("session close %s", ss.Id)
+	if v, ok := sessionLocations.Load(ss.Id); ok {
 		loc := v.(*sessionLocation)
-		ss := &cmd.Session{Id: ctx.Ssid, Out: ctx.Out}
 		ss.Route(loc.MatchServer, "Close", struct{}{})
 	}
-	sessionLocations.Delete(ctx.Ssid)
+	sessionLocations.Delete(ss.Id)
+}
+
+func FUNC_Close(ctx *cmd.Context, data any) {
+	log.Debugf("session close %s", ctx.Ssid)
+	closeSession(&cmd.Session{Id: ctx.Ssid, Out: ctx.Out})
 }
 
 func FUNC_SwitchServer(ctx *cmd.Context, data any) {
@@ -47,9 +50,9 @@ func FUNC_SwitchServer(ctx *cmd.Context, data any) {
 	loc := &sessionLocation{ServerName: args.ServerName, MatchServer: args.MatchServer}
 	sessionLocations.Store(ctx.Ssid, loc)
 
-	// 新连接未关联业务服时断线，会丢失Close消息
+	// 新连接未关联业务服时断线，会丢失close消息
 	if cmd.GetSession(ctx.Ssid) == nil {
-		FUNC_Close(ctx, args)
+		closeSession(&cmd.Session{Id: ctx.Ssid, Out: ctx.Out})
 	}
 }
 
