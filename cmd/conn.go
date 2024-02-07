@@ -183,7 +183,11 @@ func (s *CmdSet) add(name string, e *cmdEntry, check bool) {
 
 func (s *CmdSet) Bind(name string, h Handler, i any) wrapper {
 	name = strings.ToLower(name)
-	type_ := reflect.TypeOf(i)
+
+	var type_ reflect.Type
+	if i != nil {
+		type_ = reflect.TypeOf(i)
+	}
 	e := &cmdEntry{name: name, h: h, type_: type_, inQueue: true}
 	s.add(name, e, true)
 	return wrapper{name: name, s: s, e: e}
@@ -224,10 +228,12 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 		return errors.New("invalid message id")
 	}
 
-	// unmarshal argument
-	args := reflect.New(e.type_.Elem()).Interface()
-	if err := json.Unmarshal(data, args); err != nil {
-		return err
+	var args any
+	if e.type_ != nil {
+		args = reflect.New(e.type_.Elem()).Interface()
+		if err := json.Unmarshal(data, args); err != nil {
+			return err
+		}
 	}
 
 	// 消息入队处理
@@ -235,15 +241,13 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 		msg := &msgTask{id: name, ctx: ctx, h: e.h, args: args, hook: hook}
 		defaultMsgQueue.q <- msg
 	} else {
-		go func() {
-			// 消息直接处理。入网关转发数据时
-			if hook != nil {
-				hook(ctx, args)
-			}
-			if !ctx.isFail {
-				e.h(ctx, args)
-			}
-		}()
+		// 消息直接处理。入网关转发数据时
+		if hook != nil {
+			hook(ctx, args)
+		}
+		if !ctx.isFail {
+			e.h(ctx, args)
+		}
 	}
 
 	return nil

@@ -34,7 +34,7 @@ func closeSession(ss *cmd.Session) {
 	log.Debugf("session close %s", ss.Id)
 	if v, ok := sessionLocations.Load(ss.Id); ok {
 		loc := v.(*sessionLocation)
-		ss.Route(loc.MatchServerId, "Close", struct{}{})
+		ss.Route(loc.MatchServerId, "close", struct{}{})
 	}
 	sessionLocations.Delete(ss.Id)
 }
