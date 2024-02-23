@@ -73,7 +73,7 @@ func ExportConfigTable(buf []byte) []byte {
 
 	visibleCol := -1
 	for i, colKey := range cells[1] {
-		if strings.ToUpper(colKey) == ".VISIBLE" {
+		if strings.ToUpper(colKey) == "VISIBLE" {
 			visibleCol = i
 		}
 	}
@@ -100,7 +100,7 @@ func ExportConfigTable(buf []byte) []byte {
 			if hideCols[cells[1][k]] {
 				continue
 			}
-			if strings.ToLower(cells[1][k]) == privateColKey && len(cell) > 0 {
+			if strings.ToLower(cells[1][k]) == moreColKey && len(cell) > 0 {
 				attrs := make(map[string]json.RawMessage)
 				json.Unmarshal([]byte(cell), &attrs)
 				for attrk, attrv := range attrs {

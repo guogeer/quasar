@@ -27,11 +27,11 @@ func TestScan(t *testing.T) {
 	}
 	argn, _ = Scan("test1", 1, "PA,PB", &a, &b)
 	if !(argn == 2 && a == 11 && b == "[10,11,12]") {
-		t.Errorf("scan config test1 private data fail, 11!=%v [10,11,12]!=%v", a, b)
+		t.Errorf("scan config test1 more data fail, 11!=%v [10,11,12]!=%v", a, b)
 	}
 	argn, _ = Scan("test1", 1, "PA,PB", &a, &b)
 	if !(argn == 2 && a == 11 && b == "[10,11,12]") {
-		t.Errorf("scan config test1 private data fail, 11!=%v [10,11,12]!=%v", a, b)
+		t.Errorf("scan config test1 more data fail, 11!=%v [10,11,12]!=%v", a, b)
 	}
 
 	argn, _ = Scan("test1", RowId(0), "A,B,C,D", &a, &b, &c, &d)
@@ -101,11 +101,11 @@ Col1	Col2	Col3 	Col4
 func TestExportConfigTable(t *testing.T) {
 	contents := []string{
 		`MyCol1[INT]	MyCol2[DATE|HIDE]	MyCol3[DURATION]	MyCol4[JSON]
-Col1	Col2	Col3	.Private
+Col1	Col2	Col3	More
 A	2021-01-01	100s	{"A":1,"B":1}
 `,
 		`MyCol1[INT]	MyCol2[DATE]	MyVisible[HIDE]	MyCol4[JSON|HIDE]
-Col1	Col2	Visible	.Private 
+Col1	Col2	Visible	More 
 1	2021-01-01	HIDE	{"A":1,"B":1}
 2	2021-01-02	HIDE	{}
 3	2021-01-03	YES	{}
@@ -113,11 +113,11 @@ Col1	Col2	Visible	.Private
 	}
 	exportTables := [][]map[string]any{
 		{{
-			"Col1":     "A",
-			"Col3":     "100s",
-			".Private": `{"A":1,"B":1}`,
-			"A":        1,
-			"B":        1,
+			"Col1": "A",
+			"Col3": "100s",
+			"More": `{"A":1,"B":1}`,
+			"A":    1,
+			"B":    1,
 		}},
 		{{
 			"Col1": 3,

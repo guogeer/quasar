@@ -13,7 +13,7 @@ func TestLoadConfig(t *testing.T) {
 		},
 	}
 	env2 := &Env{}
-	LoadFile("testdata/config.xml", env2)
+	LoadFile("testdata/config.yaml", env2)
 	if !utils.EqualJSON(env1, env2) {
 		t.Error("not equal")
 	}

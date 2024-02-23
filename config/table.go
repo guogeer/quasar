@@ -8,6 +8,7 @@ package config
 // Version 1.1.0 列索引忽略大小写
 // Version 1.2.0 表格名索引忽略大小写
 // 2019-12-03 增加类型: INT、JSON、FLOAT、STRING、JSON支持
+// 2024-02-23 列".private"重命名为"more“
 // 例如：列1[INT]	列2[JSON]	列3[FLOAT]
 
 import (
@@ -31,7 +32,7 @@ const (
 	tableFileSuffix   = ".tbl"
 	attrTable         = "system_table_field"
 	tableRowKeyPrefix = "_default_table_line_"
-	privateColKey     = ".private" // 该列可以直接访问
+	moreColKey        = "more" // 该列可以直接访问
 )
 
 var (
@@ -123,7 +124,7 @@ func loadTableFile(name string, buf []byte) (*tableFile, error) {
 		cells := map[string]*tableCell{}
 		for k, cell := range lineCells {
 			colKey := strings.ToLower(line1[k])
-			if colKey == privateColKey && len(cell) > 0 {
+			if colKey == moreColKey && len(cell) > 0 {
 				attrs := make(map[string]json.RawMessage)
 				json.Unmarshal([]byte(cell), &attrs)
 				for attrk, attrv := range attrs {
