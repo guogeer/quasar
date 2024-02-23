@@ -57,7 +57,7 @@ func TestShuffeN(t *testing.T) {
 
 		nums := map[int]bool{}
 		for _, n := range data {
-			if nums[n] == true {
+			if nums[n] {
 				t.Errorf("shuffle data %v error", data)
 			}
 			nums[n] = true
@@ -81,7 +81,7 @@ func TestIndexN(t *testing.T) {
 
 		nums := map[int]bool{}
 		for _, n := range indexs {
-			if nums[n] == true || n < 0 || n >= len(data) {
+			if nums[n] || n < 0 || n >= len(data) {
 				t.Errorf("index data %v result %d error", data, n)
 			}
 			nums[n] = true
@@ -102,18 +102,18 @@ func TestIndexFunc(t *testing.T) {
 		{2, 0, 3},
 	}
 
-	datalist = append(datalist,row1)
-	datalist = append(datalist,row2)
+	datalist = append(datalist, row1)
+	datalist = append(datalist, row2)
 
 	for _, data := range datalist {
 		indexs := IndexFunc(data, -1, func(i int) int {
 			size := len(data[i])
-			return data[i][size -1 ]
+			return data[i][size-1]
 		})
 
 		nums := map[int]bool{}
 		for _, n := range indexs {
-			if nums[n] == true || n < 0 || n >= len(data) {
+			if nums[n] || n < 0 || n >= len(data) {
 				t.Errorf("index data %v result %d error", data, n)
 			}
 			nums[n] = true

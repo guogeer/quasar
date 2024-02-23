@@ -191,7 +191,7 @@ func (set *scriptSet) LoadString(path, body string) error {
 	delete(set.loading, fileName)
 	set.mtx.Unlock()
 
-	if ok == true {
+	if ok {
 		oldScript.Close()
 	}
 
@@ -202,7 +202,7 @@ func (set *scriptSet) Call(fileName, funcName string, args ...any) *Result {
 	set.mtx.RLock()
 	script, ok := set.files[fileName]
 	set.mtx.RUnlock()
-	if ok == false {
+	if !ok {
 		return &Result{Err: ErrInvalidFile}
 	}
 
@@ -311,7 +311,7 @@ func (m GenericMap) MarshalJSON() ([]byte, error) {
 			isArray = false
 		}
 	}
-	if isArray == false {
+	if !isArray {
 		return json.Marshal(dict)
 	}
 
