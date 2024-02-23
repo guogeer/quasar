@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"quasar/log"
-	"quasar/util"
+	"quasar/utils"
 )
 
 type Server struct {
@@ -35,7 +35,7 @@ func (srv *Server) Serve(l net.Listener) error {
 		}
 		tempDelay = 0
 
-		ssid := util.GUID()
+		ssid := utils.GUID()
 		c := &ServeConn{
 			server: srv,
 			TCPConn: &TCPConn{

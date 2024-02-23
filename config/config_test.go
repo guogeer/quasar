@@ -1,9 +1,8 @@
 package config
 
 import (
+	"quasar/utils"
 	"testing"
-
-	"quasar/util"
 )
 
 func TestLoadConfig(t *testing.T) {
@@ -15,7 +14,7 @@ func TestLoadConfig(t *testing.T) {
 	}
 	env2 := &Env{}
 	LoadFile("testdata/config.xml", env2)
-	if !util.EqualJSON(env1, env2) {
+	if !utils.EqualJSON(env1, env2) {
 		t.Error("not equal")
 	}
 }

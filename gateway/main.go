@@ -9,7 +9,7 @@ import (
 	"quasar/cmd"
 	_ "quasar/gateway/internal"
 	"quasar/log"
-	"quasar/util"
+	"quasar/utils"
 )
 
 var id = flag.String("id", "ws_gateway", "gateway server id")
@@ -48,7 +48,7 @@ func main() {
 	}()
 
 	for {
-		util.GetTimerSet().RunOnce()
+		utils.GetTimerSet().RunOnce()
 		// handle message
 		cmd.RunOnce()
 	}

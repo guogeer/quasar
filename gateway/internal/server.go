@@ -13,7 +13,7 @@ import (
 
 	"quasar/cmd"
 	"quasar/log"
-	"quasar/util"
+	"quasar/utils"
 
 	"github.com/gorilla/websocket"
 )
@@ -92,7 +92,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		return
 	}
-	ssid := util.GUID()
+	ssid := utils.GUID()
 	c := &WsConn{
 		ssid: ssid,
 		ws:   ws,

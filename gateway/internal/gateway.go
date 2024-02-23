@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"quasar/cmd"
-	"quasar/util"
+	"quasar/utils"
 )
 
 var (
@@ -29,7 +29,7 @@ type sessionLocation struct {
 }
 
 func init() {
-	util.NewPeriodTimer(concurrent, time.Now(), 10*time.Second)
+	utils.NewPeriodTimer(concurrent, time.Now(), 10*time.Second)
 }
 
 // update current online

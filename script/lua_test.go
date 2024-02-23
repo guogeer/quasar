@@ -2,9 +2,8 @@ package script
 
 import (
 	"encoding/json"
+	"quasar/utils"
 	"testing"
-
-	"quasar/util"
 
 	lua "github.com/yuin/gopher-lua"
 )
@@ -47,14 +46,14 @@ func TestCall(t *testing.T) {
 	if err := res.Err; err != nil {
 		t.Error(err)
 	}
-	if !util.EqualJSON(p, p2) {
+	if !utils.EqualJSON(p, p2) {
 		t.Error("not equal", p, p2)
 	}
 
 	ret := &testStruct{}
 	expectRet := &testStruct{I: 123, S: "Hello World", B: true}
 	res.Scan(&ret.I, &ret.S, &ret.B)
-	if !util.EqualJSON(ret, expectRet) {
+	if !utils.EqualJSON(ret, expectRet) {
 		t.Errorf("return %v, expect %v", ret, expectRet)
 	}
 }
@@ -95,7 +94,7 @@ func TestPreloadModule(t *testing.T) {
 		B: 2,
 		S: "hello world",
 	}
-	if !util.EqualJSON(data1, data2) {
+	if !utils.EqualJSON(data1, data2) {
 		t.Error("scan json", data1, data2)
 	}
 }
@@ -112,7 +111,7 @@ func TestGenericMap(t *testing.T) {
 		"S1": 1,
 		"A1": []string{"abc", "cde"},
 	}
-	if !util.EqualJSON((GenericMap)(genericMap), expectMap) {
+	if !utils.EqualJSON((GenericMap)(genericMap), expectMap) {
 		buf, _ := json.Marshal((GenericMap)(genericMap))
 		t.Error("encode generic map", genericMap, expectMap, string(buf))
 	}

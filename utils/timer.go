@@ -1,7 +1,7 @@
 // timer
 // 2019-08-16 增加分组，分组定时器可全部关闭
 
-package util
+package utils
 
 import (
 	"container/heap"

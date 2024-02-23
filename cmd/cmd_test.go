@@ -2,9 +2,8 @@ package cmd
 
 import (
 	"encoding/json"
+	"quasar/utils"
 	"testing"
-
-	"quasar/util"
 )
 
 type mStruct struct {
@@ -25,7 +24,7 @@ func TestM(t *testing.T) {
 		"Struct": mStruct{N: 1},
 		"String": "StringA",
 	}
-	if !util.EqualJSON(m1, m2) {
+	if !utils.EqualJSON(m1, m2) {
 		buf1, _ := json.Marshal(m1)
 		buf2, _ := json.Marshal(m2)
 		t.Errorf("check M.MarshalJSON m1:%s m2:%s", buf1, buf2)

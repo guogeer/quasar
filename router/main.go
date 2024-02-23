@@ -11,7 +11,7 @@ import (
 	"quasar/config"
 	"quasar/log"
 	_ "quasar/router/internal"
-	"quasar/util"
+	"quasar/utils"
 )
 
 var port = flag.Int("port", 9003, "router server port")
@@ -40,7 +40,7 @@ func main() {
 	}()
 
 	for {
-		util.GetTimerSet().RunOnce()
+		utils.GetTimerSet().RunOnce()
 		// handle message
 		cmd.RunOnce()
 	}
