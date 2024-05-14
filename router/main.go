@@ -10,7 +10,6 @@ import (
 	"quasar/cmd"
 	"quasar/config"
 	"quasar/log"
-	_ "quasar/router/internal"
 	"quasar/utils"
 )
 
