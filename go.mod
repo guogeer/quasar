@@ -5,11 +5,16 @@ go 1.21
 require (
 	github.com/buger/jsonparser v1.1.1
 	github.com/gin-gonic/gin v1.10.0
-	github.com/google/uuid v1.5.0
+	github.com/google/uuid v1.6.0
 	github.com/yuin/gopher-lua v1.1.1
 	gopkg.in/yaml.v3 v3.0.1
 	layeh.com/gopher-json v0.0.0-20201124131017-552bb3c4c3bf
 	layeh.com/gopher-luar v1.0.11
+)
+
+require (
+	github.com/google/go-cmp v0.6.0 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 )
 
 require (
