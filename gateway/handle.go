@@ -3,8 +3,8 @@ package main
 import (
 	"encoding/json"
 
-	"quasar/cmd"
-	"quasar/log"
+	"github.com/guogeer/quasar/cmd"
+	"github.com/guogeer/quasar/log"
 )
 
 type gatewayArgs struct {

@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 
-	"quasar/log"
+	"github.com/guogeer/quasar/log"
 )
 
 // 协议格式，前4个字节

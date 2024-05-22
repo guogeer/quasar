@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"quasar/config"
+	"github.com/guogeer/quasar/config"
 )
 
 var (

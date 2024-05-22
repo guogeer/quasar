@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"quasar/log"
+	"github.com/guogeer/quasar/log"
 )
 
 const (

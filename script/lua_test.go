@@ -2,7 +2,7 @@ package script
 
 import (
 	"encoding/json"
-	"quasar/utils"
+	"github.com/guogeer/quasar/utils"
 	"testing"
 
 	lua "github.com/yuin/gopher-lua"

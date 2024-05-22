@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"quasar/log"
+	"github.com/guogeer/quasar/log"
 
 	"github.com/buger/jsonparser"
 )

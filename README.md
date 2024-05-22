@@ -23,7 +23,7 @@ go get github.com/guogeer/quasar
 ```
 项目包含了额外的通用组建router、gateay.执行脚本后查看$GOPATH目录
 ```
-go get github.com/guogeer/quasar/...
+go get github.com/guogeer/github.com/guogeer/quasar/...
 ```
 
 

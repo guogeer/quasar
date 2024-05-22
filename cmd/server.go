@@ -5,8 +5,8 @@ import (
 	"net"
 	"time"
 
-	"quasar/log"
-	"quasar/utils"
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/utils"
 )
 
 type Server struct {

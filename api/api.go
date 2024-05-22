@@ -10,8 +10,8 @@ import (
 	"strings"
 	"sync"
 
-	"quasar/cmd"
-	"quasar/log"
+	"github.com/guogeer/quasar/cmd"
+	"github.com/guogeer/quasar/log"
 
 	"github.com/gin-gonic/gin"
 )

@@ -1,7 +1,7 @@
 package config
 
 import (
-	"quasar/utils"
+	"github.com/guogeer/quasar/utils"
 	"testing"
 )
 

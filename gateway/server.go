@@ -11,9 +11,9 @@ import (
 	"sync"
 	"time"
 
-	"quasar/cmd"
-	"quasar/log"
-	"quasar/utils"
+	"github.com/guogeer/quasar/cmd"
+	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/utils"
 
 	"github.com/gorilla/websocket"
 )

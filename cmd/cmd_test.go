@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
-	"quasar/utils"
+	"github.com/guogeer/quasar/utils"
 	"testing"
 )
 

@@ -7,7 +7,7 @@ import (
 	"container/heap"
 	"time"
 
-	"quasar/log"
+	"github.com/guogeer/quasar/log"
 )
 
 type timerHeap []*Timer

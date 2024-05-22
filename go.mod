@@ -1,4 +1,4 @@
-module quasar
+module github.com/guogeer/quasar
 
 go 1.21
 
