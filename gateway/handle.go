@@ -72,7 +72,7 @@ func FUNC_Broadcast(ctx *cmd.Context, data any) {
 }
 
 func S2C_Register(ctx *cmd.Context, data any) {
-	cmd.Route("router", "C2S_QueryServerState", cmd.M{})
+	cmd.Route("router", "c2s_queryServerState", cmd.M{})
 }
 
 func serverClose(ctx *cmd.Context, data any) {
@@ -86,7 +86,7 @@ func serverClose(ctx *cmd.Context, data any) {
 			}
 		}
 	}
-	cmd.Route("router", "C2S_QueryServerState", cmd.M{})
+	cmd.Route("router", "c2s_queryServerState", cmd.M{})
 }
 
 func HeartBeat(ctx *cmd.Context, data any) {

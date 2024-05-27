@@ -165,7 +165,7 @@ func RegisterService(conf *ServiceConfig) {
 	if conf.Id == "" {
 		panic("empty server id")
 	}
-	Route("router", "C2S_Register", conf)
+	Route("router", "c2s_register", conf)
 
 	client, _ := clients.Load("router")
 	client.(*Client).conf = *conf

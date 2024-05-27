@@ -108,7 +108,7 @@ func Forward(name string, msgId string, i any) {
 		MsgId:      msgId,
 		MsgData:    buf,
 	}
-	Route("router", "C2S_Route", args)
+	Route("router", "c2s_route", args)
 }
 
 // 同步请求
@@ -150,7 +150,7 @@ func RequestServerAddr(name string) (string, error) {
 	}
 
 	req := cmdArgs{Name: name}
-	buf, err := Request("router", "C2S_GetServerAddr", req)
+	buf, err := Request("router", "c2s_getServerAddr", req)
 	if err != nil {
 		return "", err
 	}

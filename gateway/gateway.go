@@ -36,9 +36,9 @@ func init() {
 func concurrent() {
 	counter := cmd.CountSession()
 	data := serverState{Weight: counter}
-	cmd.Route("router", "C2S_Concurrent", data)
+	cmd.Route("router", "c2s_concurrent", data)
 
-	cmd.Route("router", "C2S_QueryServerState", cmd.M{})
+	cmd.Route("router", "c2s_queryServerState", cmd.M{})
 }
 
 // 匹配最佳的服务
