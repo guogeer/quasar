@@ -77,7 +77,7 @@ func (c *ServeConn) serve() {
 			c.Close() // 关闭网络连接
 
 			RemoveSession(c.ssid) // 删除会话
-			defaultCmdSet.Handle(&Context{Ssid: c.ssid, Out: c}, "FUNC_Close", nil)
+			defaultCmdSet.Handle(&Context{Ssid: c.ssid, Out: c}, "func_close", nil)
 		}()
 
 		for {

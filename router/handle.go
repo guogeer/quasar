@@ -74,7 +74,7 @@ func C2S_Broadcast(ctx *cmd.Context, data any) {
 	pkg := data.(*cmd.Package)
 	for _, server := range servers {
 		if server.IsGateway() {
-			server.out.WriteJSON("FUNC_Broadcast", pkg)
+			server.out.WriteJSON("func_broadcast", pkg)
 		}
 	}
 }

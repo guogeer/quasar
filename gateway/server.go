@@ -109,7 +109,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			cmd.RemoveSession(c.ssid)
 
 			ctx := &cmd.Context{Ssid: c.ssid, Out: c}
-			cmd.Handle(ctx, "FUNC_Close", nil)
+			cmd.Handle(ctx, "func_close", nil)
 		}()
 
 		for {
