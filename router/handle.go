@@ -57,7 +57,7 @@ func C2S_Register(ctx *cmd.Context, data any) {
 
 	for _, server := range servers {
 		if server.IsGateway() {
-			server.out.WriteJSON("S2C_Register", struct{}{})
+			server.out.WriteJSON("s2c_register", struct{}{})
 		}
 	}
 }
@@ -67,7 +67,7 @@ func C2S_GetServerAddr(ctx *cmd.Context, data any) {
 	name := args.Name
 	addr := matchBestServer(name)
 	log.Infof("get server:%s addr:%s", name, addr)
-	ctx.Out.WriteJSON("S2C_GetServerAddr", cmd.M{"Name": name, "Addr": addr})
+	ctx.Out.WriteJSON("s2c_getServerAddr", cmd.M{"Name": name, "Addr": addr})
 }
 
 func C2S_Broadcast(ctx *cmd.Context, data any) {
@@ -143,10 +143,10 @@ func C2S_QueryServerState(ctx *cmd.Context, data any) {
 		})
 		// log.Debug("query server state", server.id, server.weight)
 	}
-	ctx.Out.WriteJSON("S2C_QueryServerState", cmd.M{"servers": states})
+	ctx.Out.WriteJSON("s2c_queryServerState", cmd.M{"servers": states})
 }
 
 func C2S_GetBestGateway(ctx *cmd.Context, data any) {
 	addr := matchBestGateway()
-	ctx.Out.WriteJSON("S2C_GetBestGateway", cmd.M{"addr": addr})
+	ctx.Out.WriteJSON("s2c_getBestGateway", cmd.M{"addr": addr})
 }
