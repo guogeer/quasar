@@ -31,8 +31,8 @@ func init() {
 	}
 }
 
-func Bind(name string, h Handler, args any) wrapper {
-	return defaultCmdSet.Bind(name, h, args)
+func Bind(name string, h Handler, args any, opt ...bindOptionFunc) {
+	defaultCmdSet.Bind(name, h, args)
 }
 
 func Hook(h Handler) {
@@ -41,14 +41,14 @@ func Hook(h Handler) {
 
 // 绑定，函数名作为消息ID
 // 注：客户端发送的消息ID仅允许包含字母、数字
-func BindFunc(h Handler, args any) wrapper {
+func BindFunc(h Handler, args any, opt ...bindOptionFunc) {
 	name := runtime.FuncForPC(reflect.ValueOf(h).Pointer()).Name()
 	n := strings.LastIndexByte(name, '.')
 	if n >= 0 {
 		name = name[n+1:]
 	}
 	// log.Debug("method name =", name)
-	return Bind(name, h, args)
+	Bind(name, h, args, opt...)
 }
 
 func Handle(ctx *Context, name string, data []byte) error {

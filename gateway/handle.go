@@ -20,14 +20,14 @@ type gatewayArgs struct {
 }
 
 func init() {
-	cmd.BindFunc(FUNC_Route, (*gatewayArgs)(nil)).SetPrivate()
-	cmd.BindFunc(HeartBeat, (*gatewayArgs)(nil)).SetNoQueue()
-	cmd.BindFunc(FUNC_Broadcast, (*gatewayArgs)(nil)).SetPrivate()
-	cmd.BindFunc(FUNC_SwitchServer, (*gatewayArgs)(nil)).SetPrivate()
-	cmd.BindFunc(FUNC_Close, (*gatewayArgs)(nil)).SetPrivate()
-	cmd.BindFunc(serverClose, (*gatewayArgs)(nil)).SetPrivate()
-	cmd.BindFunc(S2C_QueryServerState, (*gatewayArgs)(nil)).SetPrivate()
-	cmd.BindFunc(S2C_Register, (*gatewayArgs)(nil)).SetPrivate()
+	cmd.BindFunc(FUNC_Route, (*gatewayArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(HeartBeat, (*gatewayArgs)(nil), cmd.WithoutQueue())
+	cmd.BindFunc(FUNC_Broadcast, (*gatewayArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(FUNC_SwitchServer, (*gatewayArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(FUNC_Close, (*gatewayArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(serverClose, (*gatewayArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(S2C_QueryServerState, (*gatewayArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(S2C_Register, (*gatewayArgs)(nil), cmd.WithPrivate())
 }
 
 func closeSession(ss *cmd.Session) {

@@ -133,32 +133,38 @@ func (c *TCPConn) writeMsg(mt int, data []byte) (int, error) {
 type Handler func(*Context, any)
 
 type cmdEntry struct {
-	name      string
-	h         Handler
-	type_     reflect.Type
-	inQueue   bool // 请求入消息队列处理
-	isPrivate bool // 内部消息，不对外开放
+	name       string
+	h          Handler
+	type_      reflect.Type
+	inQueue    bool // 请求入消息队列处理
+	isPrivate  bool // 内部消息，不对外开放
+	serverName string
 }
 
-type wrapper struct {
-	name string
-	e    *cmdEntry
-	s    *CmdSet
+type bindOption struct {
+	isPrivate  bool
+	inQueue    bool
+	serverName string
 }
 
-func (w wrapper) SetNoQueue() wrapper {
-	newe := *w.e
-	newe.inQueue = false
-	w.s.add(w.name, &newe, false)
-	return w
+type bindOptionFunc func(opt *bindOption)
+
+func WithoutQueue() bindOptionFunc {
+	return func(opt *bindOption) {
+		opt.inQueue = false
+	}
 }
 
-func (w wrapper) SetPrivate() wrapper {
-	newe := *w.e
-	newe.isPrivate = true
-	w.s.table[w.name] = w.e
-	w.s.add(w.name, w.e, false)
-	return w
+func WithPrivate() bindOptionFunc {
+	return func(opt *bindOption) {
+		opt.isPrivate = true
+	}
+}
+
+func WithServer(name string) bindOptionFunc {
+	return func(opt *bindOption) {
+		opt.serverName = name
+	}
 }
 
 type CmdSet struct {
@@ -172,25 +178,33 @@ var defaultCmdSet = &CmdSet{
 	table: make(map[string]*cmdEntry),
 }
 
-func (s *CmdSet) add(name string, e *cmdEntry, check bool) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, ok := s.table[name]; ok && check {
-		panic("cmd " + name + " redefined")
-	}
-	s.table[name] = e
-}
-
-func (s *CmdSet) Bind(name string, h Handler, i any) wrapper {
+func (s *CmdSet) Bind(name string, h Handler, i any, opt ...bindOptionFunc) {
 	name = strings.ToLower(name)
 
 	var type_ reflect.Type
 	if i != nil {
 		type_ = reflect.TypeOf(i)
 	}
-	e := &cmdEntry{name: name, h: h, type_: type_, inQueue: true}
-	s.add(name, e, true)
-	return wrapper{name: name, s: s, e: e}
+
+	optResult := &bindOption{inQueue: true}
+	for _, fn := range opt {
+		fn(optResult)
+	}
+
+	e := &cmdEntry{name: name, h: h, type_: type_, inQueue: !optResult.inQueue, isPrivate: optResult.isPrivate, serverName: optResult.serverName}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.table[name]; ok {
+		panic("cmd " + name + " redefined")
+	}
+	if e.serverName != "" {
+		serverMsgName := strings.Join([]string{e.serverName, name}, ".")
+		if _, ok := s.table[serverMsgName]; ok {
+			panic("cmd " + name + " redefined")
+		}
+		s.table[serverMsgName] = e
+	}
 }
 
 func (s *CmdSet) Hook(h Handler) {
@@ -213,7 +227,10 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 
 	serverName, name := splitMsgId(msgId)
 	s.mu.RLock()
-	e := s.table[name]
+	e, ok := s.table[name]
+	if !ok {
+		e = s.table[strings.Join([]string{ctx.ServerName, name}, ".")]
+	}
 	hook := s.hook
 	s.mu.RUnlock()
 	// 转发消息
