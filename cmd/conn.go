@@ -195,16 +195,15 @@ func (s *CmdSet) Bind(name string, h Handler, i any, opt ...bindOptionFunc) {
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if _, ok := s.table[name]; ok {
-		panic("cmd " + name + " redefined")
-	}
+
+	matchName := name
 	if e.serverName != "" {
-		serverMsgName := strings.Join([]string{e.serverName, name}, ".")
-		if _, ok := s.table[serverMsgName]; ok {
-			panic("cmd " + name + " redefined")
-		}
-		s.table[serverMsgName] = e
+		matchName = strings.Join([]string{e.serverName, name}, ".")
 	}
+	if _, ok := s.table[matchName]; ok {
+		panic("cmd " + matchName + " redefined")
+	}
+	s.table[matchName] = e
 }
 
 func (s *CmdSet) Hook(h Handler) {

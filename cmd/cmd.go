@@ -32,7 +32,7 @@ func init() {
 }
 
 func Bind(name string, h Handler, args any, opt ...bindOptionFunc) {
-	defaultCmdSet.Bind(name, h, args)
+	defaultCmdSet.Bind(name, h, args, opt...)
 }
 
 func Hook(h Handler) {
