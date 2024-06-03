@@ -67,7 +67,7 @@ func C2S_GetServerAddr(ctx *cmd.Context, data any) {
 	name := args.Name
 	addr := matchBestServer(name)
 	log.Infof("get server:%s addr:%s", name, addr)
-	ctx.Out.WriteJSON("s2c_getServerAddr", cmd.M{"Name": name, "Addr": addr})
+	ctx.Out.WriteJSON("s2c_getServerAddr", cmd.M{"name": name, "addr": addr})
 }
 
 func C2S_Broadcast(ctx *cmd.Context, data any) {
