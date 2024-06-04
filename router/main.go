@@ -7,10 +7,10 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/guogeer/quasar/cmd"
-	"github.com/guogeer/quasar/config"
-	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/utils"
+	"github.com/guogeer/quasar/v2/cmd"
+	"github.com/guogeer/quasar/v2/config"
+	"github.com/guogeer/quasar/v2/log"
+	"github.com/guogeer/quasar/v2/utils"
 )
 
 var port = flag.Int("port", 9003, "router server port")

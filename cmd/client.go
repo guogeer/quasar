@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/v2/log"
 )
 
 var clients sync.Map // 已存在的连接不会被删除

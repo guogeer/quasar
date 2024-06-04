@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net"
 
-	"github.com/guogeer/quasar/cmd"
-	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/v2/cmd"
+	"github.com/guogeer/quasar/v2/log"
 )
 
 type routeArgs struct {

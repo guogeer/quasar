@@ -2,8 +2,9 @@ package cmd
 
 import (
 	"encoding/json"
-	"github.com/guogeer/quasar/utils"
 	"testing"
+
+	"github.com/guogeer/quasar/v2/utils"
 )
 
 type mStruct struct {

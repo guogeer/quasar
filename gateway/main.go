@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"runtime"
 
-	"github.com/guogeer/quasar/cmd"
-	"github.com/guogeer/quasar/log"
-	"github.com/guogeer/quasar/utils"
+	"github.com/guogeer/quasar/v2/cmd"
+	"github.com/guogeer/quasar/v2/log"
+	"github.com/guogeer/quasar/v2/utils"
 )
 
 var id = flag.String("id", "ws_gateway", "gateway server id")
