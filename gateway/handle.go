@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/guogeer/quasar/cmd"
 	"github.com/guogeer/quasar/log"
@@ -82,7 +83,7 @@ func serverClose(ctx *cmd.Context, data any) {
 		if v, ok := sessionLocations.Load(ss.Id); ok {
 			loc := v.(*sessionLocation)
 			if loc.MatchServerId == args.ServerId {
-				ss.Out.WriteJSON("serverClose", cmd.M{"serverId": loc.ServerName, "cause": "server crash"})
+				ss.Out.WriteJSON("serverClose", cmd.M{"serverName": loc.ServerName, "cause": "server crash"})
 			}
 		}
 	}
@@ -103,4 +104,5 @@ func S2C_QueryServerState(ctx *cmd.Context, data any) {
 	for _, state := range args.Servers {
 		serverStates[state.Id] = state
 	}
+	fmt.Println("xxxxx", serverStates)
 }

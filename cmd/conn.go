@@ -243,6 +243,9 @@ func (s *CmdSet) Handle(ctx *Context, msgId string, data []byte) error {
 	if e == nil {
 		return errors.New("invalid message id")
 	}
+	if e.isPrivate && ctx.ServerName != "" {
+		return errors.New("not allow message id")
+	}
 
 	var args any
 	if e.type_ != nil {

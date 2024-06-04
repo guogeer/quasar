@@ -22,15 +22,15 @@ type forwardArgs struct {
 }
 
 func init() {
-	cmd.BindFunc(C2S_Register, (*routeArgs)(nil))
-	cmd.BindFunc(C2S_GetServerAddr, (*routeArgs)(nil))
-	cmd.BindFunc(C2S_Concurrent, (*routeArgs)(nil))
-	cmd.BindFunc(C2S_Route, (*forwardArgs)(nil))
-	cmd.BindFunc(C2S_QueryServerState, (*routeArgs)(nil))
-	cmd.BindFunc(C2S_GetBestGateway, (*routeArgs)(nil))
+	cmd.BindFunc(C2S_Register, (*routeArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(C2S_GetServerAddr, (*routeArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(C2S_Concurrent, (*routeArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(C2S_Route, (*forwardArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(C2S_QueryServerState, (*routeArgs)(nil), cmd.WithPrivate())
+	cmd.BindFunc(C2S_GetBestGateway, (*routeArgs)(nil), cmd.WithPrivate())
 
-	cmd.BindFunc(C2S_Broadcast, (*cmd.Package)(nil))
-	cmd.BindFunc(FUNC_Close, (*routeArgs)(nil))
+	cmd.BindFunc(C2S_Broadcast, (*cmd.Package)(nil), cmd.WithPrivate())
+	cmd.BindFunc(FUNC_Close, (*routeArgs)(nil), cmd.WithPrivate())
 }
 
 // ServerAddr == "" 无服务
@@ -123,11 +123,6 @@ func FUNC_Close(ctx *cmd.Context, data any) {
 	log.Infof("server %s lose connection", closedServer.id)
 
 	removeServer(ctx.Out)
-	for _, server := range servers {
-		if server.IsGateway() {
-			server.out.WriteJSON("serverClose", cmd.M{"serverId": closedServer.id, "cause": "gateway crash"})
-		}
-	}
 }
 
 // 同步服务状态，需主动查询

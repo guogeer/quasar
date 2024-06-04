@@ -142,7 +142,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 	var deadline time.Time
 	var recvPackageCounter int
-	var oldServer, oldMatchServer string
+	var oldServerName, oldMatchServerId string
 
 	remoteAddr := c.ws.RemoteAddr().String()
 	matchMsg, _ := regexp.Compile("^[A-Za-z0-9]+$")
@@ -174,27 +174,27 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		}
 
 		// 网关转发的消息ID仅允许包含字母、数字
-		var serverName, matchServer string
+		var serverName, matchServerId string
 		if servers := strings.SplitN(pkg.Id, ".", 2); len(servers) > 1 {
 			serverName = servers[0]
 			if !matchMsg.MatchString(servers[1]) {
 				log.Warnf("invalid message id %s", pkg.Id)
 				continue
 			}
-			matchServer = oldMatchServer
+			matchServerId = oldMatchServerId
 			// 请求的新服务
-			if serverName != oldServer {
-				matchServer = matchBestServer(c.ssid, serverName)
-				if matchServer != serverName && matchServer != "" {
-					oldServer, oldMatchServer = serverName, matchServer
+			if serverName != oldServerName {
+				matchServerId = matchBestServer(c.ssid, serverName)
+				if matchServerId != oldMatchServerId && matchServerId != "" {
+					oldServerName, oldMatchServerId = serverName, matchServerId
 				}
 			}
 			// log.Debugf("serverName:%s matchServer:%s oldServer:%s oldMatchServer:%s", serverName, matchServer, oldServer, oldMatchServer)
 			// 服务有效
 			var isAlive bool
-			if matchServer != "" {
+			if matchServerId != "" {
 				serverStateMu.RLock()
-				if _, ok := serverStates[matchServer]; ok {
+				if _, ok := serverStates[matchServerId]; ok {
 					isAlive = true
 				}
 				serverStateMu.RUnlock()
@@ -202,7 +202,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 
 			// 无效的服务
 			if !isAlive {
-				c.WriteJSON("serverClose", cmd.M{"serverId": servers[0], "cause": "not alive"})
+				c.WriteJSON("serverClose", cmd.M{"serverName": servers[0], "cause": "not alive"})
 				continue
 			}
 		}
@@ -211,7 +211,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 			Out:         c,
 			Ssid:        c.ssid,
 			ClientAddr:  c.RemoteAddr(),
-			MatchServer: matchServer,
+			MatchServer: matchServerId,
 			ServerName:  serverName,
 		}
 		if err := cmd.Handle(ctx, pkg.Id, pkg.Data); err != nil {

@@ -1,6 +1,8 @@
 package main
 
 import (
+	"slices"
+	"strings"
 	"sync"
 	"time"
 
@@ -57,7 +59,7 @@ func matchBestServer(ssid, name string) string {
 
 	matchServers := map[string]bool{}
 	for _, server := range serverStates {
-		if name == server.Name {
+		if slices.Contains(strings.Split(server.Name, ","), name) {
 			matchServers[server.Id] = true
 		}
 	}
@@ -69,22 +71,22 @@ func matchBestServer(ssid, name string) string {
 		}
 	}
 
-	var matchServer string
+	var matchServerId string
 	for serverId := range matchServers {
 		state := serverStates[serverId]
-		if state.Weight < state.MinWeight && matchServer < state.Id {
-			matchServer = serverId
+		if state.Weight < state.MinWeight && matchServerId < state.Id {
+			matchServerId = serverId
 		}
 	}
-	if matchServer != "" {
-		return matchServer
+	if matchServerId != "" {
+		return matchServerId
 	}
 	for server := range matchServers {
 		state := serverStates[server]
 		if (state.MaxWeight == 0 || state.Weight < state.MaxWeight) &&
-			(matchServer == "" || state.Weight < serverStates[matchServer].Weight) {
-			matchServer = server
+			(matchServerId == "" || state.Weight < serverStates[matchServerId].Weight) {
+			matchServerId = server
 		}
 	}
-	return matchServer
+	return matchServerId
 }

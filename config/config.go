@@ -8,10 +8,10 @@ import (
 	"encoding/xml"
 	"errors"
 	"flag"
-	"github.com/guogeer/quasar/log"
 	"os"
 	"path/filepath"
 
+	"github.com/guogeer/quasar/log"
 	"gopkg.in/yaml.v3"
 )
 
