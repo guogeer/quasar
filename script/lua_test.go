@@ -2,8 +2,9 @@ package script
 
 import (
 	"encoding/json"
-	"github.com/guogeer/quasar/utils"
 	"testing"
+
+	"github.com/guogeer/quasar/v2/utils"
 
 	lua "github.com/yuin/gopher-lua"
 )

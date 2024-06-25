@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/guogeer/quasar/utils"
 	"testing"
+
+	"github.com/guogeer/quasar/v2/utils"
 )
 
 func TestLoadConfig(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/guogeer/quasar/log"
+	"github.com/guogeer/quasar/v2/log"
 
 	lua "github.com/yuin/gopher-lua"
 	luajson "layeh.com/gopher-json"
