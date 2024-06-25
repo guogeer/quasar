@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/guogeer/quasar/v2/cmd"
 	"github.com/guogeer/quasar/v2/log"
@@ -104,5 +103,4 @@ func S2C_QueryServerState(ctx *cmd.Context, data any) {
 	for _, state := range args.Servers {
 		serverStates[state.Id] = state
 	}
-	fmt.Println("xxxxx", serverStates)
 }
