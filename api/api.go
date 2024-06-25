@@ -129,6 +129,10 @@ func dispatchAPI(c *Context) {
 
 func Run(addr string) {
 	r := gin.Default()
+	RunWithEngine(r, addr)
+}
+
+func RunWithEngine(r *gin.Engine, addr string) {
 	r.Use(func(c *Context) {
 		method := c.Request.Method
 		origin := c.Request.Header.Get("Origin")
