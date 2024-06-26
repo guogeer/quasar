@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/guogeer/quasar/v2/config"
+	"github.com/guogeer/quasar/v2/log"
 )
 
 var (
@@ -29,6 +30,7 @@ func init() {
 	if addr := conf.Server("router").Addr; addr != "" {
 		defaultRouterAddr = addr
 	}
+	log.Info("router server address", defaultRouterAddr)
 }
 
 func Bind(name string, h Handler, args any, opt ...bindOptionFunc) {
