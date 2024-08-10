@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
 	"reflect"
 	"runtime"
@@ -159,6 +160,9 @@ func RequestServerAddr(name string) (string, error) {
 	args := &cmdArgs{}
 	if err := json.Unmarshal(buf, args); err != nil {
 		return "", err
+	}
+	if args.Addr == "" {
+		return "", errors.New("address is empty")
 	}
 	return args.Addr, nil
 }
