@@ -110,7 +110,7 @@ func matchAPI(c *Context, method, uri string) ([]byte, error) {
 	return api.codec.Encode(resp)
 }
 
-// 处理游戏内请求
+// 分发HTTP请求
 func dispatchAPI(c *Context) {
 	rawData, _ := c.GetRawData()
 	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawData))
@@ -149,13 +149,18 @@ func RunWithEngine(r *gin.Engine, addr string) {
 		c.Next()
 	})
 
-	apiEntries.Range(func(key, value any) bool {
-		data := strings.SplitN(key.(string), " ", 2)
-		r.POST(data[1], dispatchAPI)
-		return true
-	})
+	MergeRoute(r)
 
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("start gin server fail, %v", err)
 	}
+}
+
+// 注册的API合并到gin.IRoutes
+func MergeRoute(r IRoutes) {
+	apiEntries.Range(func(key, value any) bool {
+		data := strings.SplitN(key.(string), " ", 2)
+		r.Handle(data[0], data[1], dispatchAPI)
+		return true
+	})
 }
