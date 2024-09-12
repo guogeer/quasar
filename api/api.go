@@ -7,10 +7,8 @@ import (
 	"io"
 	"net/http"
 	"reflect"
-	"strings"
 	"sync"
 
-	"github.com/guogeer/quasar/v2/cmd"
 	"github.com/guogeer/quasar/v2/log"
 
 	"github.com/gin-gonic/gin"
@@ -27,64 +25,33 @@ type apiEntry struct {
 	codec MessageCodec
 }
 
-type wrapper struct {
-	m  *sync.Map
-	id string
-	e  *apiEntry
-}
-
-func (ctx wrapper) SetCodec(codec MessageCodec) wrapper {
-	e := ctx.e
-	ctx.e = &apiEntry{h: e.h, typ: e.typ, codec: codec}
-	ctx.m.Store(ctx.id, ctx.e)
-	return ctx
-}
-
-var apiEntries sync.Map
-
 type MessageCodec interface {
-	Encode(any) ([]byte, error)
-	Decode([]byte) ([]byte, error)
-}
-
-type jsonMessageCodec struct{}
-
-func (codec *jsonMessageCodec) Encode(data any) ([]byte, error) {
-	return json.Marshal(data)
-}
-
-func (codec *jsonMessageCodec) Decode(buf []byte) ([]byte, error) {
-	return buf, nil
-}
-
-type CmdMessageCodec struct{}
-
-func (codec *CmdMessageCodec) Encode(data any) ([]byte, error) {
-	return cmd.Encode("", data)
-}
-
-func (codec *CmdMessageCodec) Decode(buf []byte) ([]byte, error) {
-	pkg, err := cmd.Decode(buf)
-	return pkg.Data, err
+	ParseRequest([]byte) ([]byte, error)
+	ResponseError(any, error) ([]byte, error)
 }
 
 func merge(method, uri string) string {
 	return method + " " + uri
 }
 
-var jsonCodec = &jsonMessageCodec{}
+var apiEntries sync.Map
 
-func Add(method, uri string, h Handler, i any) wrapper {
-	ctx := wrapper{
-		id: merge(method, uri),
-		m:  &apiEntries,
-		e:  &apiEntry{h: h, typ: reflect.TypeOf(i), codec: jsonCodec},
-	}
-	ctx.m.Store(ctx.id, ctx.e)
-	return ctx
+type Group struct {
+	codec    MessageCodec
+	basePath string
+	route    IRoutes
 }
 
-func matchAPI(c *Context, method, uri string) ([]byte, error) {
+func NewGroup(basePath string, route IRoutes, codec MessageCodec) *Group {
+	return &Group{basePath: basePath, route: route, codec: codec}
+}
+
+func (group *Group) Add(method, uri string, h Handler, i any) {
+	apiEntries.Store(merge(method, group.basePath+uri), &apiEntry{h: h, typ: reflect.TypeOf(i), codec: group.codec})
+	group.route.Handle(method, uri, dispatchAPI)
+}
+
+func handleAPI(c *Context, method, uri string) ([]byte, error) {
 	id := merge(method, uri)
 	body, _ := c.Get("body")
 	rawData, _ := body.([]byte)
@@ -94,7 +61,7 @@ func matchAPI(c *Context, method, uri string) ([]byte, error) {
 	}
 
 	api, _ := entry.(*apiEntry)
-	data, err := api.codec.Decode(rawData)
+	data, err := api.codec.ParseRequest(rawData)
 	if err != nil {
 		return nil, err
 	}
@@ -104,10 +71,7 @@ func matchAPI(c *Context, method, uri string) ([]byte, error) {
 		return nil, err
 	}
 	resp, err := api.h(c, args)
-	if err != nil {
-		return nil, err
-	}
-	return api.codec.Encode(resp)
+	return api.codec.ResponseError(resp, err)
 }
 
 // 分发HTTP请求
@@ -118,12 +82,11 @@ func dispatchAPI(c *Context) {
 	c.Set("body", rawData)
 	log.Debugf("recv request method %s uri %s body %s", c.Request.Method, c.Request.RequestURI, rawData)
 
-	buf, err := matchAPI(c, c.Request.Method, c.Request.RequestURI)
+	buf, err := handleAPI(c, c.Request.Method, c.Request.RequestURI)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
-	}
-	if !c.IsAborted() {
-		c.Data(200, "application/json", buf)
+	} else {
+		c.JSON(http.StatusOK, json.RawMessage(buf))
 	}
 }
 
@@ -149,18 +112,7 @@ func RunWithEngine(r *gin.Engine, addr string) {
 		c.Next()
 	})
 
-	MergeRoute(r)
-
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("start gin server fail, %v", err)
 	}
-}
-
-// 注册的API合并到gin.IRoutes
-func MergeRoute(r IRoutes) {
-	apiEntries.Range(func(key, value any) bool {
-		data := strings.SplitN(key.(string), " ", 2)
-		r.Handle(data[0], data[1], dispatchAPI)
-		return true
-	})
 }
