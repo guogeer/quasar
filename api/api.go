@@ -58,7 +58,7 @@ func handleAPI(c *Context, method, uri string) ([]byte, error) {
 
 	entry, ok := apiEntries.Load(id)
 	if !ok {
-		return nil, errors.New("dispatch handler: " + id + " is not existed")
+		return nil, errors.New("handle url " + id + " is not existed")
 	}
 
 	api, _ := entry.(*apiEntry)
@@ -68,8 +68,10 @@ func handleAPI(c *Context, method, uri string) ([]byte, error) {
 	}
 
 	args := reflect.New(api.typ.Elem()).Interface()
-	if err := json.Unmarshal(data, args); err != nil {
-		return nil, err
+	if len(data) > 0 {
+		if err := json.Unmarshal(data, args); err != nil {
+			return nil, err
+		}
 	}
 	if err := c.ShouldBindHeader(args); err != nil {
 		return nil, err
@@ -84,9 +86,9 @@ func handleAPI(c *Context, method, uri string) ([]byte, error) {
 
 // 分发HTTP请求
 func dispatchAPI(c *Context) {
-	log.Debugf("recv request method %s uri %s", c.Request.Method, c.Request.RequestURI)
+	log.Debugf("recv request method %s uri %s", c.Request.Method, c.Request.URL.Path)
 
-	buf, err := handleAPI(c, c.Request.Method, c.Request.RequestURI)
+	buf, err := handleAPI(c, c.Request.Method, c.Request.URL.Path)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	} else {
