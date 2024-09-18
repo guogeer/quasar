@@ -53,8 +53,9 @@ func (group *Group) Add(method, uri string, h Handler, i any) {
 
 func handleAPI(c *Context, method, uri string) ([]byte, error) {
 	id := merge(method, uri)
-	body, _ := c.Get("body")
-	rawData, _ := body.([]byte)
+	rawData, _ := c.GetRawData()
+	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawData))
+
 	entry, ok := apiEntries.Load(id)
 	if !ok {
 		return nil, errors.New("dispatch handler: " + id + " is not existed")
@@ -76,11 +77,7 @@ func handleAPI(c *Context, method, uri string) ([]byte, error) {
 
 // 分发HTTP请求
 func dispatchAPI(c *Context) {
-	rawData, _ := c.GetRawData()
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawData))
-
-	c.Set("body", rawData)
-	log.Debugf("recv request method %s uri %s body %s", c.Request.Method, c.Request.RequestURI, rawData)
+	log.Debugf("recv request method %s uri %s", c.Request.Method, c.Request.RequestURI)
 
 	buf, err := handleAPI(c, c.Request.Method, c.Request.RequestURI)
 	if err != nil {
