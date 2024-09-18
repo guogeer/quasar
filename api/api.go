@@ -71,6 +71,13 @@ func handleAPI(c *Context, method, uri string) ([]byte, error) {
 	if err := json.Unmarshal(data, args); err != nil {
 		return nil, err
 	}
+	if err := c.ShouldBindHeader(args); err != nil {
+		return nil, err
+	}
+	if err := c.ShouldBindQuery(args); err != nil {
+		return nil, err
+	}
+
 	resp, err := api.h(c, args)
 	return api.codec.ResponseError(resp, err)
 }
