@@ -46,9 +46,29 @@ func NewGroup(basePath string, route IRoutes, codec MessageCodec) *Group {
 	return &Group{basePath: basePath, route: route, codec: codec}
 }
 
-func (group *Group) Add(method, uri string, h Handler, i any) {
-	apiEntries.Store(merge(method, group.basePath+uri), &apiEntry{h: h, typ: reflect.TypeOf(i), codec: group.codec})
+func (group *Group) Add(method, uri string, h Handler, args any) {
+	group.Handle(method, uri, h, args)
+}
+
+func (group *Group) Handle(method, uri string, h Handler, args any) {
+	apiEntries.Store(merge(method, group.basePath+uri), &apiEntry{h: h, typ: reflect.TypeOf(args), codec: group.codec})
 	group.route.Handle(method, uri, dispatchAPI)
+}
+
+func (group *Group) POST(name string, h Handler, args interface{}) {
+	group.Handle("POST", name, h, args)
+}
+
+func (group *Group) GET(name string, h Handler, args interface{}) {
+	group.Handle("GET", name, h, args)
+}
+
+func (group *Group) PUT(name string, h Handler, args interface{}) {
+	group.Handle("PUT", name, h, args)
+}
+
+func (group *Group) DELETE(name string, h Handler, args interface{}) {
+	group.Handle("DELETE", name, h, args)
 }
 
 func handleAPI(c *Context, method, uri string) ([]byte, error) {
@@ -93,32 +113,5 @@ func dispatchAPI(c *Context) {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	} else {
 		c.JSON(http.StatusOK, json.RawMessage(buf))
-	}
-}
-
-func Run(addr string) {
-	r := gin.Default()
-	RunWithEngine(r, addr)
-}
-
-func RunWithEngine(r *gin.Engine, addr string) {
-	r.Use(func(c *Context) {
-		method := c.Request.Method
-		origin := c.Request.Header.Get("Origin")
-		if origin != "" {
-			c.Header("Access-Control-Allow-Origin", "*") // 可将将 * 替换为指定的域名
-			c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
-			c.Header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization")
-			// c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Cache-Control, Content-Language, Content-Type")
-			c.Header("Access-Control-Allow-Credentials", "true")
-		}
-		if method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
-		}
-		c.Next()
-	})
-
-	if err := r.Run(addr); err != nil {
-		log.Fatalf("start gin server fail, %v", err)
 	}
 }
