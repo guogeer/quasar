@@ -1,17 +1,13 @@
 package api
 
 import (
-	"bytes"
-	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 	"reflect"
 	"sync"
 
-	"github.com/guogeer/quasar/v2/log"
-
 	"github.com/gin-gonic/gin"
+	"github.com/guogeer/quasar/v2/log"
 )
 
 type Context = gin.Context
@@ -20,14 +16,53 @@ type IRoutes = gin.IRoutes
 type Handler func(*Context, any) (any, error)
 
 type apiEntry struct {
-	h     Handler
-	typ   reflect.Type
-	codec MessageCodec
+	h              Handler
+	typ            reflect.Type
+	requestReader  RequestReader
+	responseWriter ResponseWriter
 }
 
-type MessageCodec interface {
-	ParseRequest([]byte) ([]byte, error)
-	ResponseError(any, error) ([]byte, error)
+type ResponseResult struct {
+	Data  any
+	Error error
+}
+
+type RequestReader interface {
+	ReadRequest(*Context, any) error
+}
+
+type apiError struct {
+	Code string `json:"code,omitempty"`
+	Msg  string `json:"msg,omitempty"`
+}
+
+type apiCodec struct{}
+
+func (r *apiCodec) ReadRequest(c *Context, args any) error {
+	if err := c.ShouldBind(args); err != nil {
+		return err
+	}
+	if err := c.ShouldBindHeader(args); err != nil {
+		return err
+	}
+	if err := c.ShouldBindQuery(args); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (r *apiCodec) WriteResponse(c *Context, result ResponseResult) {
+	if result.Error != nil {
+		c.JSON(http.StatusInternalServerError, apiError{Code: "system_error", Msg: result.Error.Error()})
+	} else {
+		c.JSON(http.StatusOK, result.Data)
+	}
+}
+
+var defaultCodec = &apiCodec{}
+
+type ResponseWriter interface {
+	WriteResponse(*Context, ResponseResult)
 }
 
 func merge(method, uri string) string {
@@ -37,13 +72,14 @@ func merge(method, uri string) string {
 var apiEntries sync.Map
 
 type Group struct {
-	codec    MessageCodec
-	basePath string
-	route    IRoutes
+	basePath       string
+	route          IRoutes
+	requestReader  RequestReader
+	responseWriter ResponseWriter
 }
 
-func NewGroup(basePath string, route IRoutes, codec MessageCodec) *Group {
-	return &Group{basePath: basePath, route: route, codec: codec}
+func NewGroup(basePath string, route IRoutes) *Group {
+	return &Group{basePath: basePath, route: route, requestReader: defaultCodec, responseWriter: defaultCodec}
 }
 
 func (group *Group) Add(method, uri string, h Handler, args any) {
@@ -51,8 +87,18 @@ func (group *Group) Add(method, uri string, h Handler, args any) {
 }
 
 func (group *Group) Handle(method, uri string, h Handler, args any) {
-	apiEntries.Store(merge(method, group.basePath+uri), &apiEntry{h: h, typ: reflect.TypeOf(args), codec: group.codec})
+	apiEntries.Store(merge(method, group.basePath+uri), &apiEntry{
+		h: h, typ: reflect.TypeOf(args), requestReader: group.requestReader, responseWriter: group.responseWriter,
+	})
 	group.route.Handle(method, uri, dispatchAPI)
+}
+
+func (group *Group) SetRequestReader(r RequestReader) {
+	group.requestReader = r
+}
+
+func (group *Group) SetResponseWriter(w ResponseWriter) {
+	group.responseWriter = w
 }
 
 func (group *Group) POST(name string, h Handler, args interface{}) {
@@ -71,47 +117,30 @@ func (group *Group) DELETE(name string, h Handler, args interface{}) {
 	group.Handle("DELETE", name, h, args)
 }
 
-func handleAPI(c *Context, method, uri string) ([]byte, error) {
+func handleRequest(c *Context, method, uri string) (ResponseWriter, any, error) {
 	id := merge(method, uri)
-	rawData, _ := c.GetRawData()
-	c.Request.Body = io.NopCloser(bytes.NewBuffer(rawData))
-
 	entry, ok := apiEntries.Load(id)
 	if !ok {
-		return nil, errors.New("handle url " + id + " is not existed")
+		return nil, nil, errors.New("handle url " + id + " is not existed")
 	}
 
 	api, _ := entry.(*apiEntry)
-	data, err := api.codec.ParseRequest(rawData)
-	if err != nil {
-		return nil, err
-	}
-
 	args := reflect.New(api.typ.Elem()).Interface()
-	if len(data) > 0 {
-		if err := json.Unmarshal(data, args); err != nil {
-			return nil, err
-		}
+	if err := api.requestReader.ReadRequest(c, args); err != nil {
+		return api.responseWriter, nil, err
 	}
-	if err := c.ShouldBindHeader(args); err != nil {
-		return nil, err
-	}
-	if err := c.ShouldBindQuery(args); err != nil {
-		return nil, err
-	}
-
-	resp, err := api.h(c, args)
-	return api.codec.ResponseError(resp, err)
+	data, err := api.h(c, args)
+	return api.responseWriter, data, err
 }
 
 // 分发HTTP请求
 func dispatchAPI(c *Context) {
 	log.Debugf("recv request method %s uri %s", c.Request.Method, c.Request.URL.Path)
-
-	buf, err := handleAPI(c, c.Request.Method, c.Request.URL.Path)
-	if err != nil {
+	codec, data, err := handleRequest(c, c.Request.Method, c.Request.URL.Path)
+	if codec == nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 	} else {
-		c.JSON(http.StatusOK, json.RawMessage(buf))
+		codec.WriteResponse(c, ResponseResult{Data: data, Error: err})
+
 	}
 }
