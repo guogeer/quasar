@@ -89,7 +89,7 @@ func RunOnce() {
 	}
 
 	if enableDebug {
-		stat = messageStat{id: msg.id, d: time.Since(t), call: 1}
+		stat = messageStat{d: time.Since(t), call: 1}
 
 		if lastPrintTime.IsZero() {
 			lastPrintTime = time.Now()
