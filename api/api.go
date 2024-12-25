@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 	"github.com/guogeer/quasar/v2/log"
 )
 
@@ -38,17 +39,28 @@ type apiError struct {
 
 type apiCodec struct{}
 
-func (r *apiCodec) ReadRequest(c *Context, args any) error {
-	if err := c.ShouldBind(args); err != nil {
-		return err
-	}
+var validator = binding.Validator
+
+func init() {
+	binding.Validator = nil
+}
+
+// NOTE 屏蔽了gin的默认validator，期望先解析出数据再校验数据有效性
+func BindAll(c *Context, args any) error {
 	if err := c.ShouldBindHeader(args); err != nil {
 		return err
 	}
 	if err := c.ShouldBindQuery(args); err != nil {
 		return err
 	}
-	return nil
+	if err := c.ShouldBind(args); err != nil {
+		return err
+	}
+	return validator.ValidateStruct(args)
+}
+
+func (r *apiCodec) ReadRequest(c *Context, args any) error {
+	return BindAll(c, args)
 }
 
 func (r *apiCodec) WriteResponse(c *Context, result ResponseResult) {
