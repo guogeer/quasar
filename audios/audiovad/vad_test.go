@@ -12,7 +12,7 @@ import (
 func checkVAD(t *testing.T, path string, sampleRate int) {
 	checkFullFileVAD(t, path, sampleRate)
 
-	v1, err := audiovad.NewVAD("../../bin/silero_vad.onnx", sampleRate, filepath.Ext(path)[1:])
+	v1, err := audiovad.NewVAD("../testdata/silero_vad.onnx", sampleRate, filepath.Ext(path)[1:])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func checkVAD(t *testing.T, path string, sampleRate int) {
 }
 
 func checkFullFileVAD(t *testing.T, path string, sampleRate int) {
-	v1, err := audiovad.NewVAD("../../bin/silero_vad.onnx", sampleRate, filepath.Ext(path)[1:])
+	v1, err := audiovad.NewVAD("../testdata/silero_vad.onnx", sampleRate, filepath.Ext(path)[1:])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,6 +61,6 @@ func TestVAD(t *testing.T) {
 	// checkVAD(t, "silence1.wav", 16000)
 	// checkVAD(t, "test_audio.wav", 16000)
 	// checkVAD(t, "西班牙语.wav", 24000)
-	checkVAD(t, "es_10S.mp3", 16000)
-	checkVAD(t, "silence_0_2.wav", 16000)
+	checkVAD(t, "../testdata/es_10S.mp3", 16000)
+	checkVAD(t, "../testdata/silence_0_2.wav", 16000)
 }

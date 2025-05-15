@@ -8,7 +8,7 @@ import (
 )
 
 func TestCreateWavHeader(t *testing.T) {
-	body, err := os.ReadFile("input.pcm")
+	body, err := os.ReadFile("testdata/input.pcm")
 	if err != nil {
 		t.Fatal(err)
 	}

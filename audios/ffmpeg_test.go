@@ -13,7 +13,7 @@ func TestFormat(t *testing.T) {
 	cmd.SetPitch(-10)
 	cmd.SetVolume(5)
 
-	buf, err := os.ReadFile("test_audio.wav")
+	buf, err := os.ReadFile("testdata/test_audio.wav")
 	if err != nil {
 		t.Error("read file", err)
 		return
@@ -24,5 +24,5 @@ func TestFormat(t *testing.T) {
 		t.Error("format audio", err)
 		return
 	}
-	os.WriteFile("/tmp/test_audio.mp3", out, 0664)
+	os.WriteFile("test_audio.mp3", out, 0664)
 }
