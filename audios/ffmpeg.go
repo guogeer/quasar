@@ -2,14 +2,11 @@ package audios
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"os/exec"
 	"slices"
 	"strings"
-
-	"github.com/songquanpeng/one-api/common/logger"
 )
 
 /*
@@ -80,7 +77,6 @@ func (c *Command) Format(input io.Reader) ([]byte, error) {
 	cmd.Stdout = outBuf
 	cmd.Stderr = errBuf
 	if err := cmd.Run(); err != nil {
-		logger.Errorf(context.TODO(), "ffmpeg run fail %s", errBuf.String())
 		return nil, err
 	}
 	return outBuf.Bytes(), nil
