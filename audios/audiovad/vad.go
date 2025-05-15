@@ -1,4 +1,4 @@
-package audios
+package audiovad
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/mp3"
 	"github.com/faiface/beep/wav"
+	"github.com/guogeer/quasar/v2/audios"
 	"github.com/streamer45/silero-vad-go/speech"
 )
 
@@ -46,7 +47,7 @@ func NewVAD(model string, sampleRate int, format string) (*VAD, error) {
 
 func (vad *VAD) Write(chunk []byte) error {
 	if vad.stream == nil && vad.format == "pcm" {
-		vad.audio.Write(CreateWavHeader(vad.sampleRate, 16, 1))
+		vad.audio.Write(audios.CreateWavHeader(vad.sampleRate, 16, 1))
 	}
 
 	vad.audio.Write(chunk)

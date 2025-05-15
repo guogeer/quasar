@@ -1,4 +1,4 @@
-package audios_test
+package audiovad_test
 
 import (
 	"io"
@@ -6,13 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/guogeer/quasar/v2/audios"
+	"github.com/guogeer/quasar/v2/audios/audiovad"
 )
 
 func checkVAD(t *testing.T, path string, sampleRate int) {
 	checkFullFileVAD(t, path, sampleRate)
 
-	v1, err := audios.NewVAD("../../bin/silero_vad.onnx", sampleRate, filepath.Ext(path)[1:])
+	v1, err := audiovad.NewVAD("../../bin/silero_vad.onnx", sampleRate, filepath.Ext(path)[1:])
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +42,7 @@ func checkVAD(t *testing.T, path string, sampleRate int) {
 }
 
 func checkFullFileVAD(t *testing.T, path string, sampleRate int) {
-	v1, err := audios.NewVAD("../../bin/silero_vad.onnx", sampleRate, filepath.Ext(path)[1:])
+	v1, err := audiovad.NewVAD("../../bin/silero_vad.onnx", sampleRate, filepath.Ext(path)[1:])
 	if err != nil {
 		t.Fatal(err)
 	}
