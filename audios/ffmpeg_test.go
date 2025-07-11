@@ -2,6 +2,7 @@ package audios_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"testing"
 
@@ -25,4 +26,16 @@ func TestFormat(t *testing.T) {
 		return
 	}
 	os.WriteFile("test_audio.mp3", out, 0664)
+}
+
+func TestGetAudioInfo(t *testing.T) {
+	for _, path := range []string{"testdata/C2S.wav", "testdata/C2S.opus", "testdata/C2S.webm"} {
+		info, err := audios.GetAudioInfo(path)
+		if err != nil {
+			t.Error("count duration", err)
+			return
+		}
+		audioBuf, _ := json.MarshalIndent(info, "", "  ")
+		t.Logf("audio info: %s", audioBuf)
+	}
 }

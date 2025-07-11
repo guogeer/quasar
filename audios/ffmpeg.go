@@ -81,3 +81,25 @@ func (c *Command) Format(input io.Reader) ([]byte, error) {
 	}
 	return outBuf.Bytes(), nil
 }
+
+type Audio struct {
+	Duration float64 `json:"duration"` // 音频时长，单位秒
+}
+
+// 获取音频信息。支持opus, webm, mp3等格式，不支持pcm格式
+// ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 C2S.wav
+func GetAudioInfo(path string) (*Audio, error) {
+	cmd := exec.Command("ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", path)
+
+	outBuf := &bytes.Buffer{}
+	errBuf := &bytes.Buffer{}
+	cmd.Stdout = outBuf
+	cmd.Stderr = errBuf
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("ffprobe error: %s, stderr: %s", err.Error(), errBuf.String())
+	}
+
+	audioInfo := &Audio{}
+	fmt.Sscanf(outBuf.String(), "%f", &audioInfo.Duration)
+	return audioInfo, nil
+}
