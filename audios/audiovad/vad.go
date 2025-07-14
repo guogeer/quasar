@@ -94,7 +94,6 @@ func (vad *VAD) Detect() (float64, float64, float64, error) {
 			vad.detectBuf = append(vad.detectBuf, float32(twoChannels[i][0]))
 		}
 	}
-	vad.detectBuf = append(vad.detectBuf)
 
 	endAt := vad.endAt
 	totalAt := endAt + float64(len(vad.detectBuf))/vadSampleRate
