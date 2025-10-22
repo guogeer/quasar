@@ -53,6 +53,9 @@ func BindAll(c *Context, args any) error {
 	if err := c.ShouldBindQuery(args); err != nil {
 		return err
 	}
+	if err := c.ShouldBindUri(args); err != nil {
+		return err
+	}
 	// GET请求可访问JSON等
 	b := binding.Default("POST", c.ContentType())
 	if err := c.ShouldBindWith(args, b); err != nil {
