@@ -16,6 +16,8 @@ import (
 
 const vadSampleRate = 16000
 
+var errVADStarted = errors.New("vad started")
+
 type VAD struct {
 	detector *speech.Detector
 
@@ -45,6 +47,29 @@ func NewVAD(model string, sampleRate int, format string) (*VAD, error) {
 	return &VAD{detector: sd, format: format, sampleRate: sampleRate, audio: &bytes.Buffer{}}, nil
 }
 
+func (vad *VAD) check() error {
+	if vad.stream != nil {
+		return errVADStarted
+	}
+	return nil
+}
+
+func (vad *VAD) SetSampleRate(sampleRate int) error {
+	if err := vad.check(); err != nil {
+		return err
+	}
+	vad.sampleRate = sampleRate
+	return nil
+}
+
+func (vad *VAD) SetAudioFormat(format string) error {
+	if err := vad.check(); err != nil {
+		return err
+	}
+	vad.format = format
+	return nil
+}
+
 func (vad *VAD) Write(chunk []byte) error {
 	if vad.stream == nil && vad.format == "pcm" {
 		vad.audio.Write(audios.CreateWavHeader(vad.sampleRate, 16, 1))
@@ -55,13 +80,14 @@ func (vad *VAD) Write(chunk []byte) error {
 		return nil
 	}
 
-	if vad.format == "wav" || vad.format == "pcm" {
+	switch vad.format {
+	case "wav", "pcm":
 		streamCloser, _, err := wav.Decode(vad.audio)
 		if err != nil {
 			return err
 		}
 		vad.stream = streamCloser
-	} else if vad.format == "mp3" {
+	case "mp3":
 		streamCloser, _, err := mp3.Decode(io.NopCloser(vad.audio))
 		if err != nil {
 			return err
@@ -132,4 +158,12 @@ func (vad *VAD) Detect() (float64, float64, float64, error) {
 
 func (vad *VAD) Close() {
 	vad.detector.Destroy()
+}
+
+func (vad *VAD) Reset() {
+	vad.audio.Reset()
+	vad.stream = nil
+	vad.endAt = 0
+	vad.detectBuf = vad.detectBuf[:0]
+	vad.detector.Reset()
 }
