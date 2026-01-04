@@ -7,9 +7,9 @@ import (
 	"io"
 	"slices"
 
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/mp3"
-	"github.com/faiface/beep/wav"
+	"github.com/gopxl/beep/v2"
+	"github.com/gopxl/beep/v2/mp3"
+	"github.com/gopxl/beep/v2/wav"
 	"github.com/guogeer/quasar/v2/audios"
 	"github.com/streamer45/silero-vad-go/speech"
 )
@@ -71,6 +71,9 @@ func (vad *VAD) SetAudioFormat(format string) error {
 }
 
 func (vad *VAD) Write(chunk []byte) error {
+	if len(chunk) == 0 {
+		return nil
+	}
 	if vad.stream == nil && vad.format == "pcm" {
 		vad.audio.Write(audios.CreateWavHeader(vad.sampleRate, 16, 1))
 	}
@@ -103,28 +106,35 @@ func (vad *VAD) Write(chunk []byte) error {
 }
 
 func (vad *VAD) Detect() (float64, float64, float64, error) {
-	if vad.audio == nil {
-		return 0, 0, 0, errors.New("empty audio")
+	endAt := vad.endAt
+	totalAt := endAt + float64(len(vad.detectBuf))/vadSampleRate
+	if vad.audio.Len() == 0 {
+		return 0, endAt, totalAt, nil
 	}
 	if vad.stream == nil {
 		return 0, 0, 0, errors.New("empty stream")
 	}
 
-	twoChannels := make([][2]float64, 4096)
+	twoChannels := make([][2]float64, 3200)
 	for {
 		n, ok := vad.stream.Stream(twoChannels)
-		if n == 0 || !ok {
-			break
+		if !ok {
+			if err := vad.stream.Err(); err != nil {
+				return 0, 0, 0, err
+			}
 		}
 		for i := range n {
 			vad.detectBuf = append(vad.detectBuf, float32(twoChannels[i][0]))
 		}
+		if n < len(twoChannels) {
+			break
+		}
 	}
 
-	endAt := vad.endAt
-	totalAt := endAt + float64(len(vad.detectBuf))/vadSampleRate
+	endAt = vad.endAt
+	totalAt = endAt + float64(len(vad.detectBuf))/vadSampleRate
 	// 数据太短了
-	if len(vad.detectBuf) <= 1024 {
+	if len(vad.detectBuf) <= 1600 {
 		return 0, endAt, totalAt, nil
 	}
 
@@ -147,7 +157,6 @@ func (vad *VAD) Detect() (float64, float64, float64, error) {
 			vad.detectBuf = detectBuf[min(int(s.SpeechEndAt*vadSampleRate), len(detectBuf)):]
 		}
 	}
-
 	// log.Debug("vad segments", segments)
 	if len(segments) > 0 && segments[len(segments)-1].SpeechEndAt == 0 {
 		return maxSilence, endAt, totalAt, nil
