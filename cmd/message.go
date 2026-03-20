@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -10,8 +11,6 @@ import (
 	"time"
 
 	"github.com/guogeer/quasar/v2/log"
-
-	"github.com/buger/jsonparser"
 )
 
 var (
@@ -217,10 +216,27 @@ func (codec *hashCodec) Signature(data []byte) (string, error) {
 	copy(buf[len(key):], data)
 	// buf = append([]byte(key), data...)
 	tempSign := codec.tempSign
-	_, _, n, err := jsonparser.Get(data, "sign")
-	if err != nil {
-		return "", err
+
+	signKey := `"sign"`
+	valueIndex := bytes.Index(data, []byte(signKey))
+	if valueIndex < 0 {
+		return "", ErrInvalidSign
 	}
+	valueIndex += len(signKey)
+
+	startIndex := bytes.Index(data[valueIndex:], []byte(`"`))
+	if startIndex < 0 {
+		return "", ErrInvalidSign
+	}
+	startIndex += valueIndex + 1
+
+	endIndex := bytes.Index(data[startIndex:], []byte(`"`))
+	if endIndex < 0 {
+		return "", ErrInvalidSign
+	}
+	endIndex += startIndex
+
+	n := endIndex - startIndex
 	signLen := len(tempSign) + 1
 	if n < signLen {
 		return "", ErrInvalidSign
