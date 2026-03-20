@@ -236,7 +236,7 @@ func (codec *hashCodec) Signature(data []byte) (string, error) {
 	}
 	endIndex += startIndex
 
-	n := endIndex - startIndex
+	n := endIndex + 1
 	signLen := len(tempSign) + 1
 	if n < signLen {
 		return "", ErrInvalidSign

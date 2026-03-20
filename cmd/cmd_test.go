@@ -1,9 +1,10 @@
-package cmd
+package cmd_test
 
 import (
 	"encoding/json"
 	"testing"
 
+	"github.com/guogeer/quasar/v2/cmd"
 	"github.com/guogeer/quasar/v2/utils"
 )
 
@@ -12,7 +13,7 @@ type mStruct struct {
 }
 
 func TestM(t *testing.T) {
-	m1 := M{
+	m1 := cmd.M{
 		"Slice":     []int{1, 2},
 		"NilSlice":  ([]int)(nil),
 		"Struct":    mStruct{N: 1},
