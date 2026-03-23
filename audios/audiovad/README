@@ -1,0 +1,2 @@
+## NOTICE
+包引入了`github.com/streamer45/silero-vad-go/speech`，需要安装onnxruntime。具体请查看https://github.com/streamer45/silero-vad-go

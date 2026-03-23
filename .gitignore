@@ -16,3 +16,4 @@ gateway/log
 router/log
 main/*
 .idea/
+temp_*

@@ -25,7 +25,7 @@ func TestFormat(t *testing.T) {
 		t.Error("format audio", err)
 		return
 	}
-	os.WriteFile("test_audio.mp3", out, 0664)
+	os.WriteFile("temp_audio.mp3", out, 0664)
 }
 
 func TestGetAudioInfo(t *testing.T) {
