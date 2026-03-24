@@ -1,13 +1,15 @@
-package utils
+package utils_test
 
 import (
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/guogeer/quasar/v2/utils"
 )
 
 func TestSetBitmap(t *testing.T) {
-	bm := NewBitmap(9)
+	bm := utils.NewBitmap(9)
 	bm.Set(8, 1)
 	bm.Set(7, 1)
 	bm.Set(1, 1)
@@ -29,12 +31,17 @@ func TestSetBitmap(t *testing.T) {
 	}
 }
 
+type fakeBitmap struct {
+	Num  int
+	Bits []uint32
+}
+
 func TestBitmapMarshalJSON(t *testing.T) {
-	bm := NewBitmap(9)
+	bm := utils.NewBitmap(9)
 	bm.Set(8, 1)
 	bm.Set(2, 1)
 	fake := fakeBitmap{Num: 9, Bits: []uint32{4, 1}}
-	if !EqualJSON(bm, fake) {
+	if !utils.EqualJSON(bm, fake) {
 		t.Error("bit map marshal json")
 	}
 }

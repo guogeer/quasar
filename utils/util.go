@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func skipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
+func SkipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
 	end := start
 	if start.IsZero() {
 		panic("start time is zero")
@@ -19,7 +19,7 @@ func skipPeriodTime3(now, start time.Time, d time.Duration) time.Time {
 }
 
 func SkipPeriodTime(start time.Time, d time.Duration) time.Time {
-	return skipPeriodTime3(time.Now(), start, d)
+	return SkipPeriodTime3(time.Now(), start, d)
 }
 
 func InArray(array any, some any) int {

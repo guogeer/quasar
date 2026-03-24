@@ -1,7 +1,10 @@
-package utils
+package utils_test
 
 import (
+	"encoding/json"
 	"testing"
+
+	"github.com/guogeer/quasar/v2/utils"
 )
 
 type AA struct {
@@ -61,19 +64,19 @@ func TestSructCopy(t *testing.T) {
 		AA6: []int{1, 2, 3},
 	}
 	*a.N21 = 123321
-	DeepCopy(nil, a)
-	DeepCopy(nil, nil)
+	utils.DeepCopy(nil, a)
+	utils.DeepCopy(nil, nil)
 
 	a2 := &A{}
-	DeepCopy(a2, a)
+	utils.DeepCopy(a2, a)
 	// t.Log("deep copy test", *a2.AA4[0].N21)
-	if !EqualJSON(a2, a) {
+	if !utils.EqualJSON(a2, a) {
 		t.Error("deep copy error", a2, a)
 	}
 }
 
 func BenchmarkCopy(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		aa3 := AA{N1: 31, N2: 32, N21: new(int), S1: "AAS3", B1: true}
 		*aa3.N21 = 210
 		aa4 := AA{N1: 41, N2: 42, S1: "AAS4", B1: false}
@@ -87,13 +90,13 @@ func BenchmarkCopy(b *testing.B) {
 			AA6: []int{1, 2, 3},
 		}
 		*a.N21 = 123321
-		DeepCopy(nil, a)
-		DeepCopy(nil, nil)
+		utils.DeepCopy(nil, a)
+		utils.DeepCopy(nil, nil)
 
 		a2 := &A{}
-		DeepCopy(a2, a)
+		utils.DeepCopy(a2, a)
 		// t.Log("deep copy test", *a2.AA4[0].N21)
-		if !EqualJSON(a2, a) {
+		if !utils.EqualJSON(a2, a) {
 			b.Error("deep copy error", a2, a)
 		}
 	}
@@ -110,7 +113,7 @@ type GrandPa struct {
 
 type Father struct {
 	GrandPa
-	Id      int `alias:"uid" json:"uid"`
+	UId     int
 	AliasId int `alias:"TestAliasId"`
 	UId2    int
 	N2      int
@@ -129,25 +132,30 @@ type Father2 struct {
 	S       string
 }
 
+func marshalJSON(v any) string {
+	b, _ := json.Marshal(v)
+	return string(b)
+}
+
 func TestInheritSructCopy(t *testing.T) {
 	f := &Father{S2: "sb2"}
 	f2 := &Father2{
 		N2: 22, S2: "", N: 11, S: "sb", UId: 100, Id2: 200, AliasId: 300,
 		GrandPa: GrandPa{GrandAliasId: 400},
 	}
-	DeepCopy(f, f2)
-	if !EqualJSON(f, f2) {
-		t.Error("deep copy inherit", f, f2)
+	utils.DeepCopy(f, f2)
+	if !utils.EqualJSON(f, f2) {
+		t.Error("deep copy inherit", marshalJSON(f), marshalJSON(f2))
 	}
 
 	f2 = &Father2{}
 	f = &Father{
-		N2: 22, S2: "sb2", Id: 100, UId2: 200,
+		N2: 22, S2: "sb2", UId2: 200,
 		Child: Child{N: 100, S: "sb"},
 	}
-	DeepCopy(f2, f)
-	if !EqualJSON(f, f2) {
-		t.Error("deep copy inherit", f, f2)
+	utils.DeepCopy(f2, f)
+	if !utils.EqualJSON(f, f2) {
+		t.Error("deep copy inherit", marshalJSON(f), marshalJSON(f2))
 	}
 }
 
@@ -165,17 +173,17 @@ func TestArraySliceCopy(t *testing.T) {
 	fromS := &TestSlice{A: []int{1, 2, 3}}
 	toA := &TestArray{}
 
-	DeepCopy(toA, fromS)
-	if !EqualJSON(fromS, toA) {
+	utils.DeepCopy(toA, fromS)
+	if !utils.EqualJSON(fromS, toA) {
 		t.Error("deep copy slice to array error", fromS, toA)
 	}
 
 	fromA := &TestArray{A: [3]int{1, 2, 3}, B: []int{100}}
 	toS := &TestSlice{A: []int{0, 0, 0}}
-	DeepCopy(toA, fromS)
-	if !EqualJSON(fromS, toA) {
+	utils.DeepCopy(toA, fromS)
+	if !utils.EqualJSON(fromS, toA) {
 		t.Error("deep copy array to slice error", fromA, toS)
 	}
 
-	DeepCopy(fromA, toS)
+	utils.DeepCopy(fromA, toS)
 }

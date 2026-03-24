@@ -1,7 +1,6 @@
 package utils
 
 import (
-	// "fmt"
 	"reflect"
 )
 
@@ -24,7 +23,7 @@ func DeepCopy(dst, src any) {
 }
 
 func doCopy(dval, sval reflect.Value) {
-	if dval.Kind() == reflect.Ptr && dval.CanSet() && dval.IsZero() && !sval.IsZero() {
+	if dval.Kind() == reflect.Pointer && dval.CanSet() && dval.IsZero() && !sval.IsZero() {
 		dval.Set(reflect.New(dval.Type().Elem()))
 	}
 

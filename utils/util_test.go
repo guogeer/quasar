@@ -1,8 +1,10 @@
-package utils
+package utils_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/guogeer/quasar/v2/utils"
 )
 
 func TestSkipPeriodTime(t *testing.T) {
@@ -18,7 +20,7 @@ func TestSkipPeriodTime(t *testing.T) {
 		t1, _ := time.Parse(longDate, sample[0])
 		t2, _ := time.Parse(longDate, sample[2])
 		d, _ := time.ParseDuration(sample[1])
-		t3 := skipPeriodTime3(now, t1, d)
+		t3 := utils.SkipPeriodTime3(now, t1, d)
 		if t2.Unix() != t3.Unix() {
 			t.Error(sample, t2, t3)
 		}
@@ -36,7 +38,7 @@ func TestEqualJSON(t *testing.T) {
 		"B": 2,
 		"S": "s",
 	}
-	if !EqualJSON(a1, b1) {
+	if !utils.EqualJSON(a1, b1) {
 		t.Error("deep equal result expect true")
 	}
 }
